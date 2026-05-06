@@ -4,7 +4,7 @@ import {
   apiSignup,
   uniqueSlug,
   uniqueUser,
-} from '../helpers/auth'
+} from '../../helpers/auth'
 
 // Use page.request (not the standalone `request` fixture) so cookies set by
 // signup carry over to the navigation that follows.

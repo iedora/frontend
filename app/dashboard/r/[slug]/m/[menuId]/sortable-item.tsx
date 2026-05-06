@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { ImageUpload } from '@/components/upload/image-upload'
 import { deleteItem, updateItem } from './actions'
 import type { BuilderItem } from './types'
 
@@ -26,7 +27,15 @@ function formatPrice(cents: number, currency: string) {
   }).format(cents / 100)
 }
 
-export function SortableItem({ slug, item }: { slug: string; item: BuilderItem }) {
+export function SortableItem({
+  slug,
+  restaurantId,
+  item,
+}: {
+  slug: string
+  restaurantId: string
+  item: BuilderItem
+}) {
   const router = useRouter()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -37,6 +46,9 @@ export function SortableItem({ slug, item }: { slug: string; item: BuilderItem }
   const [description, setDescription] = useState(item.description ?? '')
   const [priceText, setPriceText] = useState((item.priceCents / 100).toFixed(2))
   const [available, setAvailable] = useState(item.available)
+  // Local mirror for immediate dialog feedback after upload — server already
+  // persists; router.refresh() syncs the row preview when the dialog closes.
+  const [imageUrl, setImageUrl] = useState<string | null>(item.imageUrl)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -86,15 +98,26 @@ export function SortableItem({ slug, item }: { slug: string; item: BuilderItem }
         <DialogTrigger
           render={
             <button className="flex flex-1 items-center justify-between gap-3 text-left">
-              <div className="min-w-0">
-                <div className={item.available ? '' : 'text-muted-foreground line-through'}>
-                  {item.name}
-                </div>
-                {item.description && (
-                  <div className="truncate text-xs text-muted-foreground">
-                    {item.description}
-                  </div>
+              <div className="flex min-w-0 items-center gap-3">
+                {item.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    data-testid={`item-thumb-${item.id}`}
+                    className="h-8 w-8 shrink-0 rounded object-cover"
+                  />
                 )}
+                <div className="min-w-0">
+                  <div className={item.available ? '' : 'text-muted-foreground line-through'}>
+                    {item.name}
+                  </div>
+                  {item.description && (
+                    <div className="truncate text-xs text-muted-foreground">
+                      {item.description}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="text-sm tabular-nums text-muted-foreground">
                 {formatPrice(item.priceCents, item.currency)}
@@ -148,6 +171,18 @@ export function SortableItem({ slug, item }: { slug: string; item: BuilderItem }
                 />
                 <Label htmlFor={`avail-${item.id}`}>Available</Label>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Photo</Label>
+              <ImageUpload
+                target={{ kind: 'item-photo', restaurantId, itemId: item.id }}
+                currentUrl={imageUrl}
+                label="Item photo"
+                onChange={(url) => {
+                  setImageUrl(url)
+                  router.refresh()
+                }}
+              />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <DialogFooter className="justify-between sm:justify-between">

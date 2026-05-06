@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { testDb } from '../helpers/db'
+import { testDb } from '../../helpers/db'
 import {
   apiCreateAndActivateOrg,
   apiSignup,
   uniqueSlug,
   uniqueUser,
-} from '../helpers/auth'
+} from '../../helpers/auth'
 
 // Public page is unauthenticated. Each test forces a clean storageState so a
 // stray cookie from a previous case can't change behavior.

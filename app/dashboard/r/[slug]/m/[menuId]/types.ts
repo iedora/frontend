@@ -7,6 +7,7 @@ export type BuilderItem = {
   currency: string
   available: boolean
   position: number
+  imageUrl: string | null
 }
 
 export type BuilderCategory = {

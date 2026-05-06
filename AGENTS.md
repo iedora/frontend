@@ -34,27 +34,60 @@ SaaS multi-tenant restaurant menu builder. Each tenant is a Better Auth `organiz
 
 7. **Drag-and-drop reordering** uses integer `position` columns (per parent). On reorder, recompute positions for affected rows in a single transaction. Renumber periodically if gaps grow.
 
+8. **Menu templates are open/closed.** Each template lives in its own folder under `components/menu/templates/<id>/` and exports a `template: MenuTemplate` from `index.ts`. The renderer (`menu-renderer.tsx`) consumes only the registry — never edit it to support a new template. Adding a template = new folder + 1 import + 1 entry in `templates/registry.ts` + the literal in `RestaurantTheme.layout` (schema). LAYOUTS in `lib/menu-themes.ts` is derived from the registry; do not maintain it separately.
+
+9. **Asset keys are tenant-prefixed and verified twice.** Every uploaded object's S3 key starts with `r/{restaurantId}/`. The `requireRestaurantAccess` DAL guard runs first; `assertKeyBelongsToTarget` then rejects any commit whose key doesn't match the target's restaurant — defense-in-depth against a stale presign being redirected. New asset targets must follow the same `r/{restaurantId}/...` scheme in `lib/storage/targets.ts` and gate item-scoped uploads with an extra ownership check (see `assertItemBelongsToRestaurant`).
+
 ## File layout
 ```
 app/
-  (marketing)/        # public landing pages
-  (dashboard)/        # admin pages — protected
+  (auth)/             # public auth pages (signup, login)
+  dashboard/          # admin pages — protected
+    r/[slug]/         # restaurant home
+      m/[menuId]/     # dnd-kit menu builder
+      theme/          # settings: identity (name, desc, logo, banner) + theme (layout, font, colors)
+      qr/             # QR code generator with print/download
   r/[slug]/           # public menu page per restaurant
+  onboarding/         # first-run org + restaurant
   api/auth/[...all]/  # Better Auth handler
 lib/
   auth.ts             # Better Auth server config
   auth-client.ts      # Better Auth React client
   dal.ts              # verifySession + tenant-scoped guards
   utils.ts            # shadcn cn() helper
+  menu-themes.ts      # ResolvedTheme defaults, FONTS, HEX_PATTERN; LAYOUTS derived from templates registry
   db/
     index.ts          # drizzle client
     schema.ts         # all tables — single source of truth
+  storage/            # S3-compatible storage adapter (MinIO/R2/S3)
+    types.ts          # Storage interface, AssetTarget union
+    targets.ts        # constraints + tenant-prefixed key builder
+    s3-storage.ts     # AWS SDK v3 implementation
+    bootstrap.ts      # idempotent ensureBucket + public-read policy
+    index.ts          # getStorage() singleton wired from env
+  upload/
+    actions.ts        # presign + commit + clear actions, DAL-guarded
 components/
-  ui/                 # shadcn components
+  ui/                 # shadcn primitives
+  upload/
+    image-upload.tsx  # generic <ImageUpload target=...> reusable across all asset kinds
+  menu/
+    menu-renderer.tsx # consumes template registry; injects theme as CSS vars
+    types.ts          # PublicMenuData / RenderProps shared by all templates
+    format.ts         # price/i18n helpers used by templates
+    templates/
+      classic/        # template module: classic-menu.tsx + meta.ts + index.ts
+      minimal/        # template module
+      types.ts        # MenuTemplate, TemplateMeta, TemplateId
+      registry.ts     # REGISTRY + getTemplate + TEMPLATE_META
+      index.ts        # public barrel (only surface other code should import)
 proxy.ts              # Next 16 proxy (was middleware)
 drizzle.config.ts
 docker-compose.yml    # postgres + redis + minio
-.mcp.json             # shadcn, postgres, bun MCP servers
+.mcp.json             # shadcn, postgres, bun, next-devtools, playwright MCP servers
+tests/e2e/
+  specs/              # organized by module: auth, tenancy, menu-builder, public-menu, settings, qr, uploads
+  helpers/            # shared signup/org/db utilities
 ```
 
 ## Useful commands

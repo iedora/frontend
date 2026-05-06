@@ -26,10 +26,12 @@ import type { BuilderCategory } from './types'
 export function MenuBuilder({
   slug,
   menuId,
+  restaurantId,
   initialCategories,
 }: {
   slug: string
   menuId: string
+  restaurantId: string
   initialCategories: BuilderCategory[]
 }) {
   const router = useRouter()
@@ -100,7 +102,12 @@ export function MenuBuilder({
               </p>
             ) : (
               categories.map((c) => (
-                <SortableCategory key={c.id} slug={slug} category={c} />
+                <SortableCategory
+                  key={c.id}
+                  slug={slug}
+                  restaurantId={restaurantId}
+                  category={c}
+                />
               ))
             )}
           </div>

@@ -48,3 +48,6 @@ next-env.d.ts
 /playwright/.cache/
 /blob-report/
 /playwright/.auth/
+
+# Claude Code — local user settings (skills are shared)
+.claude/settings.local.json

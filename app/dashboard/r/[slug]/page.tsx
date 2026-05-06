@@ -13,6 +13,7 @@ import {
 import { CreateMenuDialog } from './create-menu-dialog'
 import { DeleteMenuButton } from './delete-menu-button'
 import { PublishToggle } from './publish-toggle'
+import { SeedSampleButton } from './seed-sample-button'
 
 export default async function RestaurantPage({
   params,
@@ -49,6 +50,21 @@ export default async function RestaurantPage({
           <PublishToggle slug={slug} published={r.published} />
           <Button
             variant="outline"
+            nativeButton={false}
+            render={<Link href={`/dashboard/r/${slug}/theme`} />}
+          >
+            Settings
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/dashboard/r/${slug}/qr`} />}
+          >
+            QR code
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
             render={<Link href={`/r/${r.slug}`} target="_blank" rel="noreferrer" />}
           >
             View public menu
@@ -59,7 +75,10 @@ export default async function RestaurantPage({
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Menus</h2>
-          <CreateMenuDialog slug={slug} />
+          <div className="flex items-center gap-2">
+            <SeedSampleButton slug={slug} />
+            <CreateMenuDialog slug={slug} />
+          </div>
         </div>
 
         {menus.length === 0 ? (

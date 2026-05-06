@@ -41,9 +41,11 @@ import type { BuilderCategory, BuilderItem } from './types'
 
 export function SortableCategory({
   slug,
+  restaurantId,
   category,
 }: {
   slug: string
+  restaurantId: string
   category: BuilderCategory
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -217,7 +219,12 @@ export function SortableCategory({
               </p>
             ) : (
               items.map((it) => (
-                <SortableItem key={it.id} slug={slug} item={it} />
+                <SortableItem
+                  key={it.id}
+                  slug={slug}
+                  restaurantId={restaurantId}
+                  item={it}
+                />
               ))
             )}
           </div>

@@ -61,10 +61,21 @@ export default async function MenuBuilderPage({
       <MenuBuilder
         slug={slug}
         menuId={m.id}
+        restaurantId={r.id}
         initialCategories={categories.map((c) => ({
           id: c.id,
           name: c.name,
-          items: itemsByCategory[c.id] ?? [],
+          items: (itemsByCategory[c.id] ?? []).map((it) => ({
+            id: it.id,
+            categoryId: it.categoryId,
+            name: it.name,
+            description: it.description,
+            priceCents: it.priceCents,
+            currency: it.currency,
+            available: it.available,
+            position: it.position,
+            imageUrl: it.imageUrl,
+          })),
         }))}
       />
     </div>

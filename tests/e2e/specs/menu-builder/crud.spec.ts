@@ -4,7 +4,7 @@ import {
   apiSignup,
   uniqueSlug,
   uniqueUser,
-} from '../helpers/auth'
+} from '../../helpers/auth'
 
 test.describe('Menu builder CRUD', () => {
   test('add category and item, edit item, delete item — persists across reload', async ({

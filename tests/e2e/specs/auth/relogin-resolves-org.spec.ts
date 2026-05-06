@@ -6,7 +6,7 @@ import {
   apiSignup,
   uniqueSlug,
   uniqueUser,
-} from '../helpers/auth'
+} from '../../helpers/auth'
 
 test.describe('Re-login uses DAL fallback for active organization', () => {
   test('a fresh session without activeOrganizationId still lands on /dashboard', async ({

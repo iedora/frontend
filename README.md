@@ -6,10 +6,16 @@ A self-hosted multi-tenant SaaS for restaurants to build digital menus by drag a
 
 - Email + password authentication via Better Auth, with multi-tenant organizations.
 - Drag-and-drop menu builder (categories and items, mouse + keyboard).
-- Item dialog for name, description, price, availability.
+- Item dialog for name, description, price, availability, photo.
+- **Image uploads** (logo, banner, item photos) via presigned PUT to S3-compatible storage (MinIO local, swap for R2/S3 in prod).
+- **Theme editor** with live preview: pick a template (classic, minimal), Google fonts, primary/secondary colors. Values persist in `restaurant.theme` and apply to `/r/<slug>` via CSS variables.
+- **Identity editor** for name, description, logo, banner — all changes feed the same live preview.
+- **QR code page** per restaurant: SVG/PNG download + print-friendly layout pointing at `/r/<slug>`.
+- **Sample menu seed** — one click creates a realistic bistro menu (3 categories, 8 items) so the dashboard isn't empty during onboarding/demos.
 - Publish toggle: drafts return 404 on the public URL, published menus render server-side with metadata for sharing.
-- Tenant isolation enforced in the data access layer — every query filters by `restaurantId` after a membership check.
-- End-to-end Playwright suite covers signup, onboarding, redirects, re-login, tenant isolation, builder CRUD, and the publish flow.
+- Tenant isolation enforced in the data access layer — every query filters by `restaurantId` after a membership check; storage keys are tenant-prefixed (`r/{restaurantId}/...`) and verified at commit time.
+- Templates follow an open/closed registry pattern — adding a new layout is a new folder under `components/menu/templates/<id>/` plus one entry in `registry.ts`.
+- End-to-end Playwright suite (32 specs across 7 modules) covers signup, onboarding, redirects, tenancy, builder CRUD + sample seed, publish, theme + identity editing, QR generation, and image uploads (logo + item photos, replace, remove, oversize).
 
 ## Tech stack
 
@@ -74,20 +80,28 @@ Open <http://localhost:3000>, sign up, and you'll be taken through onboarding. Y
 app/
   (auth)/             public auth pages (signup, login)
   dashboard/          authenticated admin
-    r/[slug]/         restaurant: list of menus
+    r/[slug]/         restaurant home (publish toggle, sample seed, nav)
       m/[menuId]/     dnd-kit menu builder
-  r/[slug]/           public menu page
+      theme/          settings: identity + theme editor with live preview
+      qr/             QR code: SVG/PNG download + print-friendly layout
+  r/[slug]/           public menu page (consumes templates registry)
   onboarding/         first-run org + restaurant creation
 lib/
   auth.ts             Better Auth server config
   auth-client.ts      Better Auth React client
   dal.ts              Data access layer (verifySession, requireRestaurantAccess, …)
+  menu-themes.ts      Theme defaults + fonts; LAYOUTS derived from templates registry
   db/
     index.ts          Drizzle client (postgres-js)
     schema.ts         single source of truth — auth + domain tables
-components/ui/        shadcn primitives
+  storage/            S3-compatible adapter (Storage interface + AWS SDK v3 impl)
+  upload/             presign / commit / clear actions, DAL-guarded
+components/
+  ui/                 shadcn primitives
+  upload/             generic <ImageUpload target=...> client component
+  menu/               renderer + shared types + per-template modules under templates/
 proxy.ts              Next 16 proxy (was middleware.ts)
-tests/e2e/            Playwright specs and helpers
+tests/e2e/specs/      Playwright specs organized by module (auth, tenancy, menu-builder, …)
 drizzle/              Generated migration files
 docker-compose.yml    Postgres + Redis + MinIO
 ```

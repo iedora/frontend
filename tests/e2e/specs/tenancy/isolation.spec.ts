@@ -4,7 +4,7 @@ import {
   apiSignup,
   uniqueSlug,
   uniqueUser,
-} from '../helpers/auth'
+} from '../../helpers/auth'
 
 test.describe('Tenant isolation between organizations', () => {
   test('user A only sees their own restaurants on /dashboard', async ({
@@ -40,6 +40,42 @@ test.describe('Tenant isolation between organizations', () => {
     await expect(pageB.getByText('Alpha Bistro')).toHaveCount(0)
 
     await ctxA.close()
+    await ctxB.close()
+  })
+
+  test('user B cannot reach A\'s theme, QR, or builder pages by URL', async ({
+    browser,
+  }) => {
+    // User A's org with one restaurant + one default menu, captured by slug.
+    const ctxA = await browser.newContext()
+    await apiSignup(ctxA.request, uniqueUser('owner-a'))
+    const orgA = await apiCreateAndActivateOrg(
+      ctxA.request,
+      'Locked Bistro',
+      uniqueSlug('locked'),
+    )
+    await ctxA.close()
+
+    // User B is a separate, fully provisioned tenant.
+    const ctxB = await browser.newContext()
+    await apiSignup(ctxB.request, uniqueUser('owner-b'))
+    await apiCreateAndActivateOrg(ctxB.request, 'Other Bistro', uniqueSlug('other'))
+
+    const pageB = await ctxB.newPage()
+
+    // requireRestaurantBySlug rejects each tenant-scoped page and bounces B
+    // back to their own dashboard. Same defense across theme, QR, and builder.
+    for (const path of [
+      `/dashboard/r/${orgA.slug}/theme`,
+      `/dashboard/r/${orgA.slug}/qr`,
+      `/dashboard/r/${orgA.slug}/m/${orgA.menuId}`,
+    ]) {
+      await pageB.goto(path)
+      await expect(pageB).toHaveURL(/\/dashboard$/)
+      // No leak of the other tenant's data on the redirected page.
+      await expect(pageB.getByText('Locked Bistro')).toHaveCount(0)
+    }
+
     await ctxB.close()
   })
 

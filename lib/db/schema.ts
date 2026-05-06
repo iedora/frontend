@@ -147,8 +147,8 @@ export const invitation = pgTable(
 export type RestaurantTheme = {
   primaryColor?: string
   secondaryColor?: string
-  fontFamily?: string
-  layout?: 'classic' | 'modern' | 'minimal'
+  font?: 'inter' | 'playfair' | 'lora' | 'space-grotesk'
+  layout?: 'classic' | 'minimal'
   // forward-compatible — extend without migrations
   [key: string]: unknown
 }
