@@ -3,8 +3,8 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/shared/ui/button'
-import { setOrganizationPlan } from '@/lib/plans/actions'
-import type { PlanCode } from '@/lib/plans'
+import { setOrganizationPlan } from '@/features/plans/actions'
+import type { PlanCode } from '@/features/plans'
 
 export function UpgradeButton({
   target,

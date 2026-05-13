@@ -9,7 +9,7 @@ import { auth } from '@/lib/auth'
 import { getEffectiveOrganizationId } from '@/features/auth'
 import { db } from '@/lib/db'
 import { menu, organization, restaurant, session as sessionTable } from '@/lib/db/schema'
-import { canAddRestaurant } from '@/lib/plans'
+import { canAddRestaurant } from '@/features/plans'
 
 const slugRegex = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/
 

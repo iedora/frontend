@@ -7,7 +7,7 @@ import {
   isAnalyticsRange,
   type AnalyticsRange,
 } from '@/lib/metrics'
-import { getOrganizationPlan, planHas } from '@/lib/plans'
+import { getOrganizationPlan, planHas } from '@/features/plans'
 import { KpiCard, ScansCard, ScansChart } from '../analytics-cards'
 
 const DEFAULT_RANGE: AnalyticsRange = '30d'

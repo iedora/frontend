@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { requireActiveOrganization } from '@/features/auth'
 import { getInvoiceYears, getInvoicesForYear } from '@/lib/billing'
-import { PLANS, getOrganizationPlan } from '@/lib/plans'
+import { PLANS, getOrganizationPlan } from '@/features/plans'
 import { UpgradeButton } from './upgrade-button'
 
 function formatMoney(amountCents: number, currency: string, locale: string) {

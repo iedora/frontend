@@ -3,7 +3,7 @@ import { cache } from 'react'
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { invoice, type InvoiceStatus } from '@/lib/db/schema'
-import type { PlanCode } from '@/lib/plans'
+import type { PlanCode } from '@/features/plans'
 
 export type Invoice = {
   id: string

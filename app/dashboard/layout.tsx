@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { getEffectiveOrganizationId } from '@/features/auth'
-import { getOrganizationPlan, planHas } from '@/lib/plans'
+import { getOrganizationPlan, planHas } from '@/features/plans'
 import { LogoutButton } from './logout-button'
 import { UserLocaleSwitcher } from './user-locale-switcher'
 
