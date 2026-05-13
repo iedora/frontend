@@ -21,12 +21,11 @@ test.describe('Public menu — i18n rendering', () => {
     )
 
     const sql = testDb()
-    // Multi-language restaurant: default EN, supports PT too. Published.
+    // Multi-language restaurant: default EN, supports PT too.
     await sql`
       UPDATE restaurant
       SET default_language = 'en',
-          supported_languages = '["en","pt"]'::jsonb,
-          published = true
+          supported_languages = '["en","pt"]'::jsonb
       WHERE id = ${org.restaurantId}
     `
 
@@ -101,9 +100,6 @@ test.describe('Public menu — i18n rendering', () => {
       'Solo Bistro',
       uniqueSlug('solo'),
     )
-    const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
-
     const anon = await browser.newContext({ storageState: { cookies: [], origins: [] } })
     const anonPage = await anon.newPage()
     await anonPage.goto(`/r/${org.slug}`)

@@ -29,6 +29,55 @@
       "when": 1778063691263,
       "tag": "0003_skinny_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778252157564,
+      "tag": "0004_jazzy_senator_kelly",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778359352350,
+      "tag": "0005_special_sinister_six",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778360363164,
+      "tag": "0006_clean_lifeguard",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778361232464,
+      "tag": "0007_ordinary_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778362056020,
+      "tag": "0008_condemned_king_bedlam",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778362072544,
+      "tag": "0009_spooky_steve_rogers",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778669289115,
+      "tag": "0010_happy_scorpion",
+      "breakpoints": true
     }
   ]
 }

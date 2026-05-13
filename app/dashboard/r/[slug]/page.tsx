@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { requireRestaurantBySlug } from '@/lib/dal'
-import { getRestaurantMenusWithCounts } from '@/lib/dashboard/queries'
+import { loadRestaurantAdminMenus } from '@/lib/menu/cached'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -13,12 +13,10 @@ import {
   EditorialList,
   formatEditedAt,
   formatIndex,
-  StatusPill,
   type EditorialRowData,
 } from '@/components/editorial-list'
 import { CreateMenuDialog } from './create-menu-dialog'
 import { DeleteMenuButton } from './delete-menu-button'
-import { PublishToggle } from './publish-toggle'
 import { SeedSampleButton } from './seed-sample-button'
 
 export default async function RestaurantPage({
@@ -27,12 +25,20 @@ export default async function RestaurantPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
+  // Auth + tenant scoping (per request, uncached): the user must be a member
+  // of the org owning this restaurant. The cached snapshot below trusts that
+  // the slug is OK to read because this guard has run first.
   const { restaurant: r } = await requireRestaurantBySlug(slug)
   const t = await getTranslations('Restaurant')
   const tDash = await getTranslations('Dashboard')
   const locale = await getLocale()
 
-  const menus = await getRestaurantMenusWithCounts(r.id)
+  // Cached menus list, tagged `restaurant:${slug}` — invalidated by the same
+  // `revalidateRestaurant(slug)` chokepoint the public page uses, so any
+  // menu/category/item save the admin does is visible on the next render
+  // without a separate revalidate call here.
+  const snap = await loadRestaurantAdminMenus(slug)
+  const menus = snap?.menus ?? []
 
   const rows: EditorialRowData[] = menus.map((m, i) => ({
     id: m.id,
@@ -40,16 +46,7 @@ export default async function RestaurantPage({
     title: m.name,
     index: formatIndex(i + 1),
     subtitle: (
-      <>
-        <StatusPill
-          status={{
-            kind: m.active ? 'active' : 'disabled',
-            label: m.active ? t('statusActive') : t('statusDisabled'),
-          }}
-        />
-        <span aria-hidden="true">·</span>
-        <span>{tDash('editedAt', { when: formatEditedAt(m.updatedAt, locale) })}</span>
-      </>
+      <span>{tDash('editedAt', { when: formatEditedAt(m.updatedAt, locale) })}</span>
     ),
     metadata: `${t('categoryCount', { count: m.categoryCount })} · ${t('dishCount', { count: m.dishCount })}`,
     extraActions: (
@@ -59,21 +56,15 @@ export default async function RestaurantPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-            ← {t('back')}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="flex items-baseline gap-2 text-sm font-normal text-muted-foreground">
+          <Link href="/dashboard" className="hover:underline">
+            {t('back')}
           </Link>
-          <span className="mt-1 block font-serif text-[13px] italic text-muted-foreground">
-            {t('eyebrow')}
-          </span>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{r.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            /r/{r.slug} · {r.published ? tDash('published') : tDash('draft')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PublishToggle slug={slug} published={r.published} />
+          <span aria-hidden="true">/</span>
+          <span className="font-semibold">{r.name}</span>
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             nativeButton={false}
@@ -101,9 +92,9 @@ export default async function RestaurantPage({
       <EditorialList
         testId="menu-list"
         header={
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-medium">{t('menus')}</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SeedSampleButton slug={slug} />
               <CreateMenuDialog slug={slug} />
             </div>

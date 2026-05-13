@@ -31,7 +31,6 @@ test.describe('Settings — theme editor', () => {
       INSERT INTO item (id, category_id, restaurant_id, name, price_cents, currency, available, position, updated_at)
       VALUES (gen_random_uuid()::text, ${catId}, ${org.restaurantId}, 'Risotto', 1450, 'EUR', true, 0, now())
     `
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
 
     await page.goto(`/dashboard/r/${org.slug}/theme`)
 
@@ -100,7 +99,6 @@ test.describe('Settings — identity editor', () => {
     )
 
     const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
 
     await page.goto(`/dashboard/r/${org.slug}/theme`)
 

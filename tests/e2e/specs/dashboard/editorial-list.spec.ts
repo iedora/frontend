@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../../fixtures'
 import {
   apiCreateAndActivateOrg,
   apiSignup,
@@ -17,8 +17,7 @@ import {
  *
  *  - one restaurant, no menus, no dishes  → "No menus · No dishes"
  *  - one restaurant, 1 menu, 8 dishes     → "1 menu · 8 dishes"
- *  - two restaurants, mixed publish state → both rows render, status pills
- *                                            differ, footer counts published
+ *  - two restaurants                      → both rows render in createdAt order
  *  - clicking the title link              → /dashboard/r/{slug}
  *  - clicking each action chip            → corresponding sub-page
  *  - keyboard tab order                   → title → menus chip → theme chip
@@ -54,8 +53,6 @@ test.describe('Dashboard — editorial list', () => {
     await expect(row).toContainText('Empty Bistro')
     await expect(row).toContainText('No menus')
     await expect(row).toContainText('No dishes')
-    // Status pill defaults to "draft" (published = false).
-    await expect(row.getByText('draft', { exact: true })).toBeVisible()
   })
 
   test('seeded restaurant shows correct singular/plural counts', async ({ page }) => {
@@ -85,21 +82,16 @@ test.describe('Dashboard — editorial list', () => {
     await expect(row).toContainText('1 menu · 3 dishes')
   })
 
-  test('multiple restaurants render in createdAt order with status pills', async ({
-    page,
-  }) => {
+  test('multiple restaurants render in createdAt order', async ({ page }) => {
     const owner = uniqueUser('dash-many')
     await apiSignup(page.request, owner)
-    // First restaurant via the Better Auth flow; published.
     const first = await apiCreateAndActivateOrg(
       page.request,
       'Tasca do Avô',
       uniqueSlug('tasca'),
     )
-    const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${first.restaurantId}`
 
-    // Second restaurant directly inserted under the same org; draft.
+    // Second restaurant directly inserted under the same org.
     await seedRestaurant(first.id, 'Café Lumière', uniqueSlug('cafe'))
 
     await page.goto('/dashboard')
@@ -110,12 +102,7 @@ test.describe('Dashboard — editorial list', () => {
     const tasca = rows.first()
     const cafe = rows.nth(1)
     await expect(tasca).toContainText('Tasca do Avô')
-    await expect(tasca.getByText('live', { exact: true })).toBeVisible()
     await expect(cafe).toContainText('Café Lumière')
-    await expect(cafe.getByText('draft', { exact: true })).toBeVisible()
-
-    // Footer summary reflects the published total.
-    await expect(page.getByText('1 of 2 published')).toBeVisible()
   })
 
   test('clicking the title navigates to the restaurant page', async ({ page }) => {

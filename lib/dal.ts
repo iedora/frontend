@@ -71,7 +71,6 @@ export const requireRestaurantBySlug = cache(async (slug: string) => {
       id: restaurant.id,
       name: restaurant.name,
       slug: restaurant.slug,
-      published: restaurant.published,
     })
     .from(restaurant)
     .innerJoin(member, eq(member.organizationId, restaurant.organizationId))

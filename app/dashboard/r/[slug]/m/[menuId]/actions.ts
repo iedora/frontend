@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidateRestaurant } from '@/lib/menu/cached'
 import { and, eq, max } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireRestaurantBySlug } from '@/lib/dal'
@@ -13,7 +14,7 @@ import { localizedSchema, pruneLocalized } from '@/lib/i18n/server'
 // /r/[slug] page so visitors see fresh data on next request.
 function revalidateMenu(slug: string, menuId: string) {
   revalidatePath(`/dashboard/r/${slug}/m/${menuId}`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
 }
 
 async function authorizeMenu(slug: string, menuId: string) {
@@ -278,7 +279,7 @@ export async function updateItem(
   // We don't have menuId in this scope; revalidate the whole restaurant subtree
   // (admin) plus the public page.
   revalidatePath(`/dashboard/r/${slug}`, 'layout')
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true as const, categoryId: existing.categoryId }
 }
 
@@ -288,7 +289,7 @@ export async function deleteItem(slug: string, itemId: string) {
   // We don't have menuId in this scope; revalidate the whole restaurant subtree
   // (admin) plus the public page.
   revalidatePath(`/dashboard/r/${slug}`, 'layout')
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
 }
 
 export async function reorderItems(

@@ -49,8 +49,10 @@ export type EditorialRow = {
    * by `· ` dots.
    */
   subtitle: ReactNode
-  /** "01.", "02." numbering — the row prepends these as a tiny serif italic. */
-  index: string
+  /** "01.", "02." numbering — the row prepends these as a tiny serif italic.
+   *  Omit (or pass empty) when the list has a single row; numbering noise on
+   *  one item dilutes the editorial intent of the column. */
+  index?: string
   /**
    * Sub-line metadata, e.g. "2 menus · 14 dishes". Pre-formatted by the page.
    */

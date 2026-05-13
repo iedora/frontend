@@ -26,7 +26,6 @@ test.describe('Uploads — item photos', () => {
     )
 
     const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
     const [{ id: catId }] = await sql<{ id: string }[]>`
       INSERT INTO category (id, menu_id, restaurant_id, name, position, updated_at)
       VALUES (gen_random_uuid()::text, ${org.menuId}, ${org.restaurantId}, 'Mains', 0, now())

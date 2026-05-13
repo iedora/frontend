@@ -58,7 +58,7 @@ test.describe('Menu builder — sample seed', () => {
     expect(counts[0]).toEqual({ menus: 2, categories: 3, items: 8 })
   })
 
-  test('seeded menu renders on the public page once published', async ({
+  test('seeded menu renders on the public page', async ({
     page,
     browser,
   }) => {
@@ -69,9 +69,6 @@ test.describe('Menu builder — sample seed', () => {
       'Public Seed Bistro',
       uniqueSlug('seed-pub'),
     )
-
-    const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
 
     await page.goto(`/dashboard/r/${org.slug}`)
     await page.getByTestId('seed-sample-menu').click()

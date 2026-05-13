@@ -20,7 +20,6 @@ export type RestaurantWithCounts = {
   id: string
   name: string
   slug: string
-  published: boolean
   updatedAt: Date
   menuCount: number
   dishCount: number
@@ -49,7 +48,6 @@ export async function getOrganizationRestaurantsWithCounts(
       id: restaurant.id,
       name: restaurant.name,
       slug: restaurant.slug,
-      published: restaurant.published,
       updatedAt: restaurant.updatedAt,
     })
     .from(restaurant)

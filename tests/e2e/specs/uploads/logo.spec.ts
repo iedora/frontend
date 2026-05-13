@@ -26,8 +26,6 @@ test.describe('Uploads — restaurant logo', () => {
       uniqueSlug('upload'),
     )
     const sql = testDb()
-    await sql`UPDATE restaurant SET published = true WHERE id = ${org.restaurantId}`
-
     await page.goto(`/dashboard/r/${org.slug}/theme`)
 
     await page

@@ -17,6 +17,9 @@ export const auth = betterAuth({
       invitation: schema.invitation,
     },
   }),
+  trustedOrigins: [
+    "https://metamenu.733113.xyz",
+  ],
   emailAndPassword: {
     enabled: true,
   },

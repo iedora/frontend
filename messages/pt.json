@@ -45,16 +45,41 @@
     "actionMenus": "menus",
     "actionTheme": "tema",
     "actionQr": "QR",
-    "footerSummary": "{published} de {total} publicados",
     "newRestaurant": "+ novo restaurante",
     "noRestaurants": "Ainda sem restaurantes",
     "noRestaurantsHint": "Cria um para começar a montar menus.",
-    "draft": "rascunho",
-    "published": "ao vivo"
+    "viewsThisMonth": "visualizações este mês",
+    "viewsCount": "{count} / {limit}",
+    "viewsUnlimited": "{count}",
+    "viewsNudge": "→ Faz upgrade para remover o limite",
+    "analytics": {
+      "range": {
+        "today": "hoje",
+        "7d": "7 dias",
+        "30d": "30 dias"
+      },
+      "scansEyebrow": {
+        "today": "Ritmo de scans · hoje",
+        "7d": "Ritmo de scans · 7 dias",
+        "30d": "Ritmo de scans · 30 dias"
+      },
+      "scansTagline": "scans · {today} hoje",
+      "menusLabel": "Menus",
+      "menusCaption": "{active} ativos · {paused} pausados",
+      "dishesLabel": "Pratos",
+      "dishesCaption": "último adicionado {time}",
+      "dishesNone": "nenhum ainda",
+      "languagesLabel": "Línguas",
+      "chartEyebrow": {
+        "today": "Scans hoje",
+        "7d": "Scans por dia · 7 dias",
+        "30d": "Scans por dia · 30 dias"
+      },
+      "chartPeak": "pico {count}",
+      "noData": "—"
+    }
   },
   "Restaurant": {
-    "eyebrow": "a vossa sala",
-    "menuEyebrow": "a vossa carta",
     "back": "Restaurantes",
     "settings": "Definições",
     "qrCode": "Código QR",
@@ -66,17 +91,9 @@
     "noMenusHint": "Cria um para começar a adicionar categorias.",
     "categoryCount": "{count, plural, =0 {Sem categorias} =1 {1 categoria} other {# categorias}}",
     "dishCount": "{count, plural, =0 {Sem pratos} =1 {1 prato} other {# pratos}}",
-    "statusActive": "ativo",
-    "statusDisabled": "desativado",
-    "menuDisabled": "desativado",
-    "publish": "Publicar",
-    "unpublish": "Despublicar",
     "saving": "A guardar…"
   },
   "Settings": {
-    "eyebrow": "o aspecto",
-    "title": "Definições",
-    "subtitle": "Edita a identidade e o tema do restaurante. As alterações aparecem na pré-visualização; guarda cada secção para publicar.",
     "livePreview": "Pré-visualização",
     "Identity": {
       "title": "Identidade",
@@ -112,13 +129,51 @@
     }
   },
   "Qr": {
-    "eyebrow": "código impresso",
-    "title": "Código QR",
-    "subtitle": "Imprime para mesas ou autocolantes — ao ler abre o menu em {url}.",
     "downloadSvg": "Descarregar SVG",
     "downloadPng": "Descarregar PNG",
     "print": "Imprimir",
     "scan": "Ler para ver o menu"
+  },
+  "Analytics": {
+    "title": "Estatísticas"
+  },
+  "Billing": {
+    "title": "Faturação",
+    "currentPlanTitle": "Plano atual",
+    "currentPlanSubtitle": "Muda quando quiseres. Aplica-se na próxima fatura.",
+    "upgradeCta": "Faz upgrade para adicionar mais",
+    "restaurantsCount": "{count, plural, =1 {1 restaurante} other {Até # restaurantes}}",
+    "unlimitedRestaurants": "Restaurantes ilimitados",
+    "monthlyViewsCount": "{count, number} visualizações mensais",
+    "unlimitedMonthlyViews": "Visualizações ilimitadas",
+    "unlimitedTranslations": "Traduções ilimitadas",
+    "exportPdf": "Exportar menus como PDF para impressão",
+    "customBranding": "Remover branding Meta Menu",
+    "invoicesTitle": "Faturas",
+    "invoicesSubtitle": "Recibos de períodos anteriores.",
+    "invoicesEmpty": "Sem faturas em {year}.",
+    "colIssued": "Emitida",
+    "colPlan": "Plano",
+    "colPeriod": "Período",
+    "colAmount": "Valor",
+    "colStatus": "Estado",
+    "status": {
+      "paid": "Paga",
+      "pending": "Pendente",
+      "void": "Anulada"
+    },
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "Começa com um restaurante.",
+        "cta": "Mudar para Free"
+      },
+      "casa": {
+        "name": "Casa",
+        "tagline": "Tudo no Free, mais as ferramentas para crescer.",
+        "cta": "Subir para Casa"
+      }
+    }
   },
   "Common": {
     "save": "Guardar",

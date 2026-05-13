@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import { requireRestaurantBySlug } from '@/lib/dal'
 import { QrViewer } from './qr-viewer'
@@ -10,30 +11,33 @@ export default async function QrPage({
 }) {
   const { slug } = await params
   const { restaurant: r } = await requireRestaurantBySlug(slug)
-  const t = await getTranslations('Qr')
+  const t = await getTranslations('Restaurant')
 
-  const origin = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
-  const publicUrl = `${origin.replace(/\/$/, '')}/r/${r.slug}`
+  // Build the public URL from the actual request host so the QR works behind
+  // tunnels (Cloudflare, ngrok) and on whatever domain the user reaches the
+  // dashboard from. x-forwarded-host wins over host because edge proxies set
+  // it to the public domain while host stays the upstream value.
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
+  const publicUrl = `${proto}://${host}/r/${r.slug}`
 
   return (
     <div className="space-y-6">
-      <div>
+      <h1 className="flex flex-wrap items-baseline gap-2 text-sm font-normal text-muted-foreground">
+        <Link href="/dashboard" className="hover:underline">
+          {t('back')}
+        </Link>
+        <span aria-hidden="true">/</span>
         <Link
           href={`/dashboard/r/${slug}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="hover:underline"
         >
-          ← {r.name}
+          {r.name}
         </Link>
-        <span className="mt-1 block font-serif text-[13px] italic text-muted-foreground">
-          {t('eyebrow')}
-        </span>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t('subtitle', { url: publicUrl })}
-        </p>
-      </div>
+        <span aria-hidden="true">/</span>
+        <span className="font-semibold">{t('qrCode')}</span>
+      </h1>
 
       <QrViewer publicUrl={publicUrl} restaurantName={r.name} />
     </div>

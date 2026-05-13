@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidateRestaurant } from '@/lib/menu/cached'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireRestaurantBySlug } from '@/lib/dal'
@@ -73,7 +74,7 @@ export async function updateTheme(
     .where(eq(restaurant.id, r.id))
 
   revalidatePath(`/dashboard/r/${slug}/theme`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true }
 }
 
@@ -103,7 +104,7 @@ export async function updateLanguageSettings(
 
   revalidatePath(`/dashboard/r/${slug}`)
   revalidatePath(`/dashboard/r/${slug}/theme`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true }
 }
 
@@ -131,6 +132,6 @@ export async function updateIdentity(
 
   revalidatePath(`/dashboard/r/${slug}`)
   revalidatePath(`/dashboard/r/${slug}/theme`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true }
 }

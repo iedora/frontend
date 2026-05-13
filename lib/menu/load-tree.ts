@@ -13,9 +13,9 @@ import type { PublicMenu } from '@/components/menu/types'
 // Returns RAW data — translations, all menus, no language reduction. Callers
 // pick filters (activeOnly) and apply `localizeTree` when they want a single
 // language for rendering. Keeping the query and the language reduction in
-// separate functions means: public page filters published+active and reduces
-// to the visitor's language; theme dashboard fetches everything at default
-// language for the live preview without duplicating the joins.
+// separate functions means: public page filters active and reduces to the
+// visitor's language; theme dashboard fetches everything at default language
+// for the live preview without duplicating the joins.
 
 export type RawItem = {
   id: string

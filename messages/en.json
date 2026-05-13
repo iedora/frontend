@@ -42,19 +42,44 @@
     "newRestaurant": "+ new restaurant",
     "noRestaurants": "No restaurants yet",
     "noRestaurantsHint": "Create one to start building menus.",
-    "draft": "draft",
-    "published": "live",
     "editedAt": "edited {when}",
     "menuCount": "{count, plural, =0 {No menus} =1 {1 menu} other {# menus}}",
     "dishCount": "{count, plural, =0 {No dishes} =1 {1 dish} other {# dishes}}",
     "actionMenus": "menus",
     "actionTheme": "theme",
     "actionQr": "QR",
-    "footerSummary": "{published} of {total} published"
+    "viewsThisMonth": "views this month",
+    "viewsCount": "{count} / {limit}",
+    "viewsUnlimited": "{count}",
+    "viewsNudge": "→ Upgrade to remove the limit",
+    "analytics": {
+      "range": {
+        "today": "today",
+        "7d": "7 days",
+        "30d": "30 days"
+      },
+      "scansEyebrow": {
+        "today": "Scan rhythm · today",
+        "7d": "Scan rhythm · 7 days",
+        "30d": "Scan rhythm · 30 days"
+      },
+      "scansTagline": "scans · {today} today",
+      "menusLabel": "Menus",
+      "menusCaption": "{active} active · {paused} paused",
+      "dishesLabel": "Dishes",
+      "dishesCaption": "last added {time}",
+      "dishesNone": "none yet",
+      "languagesLabel": "Languages",
+      "chartEyebrow": {
+        "today": "Scans today",
+        "7d": "Scans by day · 7 days",
+        "30d": "Scans by day · 30 days"
+      },
+      "chartPeak": "peak {count}",
+      "noData": "—"
+    }
   },
   "Restaurant": {
-    "eyebrow": "your room",
-    "menuEyebrow": "your menu",
     "back": "Restaurants",
     "settings": "Settings",
     "qrCode": "QR code",
@@ -66,17 +91,9 @@
     "noMenusHint": "Create one to start adding categories.",
     "categoryCount": "{count, plural, =0 {No categories} =1 {1 category} other {# categories}}",
     "dishCount": "{count, plural, =0 {No dishes} =1 {1 dish} other {# dishes}}",
-    "statusActive": "active",
-    "statusDisabled": "disabled",
-    "menuDisabled": "disabled",
-    "publish": "Publish",
-    "unpublish": "Unpublish",
     "saving": "Saving…"
   },
   "Settings": {
-    "eyebrow": "the look",
-    "title": "Settings",
-    "subtitle": "Edit the restaurant identity and visual theme. Changes are live in the preview; save each section to publish.",
     "livePreview": "Live preview",
     "Identity": {
       "title": "Identity",
@@ -112,13 +129,51 @@
     }
   },
   "Qr": {
-    "eyebrow": "printed code",
-    "title": "QR code",
-    "subtitle": "Print this on table tents or stickers — scanning opens the menu at {url}.",
     "downloadSvg": "Download SVG",
     "downloadPng": "Download PNG",
     "print": "Print",
     "scan": "Scan to view the menu"
+  },
+  "Analytics": {
+    "title": "Analytics"
+  },
+  "Billing": {
+    "title": "Billing",
+    "currentPlanTitle": "Current plan",
+    "currentPlanSubtitle": "Switch any time. Changes apply on the next invoice.",
+    "upgradeCta": "Upgrade to add more",
+    "restaurantsCount": "{count, plural, =1 {1 restaurant} other {Up to # restaurants}}",
+    "unlimitedRestaurants": "Unlimited restaurants",
+    "monthlyViewsCount": "{count, number} monthly views",
+    "unlimitedMonthlyViews": "Unlimited monthly views",
+    "unlimitedTranslations": "Unlimited translations",
+    "exportPdf": "Export menus as printable PDF",
+    "customBranding": "Remove Meta Menu branding",
+    "invoicesTitle": "Invoices",
+    "invoicesSubtitle": "Receipts for past billing periods.",
+    "invoicesEmpty": "No invoices for {year}.",
+    "colIssued": "Issued",
+    "colPlan": "Plan",
+    "colPeriod": "Period",
+    "colAmount": "Amount",
+    "colStatus": "Status",
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "void": "Void"
+    },
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "Get started with one restaurant.",
+        "cta": "Switch to Free"
+      },
+      "casa": {
+        "name": "Casa",
+        "tagline": "Everything in Free, plus the tools to grow.",
+        "cta": "Upgrade to Casa"
+      }
+    }
   },
   "Common": {
     "save": "Save",

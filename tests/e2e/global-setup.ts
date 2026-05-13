@@ -26,6 +26,7 @@ async function truncateAll() {
     // Order matters because of FKs; CASCADE handles it.
     await sql`
       TRUNCATE TABLE
+        "view_seen", "daily_view", "invoice",
         "item", "category", "menu", "restaurant",
         "invitation", "member", "organization",
         "session", "account", "verification", "user"

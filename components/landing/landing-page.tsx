@@ -107,7 +107,7 @@ const COPY: Record<LangCode, Copy> = {
     },
     footer: { left: "Meta Menu · made in Lisbon", links: ["Privacy", "Contact"] },
     boa: "Enjoy your meal.",
-    editor: { title: "Menu", restaurant: "Restaurant", item: "Item name", desc: "Description", section: "Section", price: "Price (€)", publish: "⌘ S to publish", live: "live", add: "+ add item" },
+    editor: { title: "Menu", restaurant: "Restaurant", item: "Item name", desc: "Description", section: "Section", price: "Price (€)", publish: "⌘ S to save", live: "live", add: "+ add item" },
     phone: { eyebrow: "at the table", live: "updated just now" },
   },
   pt: {
@@ -165,7 +165,7 @@ const COPY: Record<LangCode, Copy> = {
     },
     footer: { left: "Meta Menu · feito em Lisboa", links: ["Privacidade", "Contacto"] },
     boa: "Boa mesa.",
-    editor: { title: "Carta", restaurant: "Restaurante", item: "Nome do prato", desc: "Descrição", section: "Secção", price: "Preço (€)", publish: "⌘ S para publicar", live: "ao vivo", add: "+ adicionar" },
+    editor: { title: "Carta", restaurant: "Restaurante", item: "Nome do prato", desc: "Descrição", section: "Secção", price: "Preço (€)", publish: "⌘ S para guardar", live: "ao vivo", add: "+ adicionar" },
     phone: { eyebrow: "à mesa", live: "actualizado agora" },
   },
   es: {
@@ -223,7 +223,7 @@ const COPY: Record<LangCode, Copy> = {
     },
     footer: { left: "Meta Menu · hecho en Lisboa", links: ["Privacidad", "Contacto"] },
     boa: "Boa mesa.",
-    editor: { title: "Carta", restaurant: "Restaurante", item: "Nombre del plato", desc: "Descripción", section: "Sección", price: "Precio (€)", publish: "⌘ S para publicar", live: "en vivo", add: "+ añadir" },
+    editor: { title: "Carta", restaurant: "Restaurante", item: "Nombre del plato", desc: "Descripción", section: "Sección", price: "Precio (€)", publish: "⌘ S para guardar", live: "en vivo", add: "+ añadir" },
     phone: { eyebrow: "à mesa", live: "actualizado ahora" },
   },
   fr: {
@@ -281,7 +281,7 @@ const COPY: Record<LangCode, Copy> = {
     },
     footer: { left: "Meta Menu · fait à Lisbonne", links: ["Confidentialité", "Contact"] },
     boa: "Boa mesa.",
-    editor: { title: "Carte", restaurant: "Restaurant", item: "Nom du plat", desc: "Description", section: "Section", price: "Prix (€)", publish: "⌘ S pour publier", live: "en direct", add: "+ ajouter" },
+    editor: { title: "Carte", restaurant: "Restaurant", item: "Nom du plat", desc: "Description", section: "Section", price: "Prix (€)", publish: "⌘ S pour enregistrer", live: "en direct", add: "+ ajouter" },
     phone: { eyebrow: "à mesa", live: "mis à jour à l'instant" },
   },
 };

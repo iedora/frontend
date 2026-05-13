@@ -71,25 +71,24 @@ export default async function ThemePage({
   const { restaurant: r } = await requireRestaurantBySlug(slug)
   const data = await loadEditorData(r.id)
   const initialTheme = resolveTheme(data.rawTheme)
-  const t = await getTranslations('Settings')
+  const t = await getTranslations('Restaurant')
 
   return (
     <div className="space-y-6">
-      <div>
+      <h1 className="flex flex-wrap items-baseline gap-2 text-sm font-normal text-muted-foreground">
+        <Link href="/dashboard" className="hover:underline">
+          {t('back')}
+        </Link>
+        <span aria-hidden="true">/</span>
         <Link
           href={`/dashboard/r/${slug}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="hover:underline"
         >
-          ← {r.name}
+          {r.name}
         </Link>
-        <span className="mt-1 block font-serif text-[13px] italic text-muted-foreground">
-          {t('eyebrow')}
-        </span>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
-      </div>
+        <span aria-hidden="true">/</span>
+        <span className="font-semibold">{t('settings')}</span>
+      </h1>
 
       <ThemeEditor
         slug={slug}

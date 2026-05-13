@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '../../fixtures'
 import { uniqueSlug, uniqueUser } from '../../helpers/auth'
 
 test.describe('Signup → onboarding → dashboard (full UI flow)', () => {

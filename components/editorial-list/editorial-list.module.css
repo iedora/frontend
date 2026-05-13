@@ -34,14 +34,13 @@
   border-bottom-color: var(--muted-foreground);
 }
 
-/* Sub-row holds the metadata + action chips. Pulled in slightly so it
- * reads as belonging to the row above, not as its own entry. */
+/* Sub-row holds the metadata + action chips. Stays flush left so it
+ * never strands behind the (optional) index column on lists with one row. */
 .subRow {
   display: flex;
   align-items: center;
   gap: 18px;
   margin-top: 10px;
-  margin-left: 32px;
   flex-wrap: wrap;
   font-size: 12.5px;
   color: var(--foreground);

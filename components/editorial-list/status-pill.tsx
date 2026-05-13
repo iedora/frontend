@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { EditorialStatus } from './types'
 
-const POSITIVE = new Set(['live', 'active', 'published'])
+const POSITIVE = new Set(['active'])
 
 export function StatusPill({ status }: { status: EditorialStatus }) {
   const isPositive = POSITIVE.has(status.kind.toLowerCase())

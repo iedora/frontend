@@ -24,8 +24,7 @@ test.describe('Settings — identity description translations', () => {
     await sql`
       UPDATE restaurant
       SET supported_languages = '["en","pt"]'::jsonb,
-          description = 'Cosy spot in town',
-          published = true
+          description = 'Cosy spot in town'
       WHERE id = ${org.restaurantId}
     `
 

@@ -15,12 +15,14 @@ export function EditorialRow({ row }: { row: Row }) {
   return (
     <div className={styles.row} data-testid="editorial-row">
       <div className="flex items-baseline gap-3">
-        <span
-          aria-hidden="true"
-          className="font-serif text-[12.5px] italic text-muted-foreground tabular-nums"
-        >
-          {row.index}
-        </span>
+        {row.index && (
+          <span
+            aria-hidden="true"
+            className="font-serif text-[12.5px] italic text-muted-foreground tabular-nums"
+          >
+            {row.index}
+          </span>
+        )}
         <Link
           href={row.href}
           className="block min-w-0 no-underline text-foreground"

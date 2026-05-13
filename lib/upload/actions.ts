@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidateRestaurant } from '@/lib/menu/cached'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireRestaurantAccess } from '@/lib/dal'
@@ -228,5 +229,5 @@ async function bustPaths(target: AssetTarget): Promise<void> {
   if (!slug) return
   revalidatePath(`/dashboard/r/${slug}`)
   revalidatePath(`/dashboard/r/${slug}/theme`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
 }

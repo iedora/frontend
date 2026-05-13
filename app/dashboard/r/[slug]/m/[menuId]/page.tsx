@@ -63,18 +63,17 @@ export default async function MenuBuilderPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href={`/dashboard/r/${slug}`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← {r.name}
+      <h1 className="flex flex-wrap items-baseline gap-2 text-sm font-normal text-muted-foreground">
+        <Link href="/dashboard" className="hover:underline">
+          {t('back')}
         </Link>
-        <span className="mt-1 block font-serif text-[13px] italic text-muted-foreground">
-          {t('menuEyebrow')}
-        </span>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{m.name}</h1>
-      </div>
+        <span aria-hidden="true">/</span>
+        <Link href={`/dashboard/r/${slug}`} className="hover:underline">
+          {r.name}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="font-semibold">{m.name}</span>
+      </h1>
 
       <MenuBuilder
         slug={slug}

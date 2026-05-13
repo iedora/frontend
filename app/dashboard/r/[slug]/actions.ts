@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { revalidateRestaurant } from '@/lib/menu/cached'
 import { and, eq, max } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireRestaurantBySlug } from '@/lib/dal'
@@ -38,7 +39,7 @@ export async function createMenu(slug: string, formData: FormData) {
   })
 
   revalidatePath(`/dashboard/r/${slug}`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true as const }
 }
 
@@ -46,7 +47,7 @@ export async function deleteMenu(slug: string, menuId: string) {
   const { restaurant: r } = await requireRestaurantBySlug(slug)
   await db.delete(menu).where(and(eq(menu.id, menuId), eq(menu.restaurantId, r.id)))
   revalidatePath(`/dashboard/r/${slug}`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
 }
 
 export async function seedSampleMenu(slug: string) {
@@ -120,14 +121,6 @@ export async function seedSampleMenu(slug: string) {
   })
 
   revalidatePath(`/dashboard/r/${slug}`)
-  revalidatePath(`/r/${slug}`)
+  revalidateRestaurant(slug)
   return { ok: true as const, menuId: newMenuId }
-}
-
-export async function setRestaurantPublished(slug: string, published: boolean) {
-  const { restaurant: r } = await requireRestaurantBySlug(slug)
-  await db.update(restaurant).set({ published }).where(eq(restaurant.id, r.id))
-  revalidatePath(`/dashboard/r/${slug}`)
-  revalidatePath(`/r/${slug}`)
-  return { ok: true as const, published }
 }

@@ -15,6 +15,7 @@ export async function truncateAll() {
   const sql = testDb()
   await sql`
     TRUNCATE TABLE
+      "view_seen", "daily_view", "invoice",
       "item", "category", "menu", "restaurant",
       "invitation", "member", "organization",
       "session", "account", "verification", "user"
@@ -34,17 +35,15 @@ export async function seedRestaurant(
   organizationId: string,
   name: string,
   slug: string,
-  opts: { published?: boolean } = {},
 ): Promise<{ restaurantId: string }> {
   const sql = testDb()
   const [{ id }] = await sql<{ id: string }[]>`
-    INSERT INTO restaurant (id, organization_id, name, slug, published, updated_at)
+    INSERT INTO restaurant (id, organization_id, name, slug, updated_at)
     VALUES (
       gen_random_uuid()::text,
       ${organizationId},
       ${name},
       ${slug},
-      ${opts.published ?? false},
       now()
     )
     RETURNING id

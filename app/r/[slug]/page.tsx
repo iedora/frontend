@@ -1,87 +1,69 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import { eq } from 'drizzle-orm'
-import { db } from '@/lib/db'
-import { restaurant, type RestaurantTheme } from '@/lib/db/schema'
 import { resolveTheme, type ResolvedTheme } from '@/components/menu/theme'
 import {
   LANGUAGE_META,
   type LanguageCode,
-  type LocalizedText,
   getLanguage,
   localizedNullable,
   pickLanguage,
 } from '@/lib/i18n'
-import { loadMenuTree, localizeTree } from '@/lib/menu/load-tree'
+import { loadRestaurantSnapshot } from '@/lib/menu/cached'
+import { localizeTree } from '@/lib/menu/load-tree'
 import { MenuRenderer } from '@/components/menu/menu-renderer'
 import type { PublicMenuData } from '@/components/menu/types'
 
 type LoadedRestaurant = PublicMenuData & {
+  organizationId: string
   theme: ResolvedTheme
   defaultLanguage: LanguageCode
   supportedLanguages: LanguageCode[]
   currentLanguage: LanguageCode
 }
 
-async function loadPublishedRestaurant(
+/**
+ * Resolves the cached snapshot for `slug`, then localizes it based on the
+ * visitor's language preference. The DB queries live inside `loadRestaurantSnapshot`
+ * (cached, tag-invalidated on mutations); the localization step is a pure
+ * in-memory transform that runs per request — cheap, depends on request input.
+ */
+async function loadRestaurantForRequest(
   slug: string,
   requestedLang: string | null | undefined,
   acceptLanguage: string | null | undefined,
 ): Promise<LoadedRestaurant | null> {
-  const restaurantRows = await db
-    .select({
-      id: restaurant.id,
-      name: restaurant.name,
-      slug: restaurant.slug,
-      description: restaurant.description,
-      descriptionI18n: restaurant.descriptionI18n,
-      logoUrl: restaurant.logoUrl,
-      bannerUrl: restaurant.bannerUrl,
-      theme: restaurant.theme,
-      defaultLanguage: restaurant.defaultLanguage,
-      supportedLanguages: restaurant.supportedLanguages,
-      published: restaurant.published,
-    })
-    .from(restaurant)
-    .where(eq(restaurant.slug, slug))
-    .limit(1)
+  const snap = await loadRestaurantSnapshot(slug)
+  if (!snap) return null
 
-  const r = restaurantRows[0]
-  if (!r || !r.published) return null
-
-  const supported = r.supportedLanguages as LanguageCode[]
-  const defaultLanguage = r.defaultLanguage as LanguageCode
   const currentLanguage = pickLanguage({
     requested: requestedLang,
     acceptLanguage,
-    supported,
-    defaultLanguage,
+    supported: snap.supportedLanguages,
+    defaultLanguage: snap.defaultLanguage,
   })
 
-  // Tree query lives in lib/menu — same loader the dashboard preview uses.
-  // localizeTree reduces the i18n maps to the visitor's language.
-  const tree = await loadMenuTree({ restaurantId: r.id, activeOnly: true })
-  const menus = localizeTree(tree, currentLanguage, defaultLanguage)
+  const menus = localizeTree(snap.tree, currentLanguage, snap.defaultLanguage)
 
   return {
     restaurant: {
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
+      id: snap.id,
+      name: snap.name,
+      slug: snap.slug,
       description: localizedNullable(
-        r.description,
-        r.descriptionI18n as LocalizedText | null,
+        snap.description,
+        snap.descriptionI18n,
         currentLanguage,
-        defaultLanguage,
+        snap.defaultLanguage,
       ),
-      logoUrl: r.logoUrl,
-      bannerUrl: r.bannerUrl,
+      logoUrl: snap.logoUrl,
+      bannerUrl: snap.bannerUrl,
     },
+    organizationId: snap.organizationId,
     menus,
-    theme: resolveTheme(r.theme as RestaurantTheme | null),
-    defaultLanguage,
-    supportedLanguages: supported,
+    theme: resolveTheme(snap.theme),
+    defaultLanguage: snap.defaultLanguage,
+    supportedLanguages: snap.supportedLanguages,
     currentLanguage,
   }
 }
@@ -96,7 +78,7 @@ export async function generateMetadata({
   const { slug } = await params
   const sp = await searchParams
   const h = await headers()
-  const data = await loadPublishedRestaurant(
+  const data = await loadRestaurantForRequest(
     slug,
     sp.lang,
     h.get('accept-language'),
@@ -119,7 +101,7 @@ export default async function PublicMenuPage({
   const { slug } = await params
   const sp = await searchParams
   const h = await headers()
-  const data = await loadPublishedRestaurant(
+  const data = await loadRestaurantForRequest(
     slug,
     sp.lang,
     h.get('accept-language'),
@@ -127,9 +109,6 @@ export default async function PublicMenuPage({
   if (!data) notFound()
 
   const showSwitcher = data.supportedLanguages.length > 1
-  // Browsers honor the closest ancestor `lang` attribute for spell-check,
-  // hyphenation, and screen readers. The root layout stays `lang="en"` for
-  // the dashboard; here we override per-render based on the active language.
   const langMetaCurrent = getLanguage(data.currentLanguage)
   return (
     <div
@@ -172,6 +151,26 @@ export default async function PublicMenuPage({
         restaurant={data.restaurant}
         menus={data.menus}
         theme={data.theme}
+      />
+      {/* Pixel beacon — survives any future edge cache layer in front of the
+        page. The CDN may serve the HTML from cache, but the browser still
+        loads this image from the origin, so `/api/track/[slug]` runs on
+        every real visit. See lib/menu/cached.ts for the cache story. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/track/${data.restaurant.slug}?lang=${data.currentLanguage}`}
+        alt=""
+        aria-hidden="true"
+        width={1}
+        height={1}
+        data-testid="view-beacon"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: 'none',
+        }}
       />
     </div>
   )
