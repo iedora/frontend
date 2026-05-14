@@ -51,10 +51,10 @@ cmd_new() {
     exit 1
   }
 
-  : "${TF_VAR_cloudflare_api_token:?must be exported}"
-  : "${TF_VAR_state_passphrase:?must be exported (≥ 16 chars)}"
-  : "${TF_VAR_account_id:?must be exported (32-char hex)}"
-  : "${TF_VAR_zone_id:?must be exported (32-char hex)}"
+  : "${TF_VAR_cloudflare_api_token:?must be exported (from .envrc)}"
+  : "${TF_VAR_state_passphrase:?must be exported (from .envrc, ≥ 16 chars)}"
+  : "${TF_VAR_account_id:?must be exported (from .envrc, 32-char hex)}"
+  : "${TF_VAR_zone_id:?must be exported (from .envrc, 32-char hex)}"
 
   local tfvars="${ENVS_DIR}/${name}.tfvars"
   if [ -f "${tfvars}" ]; then
@@ -64,13 +64,10 @@ cmd_new() {
     cat > "${tfvars}" <<EOF
 # Env: ${name}
 # Generated $(date -u +%Y-%m-%dT%H:%M:%SZ).
+# Only per-env vars live here. account_id/zone_id/secrets come from .envrc.
 
-account_id      = "${TF_VAR_account_id}"
-zone_id         = "${TF_VAR_zone_id}"
 public_hostname = "${hostname}"
-
 tunnel_name     = "meta-menu-${name}"
-origin_service  = "http://localhost:80"
 EOF
   fi
 

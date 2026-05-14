@@ -1,12 +1,9 @@
 # Template — copy to envs/<name>.tfvars (gitignored) per environment, or use:
-#   make cf-up NAME=<env> HOSTNAME=<fqdn>
-# which scaffolds this file for you.
-
-# Cloudflare account ID — top-right of dash.cloudflare.com (32 hex chars).
-account_id = "00000000000000000000000000000000"
-
-# Zone ID for the domain the tunnel will route. dash → domain → API column.
-zone_id = "00000000000000000000000000000000"
+#   make onprem-up NAME=<env> HOSTNAME=<fqdn>
+# which scaffolds this file from the inputs.
+#
+# Only env-specific variables live here. Cross-env values (account_id,
+# zone_id, secrets) come from .envrc as TF_VAR_* — single source of truth.
 
 # FQDN visitors hit for the app. Must be a subdomain of the zone.
 public_hostname = "menu.example.com"
@@ -19,8 +16,4 @@ public_hostname = "menu.example.com"
 tunnel_name = "meta-menu"
 
 # Where cloudflared forwards traffic for the app. kamal-proxy listens on :80.
-origin_service = "http://localhost:80"
-
-# Secrets — set as TF_VAR_* env vars, never in this file:
-#   export TF_VAR_cloudflare_api_token=...
-#   export TF_VAR_state_passphrase=...    (≥ 16 chars)
+# origin_service = "http://localhost:80"

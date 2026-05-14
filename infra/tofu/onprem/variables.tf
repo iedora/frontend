@@ -22,7 +22,7 @@ variable "state_passphrase" {
 }
 
 variable "account_id" {
-  description = "Cloudflare account ID. Top-right of dash.cloudflare.com (or in the R2 bucket page → S3 API)."
+  description = "Cloudflare account ID. Cross-env — set in .envrc as TF_VAR_account_id, NOT in tfvars."
   type        = string
 
   validation {
@@ -32,7 +32,7 @@ variable "account_id" {
 }
 
 variable "zone_id" {
-  description = "Cloudflare zone ID for the domain whose subdomain will route through the tunnel."
+  description = "Cloudflare zone ID. Cross-env — set in .envrc as TF_VAR_zone_id, NOT in tfvars."
   type        = string
 
   validation {
