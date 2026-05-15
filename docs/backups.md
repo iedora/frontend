@@ -2,6 +2,8 @@
 
 A `backups` Kamal accessory runs [`eeshugerman/postgres-backup-s3`](https://github.com/eeshugerman/postgres-backup-s3) on the same network as the `postgres` accessory. Daily at 00:00 UTC it `pg_dump`s the `metamenu` database, GPG-encrypts the dump with `BACKUP_PASSPHRASE`, and uploads to a Cloudflare R2 bucket. 14-day retention. ~€0/yr at our size (R2 free tier ≤ 10 GB + zero egress).
 
+> **Version skew note** — upstream `eeshugerman/postgres-backup-s3` stops at tag `:16` as of mid-2026; our server runs `postgres:18-alpine`. pg_dump 16 against PG 18 works for our plain Drizzle schema (no PG-17/18-specific features in use). Bump the tag when upstream ships 17/18, or self-build from `postgres:18-alpine` if we ever lean on PG 18 features.
+
 Kamal itself doesn't manage backups — this is the canonical "use an accessory" pattern (confirmed across discussions [#654](https://github.com/basecamp/kamal/discussions/654), [#1150](https://github.com/basecamp/kamal/discussions/1150), [#1240](https://github.com/basecamp/kamal/discussions/1240), [#1414](https://github.com/basecamp/kamal/discussions/1414)).
 
 ## One-time setup (after the bucket exists)
