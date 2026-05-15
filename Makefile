@@ -15,10 +15,9 @@ KAMAL_GEM_BIN := $(firstword \
   $(wildcard $(HOME)/.gem/ruby/*/bin) \
   $(wildcard $(HOME)/.rbenv/versions/*/bin))
 
-# Derived from PUBLIC_HOSTNAME. menu.733113.xyz → assets.733113.xyz.
-export ASSETS_HOSTNAME   ?= assets.$(shell echo $(PUBLIC_HOSTNAME) | cut -d. -f2-)
-
 # Pipe .env values into TF_VAR_ names so we don't repeat them in Tofu.
+# ASSETS_HOSTNAME isn't needed here — deploy.yml derives it inline from
+# PUBLIC_HOSTNAME, and Tofu derives it from its own var.public_hostname.
 export TF_VAR_account_id            := $(CLOUDFLARE_ACCOUNT_ID)
 export TF_VAR_zone_id               := $(CLOUDFLARE_ZONE_ID)
 export TF_VAR_cloudflare_api_token  := $(CLOUDFLARE_API_TOKEN)

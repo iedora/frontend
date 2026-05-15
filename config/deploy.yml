@@ -5,6 +5,12 @@
 # and pulled by the same box. Registry auth uses the `gh` CLI's token
 # (see .kamal/secrets).
 
+<%
+  public_hostname = ENV.fetch("PUBLIC_HOSTNAME")
+  # Assets live on `assets.<rest-of-public-hostname>` — e.g. menu.example.com → assets.example.com
+  assets_hostname = "assets.#{public_hostname.split('.', 2)[1]}"
+%>
+
 service: meta-menu
 
 image: <%= ENV.fetch("GHCR_USER") %>/meta-menu
@@ -22,7 +28,7 @@ servers:
 
 proxy:
   ssl: false                              # Cloudflare Tunnel terminates TLS
-  host: <%= ENV.fetch("PUBLIC_HOSTNAME") %>
+  host: <%= public_hostname %>
   app_port: 3000
   forward_headers: true                   # cloudflared sets X-Forwarded-*
   healthcheck:
@@ -58,8 +64,8 @@ builder:
 env:
   clear:
     NEXT_TELEMETRY_DISABLED: "1"
-    BETTER_AUTH_URL: <%= "https://#{ENV.fetch('PUBLIC_HOSTNAME')}" %>
-    S3_ENDPOINT: <%= "https://#{ENV.fetch('ASSETS_HOSTNAME')}" %>
+    BETTER_AUTH_URL: https://<%= public_hostname %>
+    S3_ENDPOINT: https://<%= assets_hostname %>
     S3_REGION: us-east-1
     S3_BUCKET: metamenu
   secret:

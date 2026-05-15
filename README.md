@@ -56,6 +56,7 @@ scripts/     migrate.mjs, check-migrations.ts
 - **[`docs/architecture.md`](docs/architecture.md)** — the slice playbook + how to add a feature
 - **[`docs/testing.md`](docs/testing.md)** — Vitest+PGLite unit tests, Playwright e2e
 - **[`docs/deploy.md`](docs/deploy.md)** — self-hosting on a homelab box behind a Cloudflare Tunnel with Kamal 2
+- **[`docs/scaling.md`](docs/scaling.md)** — when one box isn't enough: vertical, Hetzner migration, multi-host via Tailscale
 - **[`AGENTS.md`](AGENTS.md)** — hard rules + conventions (also read by AI assistants)
 
 ## Scripts
