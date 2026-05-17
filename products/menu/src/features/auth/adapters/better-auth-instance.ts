@@ -91,6 +91,12 @@ export function makeAuth(database: AuthDb) {
               'org:read',
               'org:admin',
             ],
+            // PKCE is mandatory on Genkan's side (OAuth 2.1 default; the
+            // trusted oauth_client row sets require_pkce=true). Without
+            // this flag generic-oauth omits the code_challenge param and
+            // Genkan rejects the authorize request with
+            // `error_description=pkce is required for this client`.
+            pkce: true,
           },
         ],
       }),
