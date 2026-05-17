@@ -1,4 +1,4 @@
-import { normalizeIP } from '@better-auth/core/utils'
+import { normalizeIP } from '@better-auth/core/utils/ip'
 
 /**
  * Extract the client IP, narrowed to a /64 for IPv6 so an attacker can't walk
