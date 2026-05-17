@@ -38,3 +38,24 @@ export type HandlerMap = {
     payload: IdentityEventOf<K>,
   ) => void | Promise<void>;
 };
+
+/**
+ * Idempotency store for the receiver. The default is an in-process
+ * `Map<id, expiresAtMs>` (good enough for single-instance products).
+ * Multi-instance deployments should swap in a Redis or Postgres-backed
+ * implementation so a duplicate replayed at a different replica is still
+ * caught.
+ *
+ * Contract:
+ *  - `has(id)` returns true iff the id was remembered AND not yet expired.
+ *  - `remember(id, ttlMs)` stores the id for at least `ttlMs` milliseconds.
+ *    Implementations MAY persist longer; they MUST NOT persist shorter.
+ *
+ * Both methods are async because the prod implementation will likely
+ * involve a network round-trip; the default in-memory one returns
+ * resolved promises.
+ */
+export type DedupStore = {
+  has(id: string): Promise<boolean>;
+  remember(id: string, ttlMs: number): Promise<void>;
+};

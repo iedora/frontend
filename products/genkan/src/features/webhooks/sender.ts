@@ -16,8 +16,20 @@ import { listSubscriptions } from './adapters/drizzle'
  * first cut). The retry policy is the package default (3 attempts,
  * exponential backoff 0.5s → 2s → 8s).
  */
+/**
+ * SSRF escape hatch: only honoured outside production. The env var exists
+ * so devs running a menu receiver on `http://localhost:3001/...` can wire
+ * the webhook without disabling the package guard globally. Production
+ * deploys NEVER set this — every subscription URL must resolve to a public
+ * address.
+ */
+const allowPrivateNetworks =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.IEDORA_WEBHOOKS_ALLOW_PRIVATE === '1'
+
 const sender = createWebhookSender({
   listSubscriptions,
+  allowPrivateNetworks,
   onDelivery: (r: DeliveryResult) => {
     if (r.status === 'failed') {
       console.warn(

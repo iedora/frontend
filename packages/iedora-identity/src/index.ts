@@ -9,6 +9,7 @@
 
 export {
   SIGNATURE_HEADER,
+  TIMESTAMP_HEADER,
   type IdentityEvent,
   type IdentityEventName,
   type IdentityEventOf,
@@ -17,7 +18,10 @@ export {
 
 export {
   formatSignatureHeader,
+  formatStripeStyleHeader,
+  parseSignatureHeader,
   signPayload,
+  signSignedPayload,
   verifySignature,
 } from "./signature";
 
@@ -25,6 +29,7 @@ export { createWebhookSender, type SenderOptions } from "./sender";
 export { createWebhookReceiver, type ReceiverOptions } from "./receiver";
 
 export type {
+  DedupStore,
   DeliveryResult,
   HandlerMap,
   WebhookSubscription,

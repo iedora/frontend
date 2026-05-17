@@ -1,9 +1,14 @@
 import {
   SIGNATURE_HEADER,
+  TIMESTAMP_HEADER,
   type IdentityEvent,
   type IdentityWebhookEnvelope,
 } from "./events";
-import { formatSignatureHeader, signPayload } from "./signature";
+import {
+  formatStripeStyleHeader,
+  signSignedPayload,
+} from "./signature";
+import { validateWebhookUrl } from "./ssrf";
 import type { DeliveryResult, WebhookSubscription } from "./types";
 
 export type SenderOptions = {
@@ -41,6 +46,14 @@ export type SenderOptions = {
    * that respect signals.
    */
   timeoutMs?: number;
+  /**
+   * SSRF escape hatch — allow subscription URLs that resolve to private,
+   * loopback, link-local, or cloud-metadata addresses. **Default: false.**
+   * Production MUST leave this off; tests and local dev opt in explicitly.
+   *
+   * Even when true, non-`http(s):` protocols are still rejected.
+   */
+  allowPrivateNetworks?: boolean;
 };
 
 const DEFAULT_RETRY = {
@@ -72,6 +85,12 @@ function sleep(ms: number): Promise<void> {
  *  - 5xx and network errors → retry up to `attempts`.
  *  - 4xx → terminal, no retry (subscriber rejected the payload).
  *  - 2xx → success.
+ *
+ * Security: every subscription URL is run through {@link validateWebhookUrl}
+ * before each delivery (NOT once at registration time — DNS records and
+ * subscription rows can both change between then and now). A failed
+ * validation is emitted as a `failed` `DeliveryResult` with `error`
+ * starting with `ssrf:` and the request is **not** attempted.
  */
 export function createWebhookSender(opts: SenderOptions) {
   const fetchImpl = opts.fetch ?? globalThis.fetch;
@@ -95,18 +114,43 @@ export function createWebhookSender(opts: SenderOptions) {
   const idFactory = opts.idFactory ?? defaultIdFactory;
   const now = opts.now ?? (() => new Date());
   const timeoutMs = opts.timeoutMs ?? 10_000;
+  const allowPrivateNetworks = opts.allowPrivateNetworks ?? false;
 
   async function deliverOne(
     sub: WebhookSubscription,
     envelope: IdentityWebhookEnvelope,
     body: string,
   ): Promise<void> {
-    const signature = formatSignatureHeader(signPayload(sub.secret, body));
+    // SSRF check — run once per emit (not per retry), since the resolved
+    // address is what we want to lock in. A failure is terminal for this
+    // subscription: retrying a private-network URL would just re-block.
+    const validation = await validateWebhookUrl(sub.url, {
+      allowPrivateNetworks,
+    });
+    if (!validation.ok) {
+      onDelivery({
+        url: sub.url,
+        event: envelope.event,
+        attempt: 1,
+        status: "failed",
+        error: `ssrf: ${validation.reason}`,
+      });
+      return;
+    }
 
     let lastErr: string | undefined;
     let lastHttp: number | undefined;
     for (let attempt = 1; attempt <= retry.attempts; attempt++) {
       await sleep(retry.backoffMs(attempt));
+
+      // Bind the timestamp at attempt time — each retry gets a fresh `t=`.
+      // That keeps a long-stuck retry from arriving outside the receiver's
+      // freshness window.
+      const timestampMs = now().getTime();
+      const signature = formatStripeStyleHeader(
+        timestampMs,
+        signSignedPayload(sub.secret, timestampMs, body),
+      );
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -116,6 +160,7 @@ export function createWebhookSender(opts: SenderOptions) {
           headers: {
             "content-type": "application/json",
             [SIGNATURE_HEADER]: signature,
+            [TIMESTAMP_HEADER]: String(timestampMs),
           },
           body,
           signal: controller.signal,
@@ -158,6 +203,10 @@ export function createWebhookSender(opts: SenderOptions) {
         // Network error / abort — retry.
       }
     }
+    // Final attempt exhausted — `lastHttp` / `lastErr` already surfaced via
+    // onDelivery callbacks, no further action.
+    void lastHttp;
+    void lastErr;
   }
 
   async function emit(event: IdentityEvent): Promise<void> {

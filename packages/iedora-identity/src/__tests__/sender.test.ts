@@ -1,11 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { createWebhookSender } from "../sender";
-import { SIGNATURE_HEADER } from "../events";
-import { verifySignature } from "../signature";
+import { SIGNATURE_HEADER, TIMESTAMP_HEADER } from "../events";
+import {
+  parseSignatureHeader,
+  signSignedPayload,
+  verifySignature,
+} from "../signature";
 import type { DeliveryResult, WebhookSubscription } from "../types";
 
 function fakeFetch(
-  impl: (req: { url: string; body: string; signature: string }) => Response,
+  impl: (req: {
+    url: string;
+    body: string;
+    signature: string;
+    timestamp: string;
+  }) => Response,
 ) {
   return vi.fn(
     async (
@@ -21,22 +30,34 @@ function fakeFetch(
       const body = typeof init?.body === "string" ? init.body : "";
       const headers = init?.headers as Record<string, string> | undefined;
       const signature = headers?.[SIGNATURE_HEADER] ?? "";
-      return impl({ url, body, signature });
+      const timestamp = headers?.[TIMESTAMP_HEADER] ?? "";
+      return impl({ url, body, signature, timestamp });
     },
   );
 }
 
 const NO_BACKOFF = { attempts: 3, backoffMs: () => 0 };
+// Every test URL points at example.test — never resolves on a private
+// network, so the SSRF guard is happy. The fetch is stubbed anyway.
+const PUBLIC_URL_A = "https://a.example.test/hook";
+const PUBLIC_URL_B = "https://b.example.test/hook";
+const PUBLIC_URL_X = "https://x.example.test/hook";
+const PUBLIC_URL_Y = "https://y.example.test/hook";
 
 describe("sender", () => {
-  it("signs the body with each subscription's secret", async () => {
+  it("signs the body with each subscription's secret (Stripe-style t=,v1= header)", async () => {
     const subs: WebhookSubscription[] = [
-      { url: "https://a.test/hook", secret: "secret-a" },
-      { url: "https://b.test/hook", secret: "secret-b" },
+      { url: PUBLIC_URL_A, secret: "secret-a" },
+      { url: PUBLIC_URL_B, secret: "secret-b" },
     ];
-    const seen: { url: string; body: string; signature: string }[] = [];
-    const fetchFn = fakeFetch(({ url, body, signature }) => {
-      seen.push({ url, body, signature });
+    const seen: {
+      url: string;
+      body: string;
+      signature: string;
+      timestamp: string;
+    }[] = [];
+    const fetchFn = fakeFetch(({ url, body, signature, timestamp }) => {
+      seen.push({ url, body, signature, timestamp });
       return new Response("ok", { status: 200 });
     });
 
@@ -44,6 +65,9 @@ describe("sender", () => {
       listSubscriptions: async () => subs,
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
+      // Stub URLs never resolve in DNS; allow-private bypasses the guard
+      // here. Real DNS resolution is covered in ssrf.test.ts.
+      allowPrivateNetworks: true,
     });
 
     await sender.emit({
@@ -55,14 +79,62 @@ describe("sender", () => {
     for (const s of seen) {
       const sub = subs.find((x) => x.url === s.url);
       expect(sub).toBeDefined();
+      // Header is the Stripe-style format.
+      expect(s.signature).toMatch(/^t=\d+,v1=[0-9a-f]+$/);
+      const parsed = parseSignatureHeader(s.signature);
+      expect(parsed).not.toBeNull();
+      // Side-channel timestamp matches the one inside the sig header.
+      expect(s.timestamp).toBe(String(parsed!.timestampMs));
+      // High-level verification path accepts the new format.
       expect(verifySignature(sub!.secret, s.body, s.signature)).toBe(true);
       // Same body to every subscriber — only the signature differs.
-      const parsed = JSON.parse(s.body);
-      expect(parsed.event).toBe("user.deleted");
-      expect(parsed.payload.user_id).toBe("u1");
-      expect(typeof parsed.id).toBe("string");
-      expect(typeof parsed.occurred_at).toBe("string");
+      const parsedBody = JSON.parse(s.body);
+      expect(parsedBody.event).toBe("user.deleted");
+      expect(parsedBody.payload.user_id).toBe("u1");
+      expect(typeof parsedBody.id).toBe("string");
+      expect(typeof parsedBody.occurred_at).toBe("string");
     }
+  });
+
+  it("emits the x-iedora-timestamp side-channel header on every POST", async () => {
+    let seenTimestamp = "";
+    const fetchFn = fakeFetch(({ timestamp }) => {
+      seenTimestamp = timestamp;
+      return new Response("ok", { status: 200 });
+    });
+    const sender = createWebhookSender({
+      listSubscriptions: async () => [{ url: PUBLIC_URL_X, secret: "s" }],
+      fetch: fetchFn as unknown as typeof fetch,
+      retries: NO_BACKOFF,
+      allowPrivateNetworks: true,
+    });
+    await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
+    expect(seenTimestamp).toMatch(/^\d+$/);
+  });
+
+  it("signature is a fresh HMAC over `${t}.${body}` (not body alone)", async () => {
+    let captured: { body: string; signature: string } | null = null;
+    const fetchFn = fakeFetch(({ body, signature }) => {
+      captured = { body, signature };
+      return new Response("ok", { status: 200 });
+    });
+    const sender = createWebhookSender({
+      listSubscriptions: async () => [
+        { url: PUBLIC_URL_X, secret: "shh" },
+      ],
+      fetch: fetchFn as unknown as typeof fetch,
+      retries: NO_BACKOFF,
+      allowPrivateNetworks: true,
+    });
+    await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
+    expect(captured).not.toBeNull();
+    const parsed = parseSignatureHeader(captured!.signature)!;
+    const expected = signSignedPayload(
+      "shh",
+      parsed.timestampMs,
+      captured!.body,
+    );
+    expect(parsed.signatures).toContain(expected);
   });
 
   it("retries on 5xx and succeeds on a later attempt", async () => {
@@ -75,12 +147,11 @@ describe("sender", () => {
     });
     const results: DeliveryResult[] = [];
     const sender = createWebhookSender({
-      listSubscriptions: async () => [
-        { url: "https://x.test/hook", secret: "s" },
-      ],
+      listSubscriptions: async () => [{ url: PUBLIC_URL_X, secret: "s" }],
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
       onDelivery: (r) => results.push(r),
+      allowPrivateNetworks: true,
     });
 
     await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
@@ -98,12 +169,11 @@ describe("sender", () => {
     });
     const results: DeliveryResult[] = [];
     const sender = createWebhookSender({
-      listSubscriptions: async () => [
-        { url: "https://x.test/hook", secret: "s" },
-      ],
+      listSubscriptions: async () => [{ url: PUBLIC_URL_X, secret: "s" }],
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
       onDelivery: (r) => results.push(r),
+      allowPrivateNetworks: true,
     });
 
     await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
@@ -123,12 +193,11 @@ describe("sender", () => {
     });
     const results: DeliveryResult[] = [];
     const sender = createWebhookSender({
-      listSubscriptions: async () => [
-        { url: "https://x.test/hook", secret: "s" },
-      ],
+      listSubscriptions: async () => [{ url: PUBLIC_URL_X, secret: "s" }],
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
       onDelivery: (r) => results.push(r),
+      allowPrivateNetworks: true,
     });
 
     await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
@@ -143,15 +212,16 @@ describe("sender", () => {
       listSubscriptions: async () => [
         // Subscribed only to user.* events.
         {
-          url: "https://x.test/hook",
+          url: PUBLIC_URL_X,
           secret: "s",
           events: ["user.deleted", "user.banned"],
         },
         // Subscribed to everything (no allow-list).
-        { url: "https://y.test/hook", secret: "s" },
+        { url: PUBLIC_URL_Y, secret: "s" },
       ],
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
+      allowPrivateNetworks: true,
     });
 
     // Off-list event: only the everything-subscriber gets it.
@@ -161,7 +231,7 @@ describe("sender", () => {
     });
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const firstCall = fetchFn.mock.calls[0]?.[0];
-    expect(firstCall).toBe("https://y.test/hook");
+    expect(firstCall).toBe(PUBLIC_URL_Y);
 
     // On-list event: both subscribers get it.
     fetchFn.mockClear();
@@ -176,13 +246,36 @@ describe("sender", () => {
     const fetchFn = fakeFetch(() => new Response("ok", { status: 200 }));
     const sender = createWebhookSender({
       listSubscriptions: async () => [
-        { url: "https://x.test/hook", secret: "s", events: [] },
+        { url: PUBLIC_URL_X, secret: "s", events: [] },
       ],
       fetch: fetchFn as unknown as typeof fetch,
       retries: NO_BACKOFF,
+      allowPrivateNetworks: true,
     });
 
     await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("rejects a subscription URL pointing at a private 10.x address", async () => {
+    const fetchFn = vi.fn(async () => new Response("ok", { status: 200 }));
+    const results: DeliveryResult[] = [];
+    const sender = createWebhookSender({
+      listSubscriptions: async () => [
+        { url: "http://10.0.0.5/hook", secret: "s" },
+      ],
+      fetch: fetchFn as unknown as typeof fetch,
+      retries: NO_BACKOFF,
+      onDelivery: (r) => results.push(r),
+      // Defaults to false; assert that explicitly here.
+    });
+
+    await sender.emit({ event: "user.deleted", payload: { user_id: "u1" } });
+
+    // Fetch must never be invoked when SSRF guard fires.
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(results).toHaveLength(1);
+    expect(results[0]?.status).toBe("failed");
+    expect(results[0]?.error).toMatch(/^ssrf:/);
   });
 });

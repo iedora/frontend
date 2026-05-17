@@ -72,8 +72,21 @@ export type IdentityWebhookEnvelope = IdentityEvent & {
 };
 
 /**
- * HTTP header carrying the HMAC-SHA256 signature. Lowercase per fetch /
- * Web Fetch API convention; senders MUST emit it on outgoing requests,
- * receivers MUST look it up case-insensitively.
+ * HTTP header carrying the Stripe/Svix-style signed payload:
+ * `x-iedora-signature: t=<epoch-ms>,v1=<hmac_sha256_hex>`. Both `t=` and
+ * `v1=` are required; the receiver enforces a configurable freshness
+ * tolerance (default 5 minutes) and constant-time compares the digest
+ * against `HMAC(secret, "${t}.${body}")`.
+ *
+ * Lowercase per fetch / Web Fetch API convention; senders MUST emit it
+ * on outgoing requests, receivers MUST look it up case-insensitively.
  */
 export const SIGNATURE_HEADER = "x-iedora-signature" as const;
+
+/**
+ * Optional helper header exposing the same timestamp that is embedded in
+ * the signature header's `t=` field. Receivers MUST NOT trust this header
+ * on its own — the cryptographically authoritative source is the `t=` in
+ * `x-iedora-signature`. It exists only for human/log readability.
+ */
+export const TIMESTAMP_HEADER = "x-iedora-timestamp" as const;
