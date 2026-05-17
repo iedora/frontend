@@ -1,20 +1,29 @@
 import 'server-only'
 import { count, eq } from 'drizzle-orm'
 import { db } from '@/shared/db/client'
-import { organization, restaurant } from '@/shared/db/schema'
+import { orgPlan, restaurant } from '@/shared/db/schema'
 import type { PlansGateway } from '../ports'
 
 /**
- * Production PlansGateway. Wraps Drizzle reads/writes against the
- * `organization` and `restaurant` tables. Server-only — the Drizzle client
- * never belongs on the client.
+ * Production PlansGateway. Wraps Drizzle reads/writes against the LOCAL
+ * `org_plan` table (menu-owned) and the `restaurant` count. Plans are a
+ * menu-domain concept (gate restaurant counts, monthly views, etc.) and
+ * are keyed by the Genkan-issued `organizationId` — there's no FK,
+ * Genkan is a separate database.
+ *
+ * Missing rows mean "never set a plan yet" — `getOrgPlan` returns null
+ * and the use-case coerces back to the default via `getPlan`. The
+ * onboarding flow inserts a default row when it first creates a
+ * restaurant for the org.
+ *
+ * Server-only — the Drizzle client never belongs on the client.
  */
 export const drizzlePlans: PlansGateway = {
   async getOrgPlan(organizationId) {
     const rows = await db
-      .select({ plan: organization.plan })
-      .from(organization)
-      .where(eq(organization.id, organizationId))
+      .select({ plan: orgPlan.plan })
+      .from(orgPlan)
+      .where(eq(orgPlan.organizationId, organizationId))
       .limit(1)
     return rows[0]?.plan ?? null
   },
@@ -28,14 +37,15 @@ export const drizzlePlans: PlansGateway = {
   },
 
   async updateOrgPlan(organizationId, code) {
-    const res = await db
-      .update(organization)
-      .set({ plan: code })
-      .where(eq(organization.id, organizationId))
-    // postgres-js exposes the row count on `.count`; older drivers used
-    // `.rowCount`. Check both so we don't silently report success when the
-    // org didn't exist.
-    const r = res as { rowCount?: number; count?: number }
-    return (r.rowCount ?? r.count ?? 0) > 0
+    // Upsert: this is the only place that writes the `org_plan` row, so we
+    // treat "no row yet" as success-by-create instead of an error.
+    await db
+      .insert(orgPlan)
+      .values({ organizationId, plan: code })
+      .onConflictDoUpdate({
+        target: orgPlan.organizationId,
+        set: { plan: code },
+      })
+    return true
   },
 }

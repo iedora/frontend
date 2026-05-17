@@ -11,10 +11,10 @@ export function LogoutButton() {
     <Button
       variant="ghost"
       onClick={async () => {
-        // Hits menu's local /api/auth/sign-out, which deletes the row in
-        // the shared session table and clears the .iedora.com cookie. After
-        // that the user is unauthenticated everywhere in the ecosystem;
-        // a full navigation to Genkan presents the sign-in entryway again.
+        // Hits menu's local /api/auth/sign-out, which clears menu's own
+        // session cookie. Genkan still holds its own session — sign-out
+        // there happens when the user re-visits its /login page (or
+        // explicitly signs out via Genkan's UI).
         await authClient.signOut()
         window.location.assign(`${GENKAN_URL}/login`)
       }}

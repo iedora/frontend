@@ -23,15 +23,19 @@ export interface TestDb {
  * The fixture matches the production wiring: `casing: 'snake_case'` mirrors
  * `drizzle.config.ts` so column names resolve identically.
  *
- * The migration runner emits `CREATE SCHEMA IF NOT EXISTS auth/menu` itself,
- * but PGLite occasionally lags behind real Postgres on `CREATE SCHEMA` inside
- * the migrator's transaction wrapping — so we proactively ensure the two
- * schemas exist before applying any SQL. Belt-and-braces, cheap.
+ * Menu owns one Postgres schema (`menu.*`); the migration runner emits
+ * `CREATE SCHEMA IF NOT EXISTS menu` itself but PGLite occasionally lags
+ * behind real Postgres on `CREATE SCHEMA` inside the migrator's
+ * transaction wrapping — so we proactively ensure the schema exists
+ * before applying any SQL. Belt-and-braces, cheap.
  */
 export async function makeTestDb(): Promise<TestDb> {
   const client = new PGlite()
   const db = drizzle(client, { schema, casing: 'snake_case' })
-  await client.exec(`CREATE SCHEMA IF NOT EXISTS "auth"; CREATE SCHEMA IF NOT EXISTS "menu";`)
+  // The migrator creates its journal table under `menu` (see drizzle.config.ts).
+  // Ensure the schema exists before it tries to write the first journal row,
+  // independent of which migration body runs first.
+  await client.exec(`CREATE SCHEMA IF NOT EXISTS "menu";`)
   await migrate(db, {
     migrationsFolder: MIGRATIONS_FOLDER,
     migrationsTable: '__drizzle_migrations',

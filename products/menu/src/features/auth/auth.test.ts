@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { and, eq } from 'drizzle-orm'
 import * as schema from '@/shared/db/schema'
 import { makeTestDb, type TestDb } from '@/shared/testing/pglite'
+import type { IdentityGateway, Organization } from '@/features/identity'
 import type { Session } from '@/features/auth/adapters/better-auth-instance'
 import type { AuthGateway } from './ports'
 import { verifySession } from './use-cases/verify-session'
@@ -35,25 +36,22 @@ afterEach(async () => {
 
 /**
  * Build a `Session` shape matching what Better Auth returns. We only need
- * the fields the use-cases actually read (`user.id`, `session.activeOrganizationId`);
- * everything else gets a minimal stub plus an `as unknown as Session` cast.
+ * the user.id field; everything else gets a minimal stub plus an
+ * `as unknown as Session` cast.
  */
-function makeSession(opts: {
-  userId: string
-  activeOrganizationId: string | null
-}): Session {
+function makeSession(opts: { userId: string }): Session {
   return {
     user: { id: opts.userId },
-    session: { activeOrganizationId: opts.activeOrganizationId },
+    session: {},
   } as unknown as Session
 }
 
 /**
- * Hand-rolled `AuthGateway` whose lookups run against the test PGLite db,
- * so we exercise real Drizzle queries (and therefore real Postgres semantics)
- * without standing up Better Auth.
+ * Hand-rolled `AuthGateway` whose restaurant lookups run against the test
+ * PGLite db, so we exercise real Drizzle queries (and therefore real
+ * Postgres semantics) without standing up Better Auth.
  */
-function makeGatewayFor(
+function makeAuthGateway(
   testDb: TestDb,
   session: Session | null,
 ): AuthGateway {
@@ -61,34 +59,20 @@ function makeGatewayFor(
     async getSession() {
       return session
     },
-    async findEarliestOrgMembership(userId) {
-      const rows = await testDb.db
-        .select({ organizationId: schema.member.organizationId })
-        .from(schema.member)
-        .where(eq(schema.member.userId, userId))
-        .orderBy(schema.member.createdAt)
-        .limit(1)
-      return rows[0] ?? null
-    },
-    async findRestaurantByIdInOrg({ restaurantId, organizationId, userId }) {
+    async findRestaurantByIdInOrg({ restaurantId, organizationId }) {
       const rows = await testDb.db
         .select({ id: schema.restaurant.id })
         .from(schema.restaurant)
-        .innerJoin(
-          schema.member,
-          eq(schema.member.organizationId, schema.restaurant.organizationId),
-        )
         .where(
           and(
             eq(schema.restaurant.id, restaurantId),
             eq(schema.restaurant.organizationId, organizationId),
-            eq(schema.member.userId, userId),
           ),
         )
         .limit(1)
       return rows[0] ?? null
     },
-    async findRestaurantBySlugInOrg({ slug, organizationId, userId }) {
+    async findRestaurantBySlugInOrg({ slug, organizationId }) {
       const rows = await testDb.db
         .select({
           id: schema.restaurant.id,
@@ -96,19 +80,36 @@ function makeGatewayFor(
           slug: schema.restaurant.slug,
         })
         .from(schema.restaurant)
-        .innerJoin(
-          schema.member,
-          eq(schema.member.organizationId, schema.restaurant.organizationId),
-        )
         .where(
           and(
             eq(schema.restaurant.slug, slug),
             eq(schema.restaurant.organizationId, organizationId),
-            eq(schema.member.userId, userId),
           ),
         )
         .limit(1)
       return rows[0] ?? null
+    },
+  }
+}
+
+/**
+ * Fake IdentityGateway. In production this calls Genkan over HTTP; in
+ * tests we hand it a static list keyed by userId so the use-cases can
+ * exercise the "user belongs to org" join purely against the membership
+ * map the test set up.
+ */
+function makeIdentityGateway(
+  byUser: Record<string, Organization[]>,
+): IdentityGateway {
+  return {
+    async listOrganizations(userId) {
+      return byUser[userId] ?? []
+    },
+    async createOrganization() {
+      throw new Error('not used in these tests')
+    },
+    async setActiveOrganization() {
+      return true
     },
   }
 }
@@ -125,7 +126,7 @@ describe('verifySession', () => {
   })
 
   it('returns the session when present', async () => {
-    const session = makeSession({ userId: 'u1', activeOrganizationId: 'o1' })
+    const session = makeSession({ userId: 'u1' })
     const gw: AuthGateway = {
       getSession: async () => session,
     } as unknown as AuthGateway
@@ -136,29 +137,9 @@ describe('verifySession', () => {
 
 describe('requireRestaurantAccess', () => {
   beforeEach(async () => {
-    // Seed the canonical happy-path: user u1 is a member of org o1 which
-    // owns restaurant r1. Every column not covered by a schema default is
-    // populated explicitly so we don't depend on Postgres defaults.
-    await t.db.insert(schema.user).values({
-      id: 'u1',
-      email: 'a@b.test',
-      name: 'A',
-      emailVerified: true,
-    })
-    await t.db.insert(schema.organization).values({
-      id: 'o1',
-      name: 'Org One',
-      slug: 'org-one',
-      plan: 'free',
-      createdAt: new Date(),
-    })
-    await t.db.insert(schema.member).values({
-      id: 'm1',
-      userId: 'u1',
-      organizationId: 'o1',
-      role: 'admin',
-      createdAt: new Date(),
-    })
+    // Seed the canonical happy-path: restaurant r1 belongs to org o1.
+    // Genkan would tell us "u1 is a member of o1" via the IdentityGateway
+    // — we wire that mapping in each test below.
     await t.db.insert(schema.restaurant).values({
       id: 'r1',
       organizationId: 'o1',
@@ -168,10 +149,13 @@ describe('requireRestaurantAccess', () => {
   })
 
   it('returns the restaurant context when the caller is a member of the owning org', async () => {
-    const session = makeSession({ userId: 'u1', activeOrganizationId: 'o1' })
-    const gw = makeGatewayFor(t, session)
+    const session = makeSession({ userId: 'u1' })
+    const auth = makeAuthGateway(t, session)
+    const identity = makeIdentityGateway({
+      u1: [{ id: 'o1', name: 'Org One', slug: 'org-one' }],
+    })
 
-    const result = await requireRestaurantAccess(gw, 'r1')
+    const result = await requireRestaurantAccess(auth, identity, 'r1')
 
     expect(result.restaurantId).toBe('r1')
     expect(result.organizationId).toBe('o1')
@@ -179,14 +163,9 @@ describe('requireRestaurantAccess', () => {
   })
 
   it('redirects to /dashboard when the restaurant belongs to a different org', async () => {
-    // Second org + restaurant; u1 is NOT a member of o2.
-    await t.db.insert(schema.organization).values({
-      id: 'o2',
-      name: 'Org Two',
-      slug: 'org-two',
-      plan: 'free',
-      createdAt: new Date(),
-    })
+    // Second restaurant in o2 — u1 is NOT a member of o2 (identity returns
+    // only o1), so the effective org resolves to o1 and r2 won't be found
+    // under it.
     await t.db.insert(schema.restaurant).values({
       id: 'r2',
       organizationId: 'o2',
@@ -194,37 +173,40 @@ describe('requireRestaurantAccess', () => {
       name: 'Pizza',
     })
 
-    const session = makeSession({ userId: 'u1', activeOrganizationId: 'o1' })
-    const gw = makeGatewayFor(t, session)
+    const session = makeSession({ userId: 'u1' })
+    const auth = makeAuthGateway(t, session)
+    const identity = makeIdentityGateway({
+      u1: [{ id: 'o1', name: 'Org One', slug: 'org-one' }],
+    })
 
-    await expect(requireRestaurantAccess(gw, 'r2')).rejects.toThrow(
+    await expect(requireRestaurantAccess(auth, identity, 'r2')).rejects.toThrow(
       '__REDIRECT__:/dashboard',
     )
   })
 
-  it('falls back to earliest membership when session has no activeOrganizationId', async () => {
-    // No activeOrganizationId — exercises the get-effective-organization-id
-    // path that queries `findEarliestOrgMembership`.
-    const session = makeSession({ userId: 'u1', activeOrganizationId: null })
-    const gw = makeGatewayFor(t, session)
+  it('falls back to the first organization Genkan returns when picking the active org', async () => {
+    const session = makeSession({ userId: 'u1' })
+    const auth = makeAuthGateway(t, session)
+    // Multiple orgs — picks the first (Genkan's response order).
+    const identity = makeIdentityGateway({
+      u1: [
+        { id: 'o1', name: 'Org One', slug: 'org-one' },
+        { id: 'o2', name: 'Org Two', slug: 'org-two' },
+      ],
+    })
 
-    const result = await requireRestaurantAccess(gw, 'r1')
+    const result = await requireRestaurantAccess(auth, identity, 'r1')
 
     expect(result.organizationId).toBe('o1')
     expect(result.restaurantId).toBe('r1')
   })
 
-  it('redirects to /onboarding when the user has no org memberships', async () => {
-    await t.db.insert(schema.user).values({
-      id: 'u2',
-      email: 'lonely@b.test',
-      name: 'Lonely',
-      emailVerified: true,
-    })
-    const session = makeSession({ userId: 'u2', activeOrganizationId: null })
-    const gw = makeGatewayFor(t, session)
+  it('redirects to /onboarding when the user has no orgs on Genkan', async () => {
+    const session = makeSession({ userId: 'u2' })
+    const auth = makeAuthGateway(t, session)
+    const identity = makeIdentityGateway({}) // u2 → no orgs
 
-    await expect(requireRestaurantAccess(gw, 'r1')).rejects.toThrow(
+    await expect(requireRestaurantAccess(auth, identity, 'r1')).rejects.toThrow(
       '__REDIRECT__:/onboarding',
     )
   })
@@ -239,9 +221,6 @@ describe('requireRestaurantAccess', () => {
  * `rateLimit` table from the schema (or renames a column), Better Auth's
  * runtime call would crash on the *first* auth request that hits the
  * limiter — which would be missed by every test except this one.
- *
- * We exercise the exact shape Better Auth uses (see
- * `node_modules/better-auth/dist/api/rate-limiter/index.mjs::createDatabaseStorageWrapper`).
  */
 describe('Better Auth rateLimit table — schema contract', () => {
   it('accepts the row shape Better Auth writes (key + count + lastRequest)', async () => {

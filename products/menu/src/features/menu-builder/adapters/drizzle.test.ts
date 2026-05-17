@@ -12,6 +12,9 @@
 process.env.DATABASE_URL ||= 'postgres://test:test@localhost/test'
 process.env.BETTER_AUTH_SECRET ||= 'x'.repeat(32)
 process.env.BETTER_AUTH_URL ||= 'http://localhost:3000'
+process.env.GENKAN_OAUTH_CLIENT_ID ||= 'menu-test'
+process.env.GENKAN_OAUTH_CLIENT_SECRET ||= 'test-secret'
+process.env.GENKAN_ISSUER_URL ||= 'http://localhost:3001'
 process.env.S3_ENDPOINT ||= 'http://localhost:4566'
 process.env.S3_REGION ||= 'us-east-1'
 process.env.S3_ACCESS_KEY ||= 'test'
@@ -26,13 +29,7 @@ vi.mock('server-only', () => ({}))
 const { makeDrizzleMenuWrite } = await import('./drizzle')
 import type { MenuWritePort } from '../ports'
 import { makeTestDb, type TestDb } from '@/shared/testing/pglite'
-import {
-  category,
-  item,
-  menu,
-  organization,
-  restaurant,
-} from '@/shared/db/schema'
+import { category, item, menu, restaurant } from '@/shared/db/schema'
 
 let t: TestDb
 let writer: MenuWritePort
@@ -47,16 +44,11 @@ afterEach(async () => {
 })
 
 async function seedMenu(): Promise<{ menuId: string; restaurantId: string }> {
+  // `organizationId` is a plain UUID handed back by Genkan in real life —
+  // no FK to anything menu-local, so we can seed an arbitrary string.
   const orgId = 'o-1'
   const restaurantId = 'r-1'
   const menuId = 'm-1'
-  await t.db.insert(organization).values({
-    id: orgId,
-    name: 'Org',
-    slug: 'org',
-    plan: 'free',
-    createdAt: new Date(),
-  })
   await t.db.insert(restaurant).values({
     id: restaurantId,
     organizationId: orgId,

@@ -75,12 +75,15 @@ env:
   clear:
     NEXT_TELEMETRY_DISABLED: "1"
     BETTER_AUTH_URL: https://<%= public_hostname %>
+    GENKAN_ISSUER_URL: https://genkan.iedora.com
     S3_ENDPOINT: https://<%= assets_hostname %>
     S3_REGION: us-east-1
     S3_BUCKET: metamenu
   secret:
     - BETTER_AUTH_SECRET
     - DATABASE_URL
+    - GENKAN_OAUTH_CLIENT_ID
+    - GENKAN_OAUTH_CLIENT_SECRET
     - S3_ACCESS_KEY
     - S3_SECRET_KEY
 

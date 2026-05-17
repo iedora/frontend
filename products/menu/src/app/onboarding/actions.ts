@@ -3,12 +3,16 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { auth } from '@/features/auth/adapters/better-auth-instance'
 import { getEffectiveOrganizationId } from '@/features/auth'
+import {
+  createOrganization,
+  setActiveOrganization,
+} from '@/features/identity'
+import { GENKAN_URL } from '@/shared/brand'
 import { db } from '@/shared/db/client'
-import { menu, organization, restaurant, session as sessionTable } from '@/shared/db/schema'
+import { menu, restaurant } from '@/shared/db/schema'
 import { canAddRestaurant } from '@/features/plans'
 import { enforceRateLimit } from '@/features/rate-limit'
 
@@ -71,7 +75,7 @@ export async function completeOnboarding(
   const reqHeaders = await headers()
 
   const session = await auth.api.getSession({ headers: reqHeaders })
-  if (!session?.user) redirect('/login')
+  if (!session?.user) redirect(`${GENKAN_URL}/login`)
 
   // Throttle per-user — org doesn't exist yet on first call. Fail-open by
   // policy (cosmetic UX gate, not a brute-force surface).
@@ -81,13 +85,11 @@ export async function completeOnboarding(
   }
 
   // Existing org? Add the restaurant under it (gated by plan limit). Brand-new
-  // user? Create org + first restaurant. Plans are scoped to the org so the
-  // `+ new restaurant` flow on the dashboard makes the gate meaningful — every
-  // restaurant lives under a single tenant rather than spawning a fresh one.
-  const existingOrgId = await getEffectiveOrganizationId(
-    session.user.id,
-    session.session.activeOrganizationId,
-  )
+  // user? Create org on Genkan + first restaurant locally. Plans are scoped
+  // to the org so the `+ new restaurant` flow on the dashboard makes the
+  // gate meaningful — every restaurant lives under a single tenant rather
+  // than spawning a fresh one.
+  const existingOrgId = await getEffectiveOrganizationId(session.user.id)
 
   if (existingOrgId) {
     const gate = await canAddRestaurant(existingOrgId)
@@ -99,7 +101,7 @@ export async function completeOnboarding(
     return addRestaurantToOrg(existingOrgId, restaurantName, slug)
   }
 
-  return createOrgAndFirstRestaurant(reqHeaders, restaurantName, slug)
+  return createOrgAndFirstRestaurant(session.user.id, restaurantName, slug)
 }
 
 async function addRestaurantToOrg(
@@ -121,42 +123,38 @@ async function addRestaurantToOrg(
 }
 
 async function createOrgAndFirstRestaurant(
-  reqHeaders: Headers,
+  userId: string,
   restaurantName: string,
   slug: string,
 ): Promise<OnboardingFormState> {
-  const orgResult = await auth.api.createOrganization({
-    headers: reqHeaders,
-    body: { name: restaurantName, slug },
-  })
-
-  if (!orgResult) {
+  // Create the org on Genkan first — it owns the canonical record, mints
+  // the owner membership, and returns the UUID we'll stash on the
+  // restaurant row. If this fails we surface a generic error; we don't
+  // need to roll anything back since nothing local was written yet.
+  const orgResult = await createOrganization(userId, restaurantName, slug)
+  if (!orgResult.ok) {
     return { error: 'Could not create organization. Slug may already be taken.' }
   }
+  const organization = orgResult.organization
 
-  await auth.api.setActiveOrganization({
-    headers: reqHeaders,
-    body: { organizationId: orgResult.id },
-  })
+  // Set this as the user's active organization on Genkan so subsequent
+  // calls to `listOrganizations` resolve it first. Best-effort — a failure
+  // here is recoverable on next sign-in.
+  await setActiveOrganization(userId, organization.id).catch(() => false)
 
-  // Restaurant + default menu must commit together; if the transaction fails
-  // (missing migration, FK, etc.) we tear down the Better Auth org we just
-  // created so the user isn't stranded with an empty org that the dashboard
-  // shows but the UI can't escape (the loop we hit on 2026-05-08).
+  // Restaurant + default menu must commit together; if the transaction
+  // fails (migration, FK, etc.) we surface a generic error. Genkan-side
+  // cleanup of the org would be a follow-up call — for now we accept the
+  // tiny eventual-consistency risk (orphan empty org on the IdaaS that
+  // the user can use again next time onboarding is re-run with a
+  // different slug). The previous local-transaction-rollback-of-the-auth-
+  // org no longer makes sense across two databases.
   try {
     await db.transaction((tx) =>
-      insertRestaurantWithDefaultMenu(tx, orgResult.id, restaurantName, slug),
+      insertRestaurantWithDefaultMenu(tx, organization.id, restaurantName, slug),
     )
   } catch (err) {
-    // CASCADE on member.organizationId drops the membership; session has no
-    // FK on activeOrganizationId so we clear it explicitly for any session
-    // that pointed at the org we're about to delete.
-    await db
-      .update(sessionTable)
-      .set({ activeOrganizationId: null })
-      .where(eq(sessionTable.activeOrganizationId, orgResult.id))
-    await db.delete(organization).where(eq(organization.id, orgResult.id))
-    console.error('[onboarding] restaurant creation failed, rolled back org', err)
+    console.error('[onboarding] restaurant creation failed', err)
     return { error: 'Could not create restaurant. Please try again.' }
   }
 

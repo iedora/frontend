@@ -9,7 +9,6 @@ import {
   integer,
   jsonb,
   index,
-  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import type { LanguageCode, LocalizedText } from '@/features/i18n/types'
 import type { PlanCode } from '@/features/plans/types'

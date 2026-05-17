@@ -19,10 +19,7 @@ export default async function DashboardLayout({
   // collapse the relevant slots instead of throwing.
   const session = await auth.api.getSession({ headers: await headers() })
   const organizationId = session?.user
-    ? await getEffectiveOrganizationId(
-        session.user.id,
-        session.session.activeOrganizationId,
-      )
+    ? await getEffectiveOrganizationId(session.user.id)
     : null
   const plan = organizationId
     ? await getOrganizationPlan(organizationId)

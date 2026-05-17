@@ -1,0 +1,69 @@
+'use server'
+
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { requireAdmin } from '@/features/admin'
+import { auth } from '@/features/auth/adapters/better-auth-instance'
+
+type Result = { ok: true } | { ok: false; error: string }
+
+function toMessage(e: unknown, fallback: string): string {
+  if (e && typeof e === 'object') {
+    const obj = e as { message?: unknown; body?: { message?: unknown } }
+    if (typeof obj.message === 'string') return obj.message
+    if (obj.body && typeof obj.body.message === 'string') return obj.body.message
+  }
+  return fallback
+}
+
+const slugRegex = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/
+
+export async function createOrganizationAction(
+  formData: FormData,
+): Promise<Result> {
+  await requireAdmin()
+  const name = String(formData.get('name') ?? '').trim()
+  const slug = String(formData.get('slug') ?? '').trim().toLowerCase()
+  if (name.length < 2 || name.length > 80) {
+    return { ok: false, error: 'Name must be 2–80 characters.' }
+  }
+  if (!slugRegex.test(slug)) {
+    return {
+      ok: false,
+      error: 'Slug must be 2–40 lowercase letters / numbers / hyphens.',
+    }
+  }
+  try {
+    await auth.api.createOrganization({
+      headers: await headers(),
+      body: { name, slug, keepCurrentActiveOrganization: true },
+    })
+  } catch (e) {
+    return {
+      ok: false,
+      error: toMessage(e, 'Could not create organization. The slug may be taken.'),
+    }
+  }
+  revalidatePath('/admin/organizations')
+  return { ok: true }
+}
+
+export async function deleteOrganizationAction(
+  organizationId: string,
+): Promise<Result> {
+  await requireAdmin()
+  try {
+    await auth.api.deleteOrganization({
+      headers: await headers(),
+      body: { organizationId },
+    })
+  } catch (e) {
+    return {
+      ok: false,
+      error: toMessage(e, 'Could not delete organization.'),
+    }
+  }
+  revalidatePath('/admin/organizations')
+  redirect('/admin/organizations')
+}
