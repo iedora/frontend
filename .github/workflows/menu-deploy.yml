@@ -35,12 +35,14 @@ concurrency:
 # this block, the perms requested in _kamal-deploy.yml are silently denied
 # and the workflow fails at startup. Grant the union of what the reusable
 # workflow needs — packages:write for GHCR push, id-token:write for the
-# Tailscale WIF token exchange.
+# Tailscale WIF token exchange, security-events:write for the post-deploy
+# Trivy image scan to upload SARIF findings to the Security tab.
 permissions:
   contents: read
   packages: write
   actions: read
   id-token: write
+  security-events: write
 
 jobs:
   deploy:

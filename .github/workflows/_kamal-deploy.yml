@@ -66,8 +66,9 @@ jobs:
 
     permissions:
       contents: read
-      packages: write  # `docker push ghcr.io/...`
-      id-token: write  # GitHub-issued OIDC JWT for Tailscale WIF
+      packages: write         # `docker push ghcr.io/...`
+      id-token: write         # GitHub-issued OIDC JWT for Tailscale WIF
+      security-events: write  # post-deploy Trivy image scan → SARIF → Security tab
 
     env:
       # Selects the CI branch of the kamal deploy.yml ERB toggle (local build
@@ -225,10 +226,43 @@ jobs:
             CODE=$(curl -s -o /dev/null -w '%{http_code}' "$URL" || echo 000)
             if [ "$CODE" = "200" ]; then
               echo "[deploy] ✓ /up returned 200"
-              exit 0
+              break
             fi
             echo "[deploy] /up returned $CODE; retry $i/6 in 5s"
             sleep 5
+            if [ "$i" = "6" ]; then
+              echo "[deploy] ✗ /up never returned 200 after 30s" >&2
+              exit 1
+            fi
           done
-          echo "[deploy] ✗ /up never returned 200 after 30s" >&2
-          exit 1
+
+      # Post-deploy CVE scan of the built image (OS layer + npm deps + jars).
+      # Complements the CI-side `trivy fs` scan in menu.yml/genkan.yml, which
+      # only sees the workspace lockfile — this one catches CVEs in the
+      # `node:22-bookworm-slim` base layer (glibc, openssl, etc.) that fs
+      # scanning is blind to.
+      #
+      # Positioned AFTER the deploy + smoke check on purpose: Kamal's build/
+      # push/deploy is atomic and there's no clean way to gate it pre-deploy
+      # without rebuilding. Failing here turns the workflow red and signals
+      # `kamal rollback`; the SARIF upload below makes the findings visible
+      # in the Security tab regardless of the gate's verdict.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: ghcr.io/${{ inputs.ghcr_user }}/${{ inputs.product }}:${{ inputs.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF to GitHub Security
+        # `if: always()` so findings persist even when the previous step
+        # failed the workflow on HIGH/CRITICAL. Without this, a red gate
+        # would also lose the diagnostic data.
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: image-${{ inputs.product }}
