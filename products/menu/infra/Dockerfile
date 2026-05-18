@@ -36,10 +36,14 @@ RUN --mount=type=cache,target=/root/.bun/install/cache,sharing=locked \
 # ── Stage 2: build ────────────────────────────────────────────────────────────
 FROM node:22-bookworm-slim@sha256:689c11043dad91472750cd824c97dd5e2318e9dd6f954e492fe7af0135d33ceb AS builder
 WORKDIR /workspace
-COPY --from=deps /workspace/node_modules ./node_modules
-COPY --from=deps /workspace/products/menu/node_modules ./products/menu/node_modules
-COPY --from=deps /workspace/package.json /workspace/bun.lock ./
-COPY packages packages
+# Copy the ENTIRE /workspace from deps — this brings every workspace's
+# node_modules tree, including packages/design-system/node_modules where
+# `radix-ui` (and other workspace deps' transitives) live as symlinks into
+# Bun's .bun store. Copying only root + products/menu/node_modules was a
+# bug that worked locally (homelab build context had the host's installed
+# node_modules) but failed in CI's clean Docker run.
+COPY --from=deps /workspace ./
+# Overlay menu source (deps only had products/menu/package.json).
 COPY products/menu products/menu
 
 WORKDIR /workspace/products/menu

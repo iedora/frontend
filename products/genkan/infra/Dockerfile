@@ -27,10 +27,9 @@ RUN --mount=type=cache,target=/root/.bun/install/cache,sharing=locked \
 # ── Stage 2: build ────────────────────────────────────────────────────────────
 FROM node:22-bookworm-slim@sha256:689c11043dad91472750cd824c97dd5e2318e9dd6f954e492fe7af0135d33ceb AS builder
 WORKDIR /workspace
-COPY --from=deps /workspace/node_modules ./node_modules
-COPY --from=deps /workspace/products/genkan/node_modules ./products/genkan/node_modules
-COPY --from=deps /workspace/package.json /workspace/bun.lock ./
-COPY packages packages
+# Copy the ENTIRE /workspace from deps — see menu's Dockerfile for the
+# rationale. Workspace package node_modules must come over too.
+COPY --from=deps /workspace ./
 COPY products/genkan products/genkan
 
 WORKDIR /workspace/products/genkan
