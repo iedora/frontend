@@ -41,12 +41,29 @@ resource "tailscale_acl" "policy" {
   reset_acl_on_destroy = false
 }
 
-# The CI OAuth client the GitHub Actions runner uses to mint per-job
-# ephemeral tailnet nodes. Scope is the narrowest possible: `auth_keys`
-# only, with the issued keys constrained to tag:ci. A leak of THIS
-# client's secret cannot escalate to ACL edits or device management.
-resource "tailscale_oauth_client" "ci" {
+# The CI federated identity — Workload Identity Federation (Tailscale GA
+# 2026-02-19) replaces the long-lived OAuth client secret with GitHub's
+# OIDC token. The GHA workflow asserts its identity via the OIDC JWT;
+# Tailscale verifies the issuer + subject match this resource's trust
+# config and mints a short-lived access token. No stored secret in BWS.
+#
+# `subject` pattern matches every workflow on every ref in this repo —
+# tighten to e.g. `repo:eduvhc/iedora:ref:refs/heads/main` if we ever
+# want to restrict CI mutations to main only.
+resource "tailscale_federated_identity" "ci" {
   description = "iedora-gha-ci"
+  scopes      = ["auth_keys"]
+  tags        = ["tag:ci"]
+  issuer      = "https://token.actions.githubusercontent.com"
+  subject     = "repo:eduvhc/iedora:*"
+}
+
+# Legacy: the OAuth-client variant we used before WIF. Kept temporarily
+# during the migration window so existing CI runs against unmigrated
+# commits still authenticate. Removable after the next deploy validates
+# the WIF flow end-to-end.
+resource "tailscale_oauth_client" "ci" {
+  description = "iedora-gha-ci-legacy"
   scopes      = ["auth_keys"]
   tags        = ["tag:ci"]
 }

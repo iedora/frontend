@@ -33,14 +33,19 @@ deploy:
     set -euo pipefail
     {{tofu}} init -upgrade -input=false >/dev/null
     {{tofu}} apply -auto-approve
-    # Write-through: push the CI Tailscale OAuth credentials to BWS so the
-    # GitHub Actions workflow can fetch them via `bws secret list`. Idempotent
-    # — creates the entries on first run, updates them on subsequent runs
-    # (e.g. after `tofu apply -replace=tailscale_oauth_client.ci`).
-    CI_ID=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_oauth_client_id)
-    CI_SECRET=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_oauth_client_secret)
-    for KEY_VAL in "INFRA_CI_TAILSCALE_OAUTH_CLIENT_ID:$CI_ID" \
-                   "INFRA_CI_TAILSCALE_OAUTH_CLIENT_SECRET:$CI_SECRET"; do
+    # Write-through: push the CI Tailscale federation credentials to BWS so
+    # the GitHub Actions workflow can fetch them via `bws secret list`. The
+    # WIF flow needs federated identity ID + audience; the OAuth-client
+    # variant (kept during migration) writes through too — both legacy
+    # entries can be removed from this loop once WIF is validated.
+    CI_FED_ID=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_federated_id)
+    CI_FED_AUD=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_federated_audience)
+    CI_OAUTH_ID=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_oauth_client_id)
+    CI_OAUTH_SECRET=$(bin/with-secrets {{tofu}} output -raw ci_tailscale_oauth_client_secret)
+    for KEY_VAL in "INFRA_CI_TAILSCALE_FEDERATED_ID:$CI_FED_ID" \
+                   "INFRA_CI_TAILSCALE_FEDERATED_AUDIENCE:$CI_FED_AUD" \
+                   "INFRA_CI_TAILSCALE_OAUTH_CLIENT_ID:$CI_OAUTH_ID" \
+                   "INFRA_CI_TAILSCALE_OAUTH_CLIENT_SECRET:$CI_OAUTH_SECRET"; do
       KEY=${KEY_VAL%%:*}
       VAL=${KEY_VAL#*:}
       SECRET_ID=$(bws secret list "$BWS_PROJECT_ID" -o json \
@@ -48,7 +53,7 @@ deploy:
       if [ -n "$SECRET_ID" ]; then
         bws secret edit "$SECRET_ID" --value "$VAL" -o none
       else
-        bws secret create "$KEY" "$VAL" "$BWS_PROJECT_ID" -o none
+        bws secret create -o none -- "$KEY" "$VAL" "$BWS_PROJECT_ID"
       fi
     done
     bin/with-secrets bash -c \

@@ -20,48 +20,34 @@ tofu := "bin/with-secrets tofu -chdir=tofu"
 _default:
     @just --list --unsorted
 
-# Build the Astro site, refresh the workload token, push it to BWS, then
-# upload via wrangler.
+# Deploy is CI-driven: triggers house-deploy.yml which builds Astro + uploads
+# via wrangler. Single mutation surface, auditable in GH run history. Same
+# pattern as menu + genkan.
 #
-# Four sequenced steps, one command:
-#   1. `bun run build`        → ../dist/ (static HTML + _astro chunks)
-#   2. `tofu apply`           → narrow Workers Scripts + DNS workload token
-#   3. write-through to BWS   → INFRA_HOUSE_WORKERS_TOKEN, so CI can read it
-#                               via `bws secret list` without running Tofu.
-#                               Auto-creates the BWS entry on first run;
-#                               edits the existing entry on subsequent runs.
-#   4. `wrangler deploy`      → uploads ../dist + creates the iedora.com
-#                               custom-domain DNS record + TLS cert.
-#
-# Wrangler reads CLOUDFLARE_API_TOKEN from env; we pipe the tofu output
-# straight in. The bootstrap token never reaches wrangler.
-#
-# Token rotation: NEVER run `tofu apply -replace=...` directly — use
-# `just house::rotate-token` instead. The rotate recipe drives the same
-# write-through, so BWS never drifts from Tofu state. Same drift-discipline
-# as menu's / genkan's `rotate-secret` recipes.
-#
-# Why we `cd ..` before wrangler: wrangler.toml lives at the product root
-# next to package.json, alongside dist/. Running wrangler from the product
-# root keeps relative paths in wrangler.toml correct.
+# Cloudflare workload token (the narrow wrangler-deploy credential) is minted
+# by Tofu and rotated via `just house::rotate-token` when needed — independent
+# of routine deploys.
 deploy:
+    @gh workflow run house-deploy.yml --ref "$(git rev-parse HEAD)"
+    @echo "→ house deploy triggered. Watch: gh run watch  (or: gh run list --workflow=house-deploy.yml --limit 1)"
+
+# Local-only Tofu apply for the narrow workers-deploy token. Writes the new
+# token into BWS so CI reads it on its next run. Rare — token is set-and-forget
+# unless suspected leak (then use `rotate-token` below).
+infra:
     #!/usr/bin/env bash
     set -euo pipefail
-    (cd .. && bun run build)
     {{tofu}} init -upgrade -input=false >/dev/null
     {{tofu}} apply -auto-approve
     DEPLOY_TOKEN=$({{tofu}} output -raw workers_deploy_token)
-    # Write-through to BWS so CI can fetch the token without running Tofu.
     SECRET_ID=$(bws secret list "$BWS_PROJECT_ID" -o json \
       | jq -r '.[] | select(.key=="INFRA_HOUSE_WORKERS_TOKEN") | .id')
     if [ -n "$SECRET_ID" ]; then
       bws secret edit "$SECRET_ID" --value "$DEPLOY_TOKEN" -o none
     else
-      bws secret create INFRA_HOUSE_WORKERS_TOKEN "$DEPLOY_TOKEN" "$BWS_PROJECT_ID" -o none
+      bws secret create -o none -- INFRA_HOUSE_WORKERS_TOKEN "$DEPLOY_TOKEN" "$BWS_PROJECT_ID"
     fi
-    cd ..
-    CLOUDFLARE_API_TOKEN="$DEPLOY_TOKEN" \
-      bunx wrangler@latest deploy
+    echo "[infra] ✓ done. Now run 'just house::deploy' to roll the new token."
 
 # Rotate the narrow workload token. Mints a fresh one via Tofu, write-through
 # to BWS, then redeploys so CI's next run uses the same fresh token.

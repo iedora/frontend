@@ -67,6 +67,7 @@ jobs:
     permissions:
       contents: read
       packages: write  # `docker push ghcr.io/...`
+      id-token: write  # GitHub-issued OIDC JWT for Tailscale WIF
 
     env:
       # Selects the CI branch of the kamal deploy.yml ERB toggle (local build
@@ -108,11 +109,12 @@ jobs:
           unzip -q /tmp/bws.zip -d /tmp/bws
           sudo install -m 0755 /tmp/bws/bws /usr/local/bin/bws
 
-      - name: Fetch Tailscale OAuth from BWS
-        # The CI OAuth client is minted by `just infra::deploy` (Tofu) and
-        # write-throughed to BWS as INFRA_CI_TAILSCALE_OAUTH_CLIENT_{ID,SECRET}.
-        # If they're missing, infra hasn't been deployed yet — fail loudly
-        # with the recovery command.
+      - name: Fetch Tailscale federated identity from BWS
+        # WIF (Tailscale GA 2026-02-19): GitHub's OIDC JWT is exchanged for a
+        # short-lived Tailscale access token. No stored secret — the federated
+        # identity ID and audience are public; trust is enforced server-side
+        # by matching the issuer + sub claim against the Tofu-declared
+        # tailscale_federated_identity.ci resource.
         id: ts
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
@@ -120,37 +122,32 @@ jobs:
         run: |
           set -euo pipefail
           SECRETS_JSON=$(bws secret list "$BWS_PROJECT_ID" -o json)
-          CLIENT_ID=$(echo "$SECRETS_JSON" | jq -r '.[] | select(.key=="INFRA_CI_TAILSCALE_OAUTH_CLIENT_ID") | .value')
-          CLIENT_SECRET=$(echo "$SECRETS_JSON" | jq -r '.[] | select(.key=="INFRA_CI_TAILSCALE_OAUTH_CLIENT_SECRET") | .value')
-          if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ] || [ -z "$CLIENT_SECRET" ] || [ "$CLIENT_SECRET" = "null" ]; then
-            echo "INFRA_CI_TAILSCALE_OAUTH_CLIENT_{ID,SECRET} missing in BWS." >&2
-            echo "Run 'just infra::deploy' locally to mint + write-through the CI OAuth client." >&2
+          CLIENT_ID=$(echo "$SECRETS_JSON" | jq -r '.[] | select(.key=="INFRA_CI_TAILSCALE_FEDERATED_ID") | .value')
+          AUDIENCE=$(echo "$SECRETS_JSON" | jq -r '.[] | select(.key=="INFRA_CI_TAILSCALE_FEDERATED_AUDIENCE") | .value')
+          if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ] || [ -z "$AUDIENCE" ] || [ "$AUDIENCE" = "null" ]; then
+            echo "INFRA_CI_TAILSCALE_FEDERATED_{ID,AUDIENCE} missing in BWS." >&2
+            echo "Run 'just infra::deploy' locally to mint + write-through the CI federated identity." >&2
             exit 1
           fi
-          echo "::add-mask::$CLIENT_SECRET"
           echo "client_id=$CLIENT_ID" >> "$GITHUB_OUTPUT"
-          echo "client_secret=$CLIENT_SECRET" >> "$GITHUB_OUTPUT"
+          echo "audience=$AUDIENCE" >> "$GITHUB_OUTPUT"
 
       # Join the runner to the tailnet so it can reach the homelab via its
       # MagicDNS hostname (`iedora-homelab`) instead of a LAN IP that public
-      # runners can't route to. With OAuth, the action mints an ephemeral
-      # auth key per run; v4 additionally `tailscale logout`s at job end so
-      # the device is gone in seconds, not minutes.
+      # runners can't route to. Workload Identity Federation: GHA's OIDC JWT
+      # is exchanged for a short-lived Tailscale token. No stored secret —
+      # `audience` (Tailscale-issued, fetched from BWS) is the only side input
+      # along with the federated identity ID.
       #
-      # `version` pinned (not "latest") — the latest tag is non-reproducible
-      # across platforms (tailscale/github-action#284). Roll forward deliberately.
-      # `hostname` per-run keeps the admin device list readable.
-      # `ping` blocks until MagicDNS resolves — avoids a race where the SSH
-      # step runs before systemd-resolved accepts the `.ts.net` search domain.
+      # `version` pinned to a Linux-current build (cross-platform variance per
+      # tailscale/github-action#284). `hostname` per-run keeps the admin
+      # device list readable. `ping` blocks until MagicDNS resolves.
       - name: Connect to tailnet
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ steps.ts.outputs.client_id }}
-          oauth-secret: ${{ steps.ts.outputs.client_secret }}
+          audience: ${{ steps.ts.outputs.audience }}
           tags: tag:ci
-          # Pinned to the Linux current as of bumping. Roll forward deliberately;
-          # `latest` is non-reproducible across platforms per
-          # tailscale/github-action#284.
           version: 1.98.2
           hostname: gha-${{ inputs.product }}-${{ github.run_id }}
           ping: iedora-homelab
