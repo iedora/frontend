@@ -202,6 +202,22 @@ services:
       zitadel:
         condition: service_started
 
+  # House — pre-built Astro static, served by Caddy. Lets a menu-team
+  # dev bring house up alongside without needing Bun/Astro installed
+  # on the host. Active house dev still uses `cd products/house &&
+  # bun run dev` directly (HMR, no rebuild cycle).
+  #
+  # Rebuilds the static output every `docker compose build house`;
+  # incremental changes hit the BuildKit layer cache (bun install +
+  # workspace deps don't re-run for source-only edits).
+  house:
+    build:
+      context: ../..
+      dockerfile: products/house/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+
 volumes:
   postgres_data:
   localstack_data:

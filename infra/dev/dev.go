@@ -68,11 +68,11 @@ var allServices = []service{
 	{name: "zitadel", composeName: []string{"zitadel", "zitadel-login"}, deps: []string{"postgres"}, cat: catInfra},
 	{name: "openobserve", composeName: []string{"openobserve"}, deps: []string{"localstack"}, cat: catInfra},
 	{name: "menu", deps: []string{"postgres", "localstack", "zitadel", "openobserve"}, cat: catProducts},
-	// House is a static Astro site — no docker dependencies. Listed so
-	// the TUI shows it in the products group; selecting it alone is a
-	// no-op orchestration-wise (the dev still runs `cd products/house
-	// && bun run dev` from their own terminal).
-	{name: "house", deps: []string{}, cat: catProducts},
+	// House serves the pre-built Astro dist via Caddy in a container —
+	// `products/house/Dockerfile`. Lets a menu-team dev bring house
+	// up without installing Bun/Astro locally. For active house dev
+	// with HMR, `cd products/house && bun run dev` on the host.
+	{name: "house", composeName: []string{"house"}, cat: catProducts},
 }
 
 func serviceByName(n string) (service, bool) {
@@ -222,18 +222,18 @@ func main() {
 	printNextSteps(selected)
 }
 
-// printNextSteps tells the user how to launch the host apps for the
-// products they selected. The orchestrator never runs them directly —
-// each product owns its own `bun run dev` and the dev launches it
-// from a separate terminal.
+// printNextSteps tells the user where their selected products are
+// reachable. Products that need a host-side `bun run dev` (menu, for
+// HMR) get instructions; products that run in the compose stack
+// (house) just get the URL.
 func printNextSteps(selected []string) {
 	fmt.Println()
-	fmt.Println("[dev] infra is up. Next:")
+	fmt.Println("[dev] infra is up.")
 	if contains(selected, "menu") {
-		fmt.Println("  cd products/menu  && bun run dev   # Next.js on :3000")
+		fmt.Println("  host:      cd products/menu && bun run dev   # Next.js on :3000")
 	}
 	if contains(selected, "house") {
-		fmt.Println("  cd products/house && bun run dev   # Astro on :3002")
+		fmt.Println("  container: http://localhost:3002              # Astro static (busybox httpd)")
 	}
 	if !contains(selected, "menu") && !contains(selected, "house") {
 		fmt.Println("  (no product selected — compose stack stays running for ad-hoc work)")
