@@ -50,17 +50,33 @@ type service struct {
 }
 
 // Ordered for deterministic UI rendering.
+//
+// `zitadel` is NOT in this list — it's mandatory infrastructure for
+// every dev workflow (the menu app has no auth path that doesn't go
+// through it, and the seed phase that mints OIDC client_id/secret
+// can't run without a live local Zitadel). It's always booted by
+// `tofu apply` regardless of user selection. See dev/tofu/main.tf —
+// `var.enable_zitadel` stays around for CI scenarios that don't need
+// it (e.g. testing postgres in isolation) but the CLI doesn't expose
+// it. The architectural decision is documented in
+// docs/infra/auth.md + the menu auth slice's docs.
+//
+// If you genuinely want zitadel skipped (rare — see above) edit the
+// `-var enable_zitadel=true` line in dev.go.
 var allServices = []service{
 	{name: "postgres", tfVar: "enable_postgres", cat: catInfra},
 	{name: "localstack", tfVar: "enable_localstack", cat: catInfra},
-	{name: "zitadel", tfVar: "enable_zitadel", deps: []string{"postgres"}, cat: catInfra},
 	{name: "openobserve", tfVar: "enable_openobserve", deps: []string{"localstack"}, cat: catInfra},
 	{name: "house", tfVar: "enable_house", cat: catProducts},
 	// `menu` runs in a docker container (same image shape as prod).
 	// For HMR, opt out via `--except menu` and `cd products/menu && bun run dev`
 	// — `.env` + `.env.local` are written with localhost-DNS for that
 	// path. Default path is the container: no HMR, but identical to prod.
-	{name: "menu", tfVar: "enable_menu", deps: []string{"postgres", "localstack", "zitadel", "openobserve"}, cat: catProducts},
+	//
+	// menu's deps don't list zitadel because zitadel is always-on
+	// (not in allServices). The TF code still gates the menu container
+	// on local.seed_active which requires zitadel to be up.
+	{name: "menu", tfVar: "enable_menu", deps: []string{"postgres", "localstack", "openobserve"}, cat: catProducts},
 }
 
 func serviceByName(n string) (service, bool) {
@@ -156,6 +172,10 @@ func main() {
 
 	// Build the -var flags for the enable_* toggles. Anything not in
 	// `selected` defaults to false; selected items pass true.
+	//
+	// Note: `enable_zitadel` is NOT emitted here (zitadel isn't in
+	// allServices — it's mandatory plumbing). The TF variable's own
+	// `default = true` in dev/tofu/main.tf handles it.
 	enableVars := []string{}
 	for _, s := range allServices {
 		if s.tfVar == "" {
@@ -195,7 +215,11 @@ func main() {
 	applyArgs = append(applyArgs, enableVars...)
 	runIn(devTofuDir, "tofu", applyArgs...)
 
-	if contains(selected, "zitadel") {
+	// Zitadel is mandatory (not in allServices, force-enabled above) so
+	// the seed phase always runs. The branch used to be gated on
+	// `contains(selected, "zitadel")`; with zitadel out of the user
+	// selection model that gate is now always-true.
+	{
 		step(3, "wait for FirstInstance SA key + Zitadel API ready")
 		// Mirror prod: FirstInstance mints a JSON RSA key for the
 		// `zitadel-admin-sa` machine user; the TF provider auths with it
@@ -240,8 +264,6 @@ func main() {
 		// Print the real dynamic values for first-run copy-paste.
 		realValues := captureIn(devTofuDir, "tofu", "output", "-raw", "env_dynamic_file")
 		printDynamicValues(realValues)
-	} else if contains(selected, "menu") {
-		warn("zitadel opted out — products/menu/.env.local not touched. Provide ZITADEL_OAUTH_CLIENT_ID/SECRET/MANAGEMENT_TOKEN yourself or auth flows will 500.")
 	}
 
 	printNextSteps(selected, repoRoot, devTofuDir)
