@@ -346,7 +346,12 @@ output "env_committable_file" {
 }
 
 output "env_dynamic_file" {
-  description = "Body of products/menu/.env.local. Empty before the seed runs."
+  description = "Real values for the dynamic keys — printed by dev.go for copy-paste into products/menu/.env.local. Empty before the seed runs."
   value       = local.seed_active ? module.menu_env[0].env_dynamic_file : ""
   sensitive   = true
+}
+
+output "env_dynamic_keys" {
+  description = "Sorted list of dynamic key names. dev.go uses this to schema-sync .env.local."
+  value       = local.seed_active ? module.menu_env[0].env_dynamic_keys : []
 }

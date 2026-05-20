@@ -202,7 +202,12 @@ output "env_committable_file" {
 }
 
 output "env_dynamic_file" {
-  description = "products/menu/.env.local body — real Zitadel + session values, only the dynamic keys."
+  description = "products/menu/.env.local body — real Zitadel + session values, only the dynamic keys. Printed by dev.go for copy-paste; never auto-written to disk."
   value       = join("\n", [for k in local.env_dynamic_keys_sorted : "${k}=${local.env_dynamic[k]}"])
   sensitive   = true
+}
+
+output "env_dynamic_keys" {
+  description = "Just the dynamic keys (no values). dev.go uses this to schema-sync products/menu/.env.local: add missing keys as `<please_fill>`, flag stale ones."
+  value       = local.env_dynamic_keys_sorted
 }
