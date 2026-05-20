@@ -74,6 +74,12 @@ variable "admin_password" {
   sensitive   = true
 }
 
+variable "admin_password_change_required" {
+  description = "Force admin to change the bootstrap password on first login. Default true (safe). Set to false in dev where the bootstrap password is a known literal and the operator wipes state often — being forced to rotate on every wipe is friction without benefit."
+  type        = bool
+  default     = true
+}
+
 variable "admin_email" {
   type    = string
   default = "dev@iedora.local"
@@ -149,6 +155,7 @@ resource "docker_container" "this" {
     "ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS=${var.admin_email}",
     "ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_VERIFIED=true",
     "ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${var.admin_password}",
+    "ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED=${var.admin_password_change_required}",
 
     "ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME=login-client",
     "ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME=Login Client",

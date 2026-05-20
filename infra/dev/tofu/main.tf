@@ -267,8 +267,13 @@ module "zitadel" {
   postgres_host     = "postgres"
   postgres_password = "postgres"
   admin_password    = var.menu_admin_password
-  bootstrap_path    = local.bootstrap_host_path
-  expose_host_port  = 8080
+  # Dev only — the bootstrap password is a known literal ("Password1!"),
+  # and `just dev-down && just dev` wipes state often. Forcing a rotate
+  # on every wipe is friction without benefit. Prod keeps the default
+  # (true) — never explicitly passed here.
+  admin_password_change_required = false
+  bootstrap_path                 = local.bootstrap_host_path
+  expose_host_port               = 8080
 
   # Mirror prod: FirstInstance mints a JSON RSA key for the
   # `zitadel-admin-sa` machine user. The TF provider authenticates with
