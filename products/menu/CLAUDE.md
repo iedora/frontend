@@ -4,7 +4,7 @@ Menu-specific hard rules, file layout, and commands. Root `AGENTS.md` covers cro
 
 Menu is a SaaS multi-tenant restaurant menu builder (menu.iedora.com). Each tenant is an organization that owns one or more `restaurant` rows. Admins build menus via drag-and-drop; the public menu renders from the same data.
 
-> **Identity status.** Zitadel (`auth.iedora.com`) is the iedora IdP. Menu still uses Better Auth locally for sessions; the cutover to Zitadel OIDC is queued under issue #20. Until then, `src/features/identity/` is dead code (was the genkan-http adapter; awaiting a Zitadel rewrite).
+> **Identity.** Zitadel (`auth.iedora.com`) is the iedora IdP. Menu is a thin OIDC client — `openid-client` v6 drives the auth-code/PKCE dance, `jose` seals the session into a single encrypted cookie. There is no local user/session table. `src/features/auth/` owns the cookie + the DAL guards; `src/features/identity/` calls Zitadel's management API (memberships, org provisioning) via a TF-minted IAM_OWNER PAT.
 
 ## Hard rules
 
@@ -57,23 +57,24 @@ products/menu/
       r/[slug]/                        public menu page — cached snapshot
       onboarding/                      first-org-creation + add-another-restaurant
       api/
-        auth/[...all]/                 Better Auth handler
+        auth/login/                    OIDC start (PKCE+state cookie → Zitadel)
+        auth/callback/                 OIDC callback (code → session cookie)
+        auth/logout/                   clears cookie → Zitadel end_session
         track/[slug]/                  pixel-beacon view tracking
-        identity/webhook/              identity webhook receiver (dead — awaiting Zitadel cutover)
       up/                              health-check route
       showcase/                        public marketing surface
       page.tsx, layout.tsx, globals.css
     features/
-      auth/                          session + tenant-scoping guards (Better Auth)
+      auth/                          OIDC client + session cookie + DAL guards (Zitadel native)
       billing/                       invoice ledger
       dashboard-home/                restaurants-with-counts aggregate
       i18n/                          per-language registry (en, pt, es, fr)
-      identity/                      dead code — awaiting Zitadel OIDC adapter (issue #20)
+      identity/                      Zitadel management API — memberships + org provisioning
       menu-builder/                  dnd-kit admin builder
       menu-publishing/               public menu cache + renderer + template registry
       metrics/                       daily-view + analytics range helpers
       plans/                         plan registry (free, casa)
-      rate-limit/                    Redis (testcontainers in dev/CI) — Better Auth rate-limit store
+      rate-limit/                    Postgres-backed sliding-window limiter
       restaurant-identity/           restaurant CRUD + theme/identity
       upload/                        S3-compatible uploads + presign/commit/clear (LocalStack in CI)
     shared/
@@ -117,7 +118,6 @@ The menu app container itself (`docker_container.menu_web`) is declared in `infr
 - `bun run db:migrate` — apply pending migrations.
 - `bun run db:push` — push schema directly (dev only).
 - `bun run db:studio` — Drizzle Studio.
-- `bun run auth:generate` — sync Better Auth tables into schema.ts.
 - `docker compose up -d` — Postgres + LocalStack.
 - `bunx shadcn@latest add <name>` — add a shadcn component.
 

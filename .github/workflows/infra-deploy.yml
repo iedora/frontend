@@ -122,21 +122,21 @@ jobs:
         # step is purely a fail-fast if the image ever changes.
         run: python3 --version
 
-      - name: Fetch ONPREM_HOST from BWS
-        # The Hetzner box's public IPv4. Source of truth is the Tofu output
-        # `hetzner_ipv4`; `just infra::deploy` write-throughs that into
-        # INFRA_HOST_IP after every apply. Reading from BWS keeps us
-        # declarative — if the box gets reprovisioned at a different IP,
-        # the next `tofu apply` writes the new value through and we pick
-        # it up on subsequent runs.
+      - name: Read Hetzner IP from Tofu output
+        # Source of truth for the box's public IPv4 is the Tofu output
+        # `hetzner_ipv4`. Tofu state lives encrypted in git (see infra/CLAUDE.md
+        # rule #5), so a fresh `tofu init` + `tofu output` resolves the value
+        # without round-tripping through BWS. `bin/with-secrets` provides
+        # TF_VAR_state_passphrase so init can decrypt the state.
         id: host
+        working-directory: infra
         run: |
           set -euo pipefail
-          HOST=$(bws secret list "$BWS_PROJECT_ID" -o json \
-            | jq -r '.[] | select(.key=="INFRA_HOST_IP") | .value')
-          if [ -z "$HOST" ] || [ "$HOST" = "null" ]; then
-            echo "INFRA_HOST_IP missing in BWS." >&2
-            echo "Run 'just infra::deploy' from a laptop once to provision Hetzner + populate it." >&2
+          bin/with-secrets tofu -chdir=tofu init -upgrade -input=false >/dev/null
+          HOST=$(bin/with-secrets tofu -chdir=tofu output -raw hetzner_ipv4)
+          if [ -z "$HOST" ]; then
+            echo "tofu output hetzner_ipv4 was empty — server not yet provisioned." >&2
+            echo "Run 'just infra::deploy' from a laptop once to provision the VPS." >&2
             exit 1
           fi
           echo "::add-mask::$HOST"

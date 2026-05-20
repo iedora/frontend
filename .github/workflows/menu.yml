@@ -13,10 +13,9 @@
 # CI's job is reduced to: build + push + dispatch the infra deploy. No SSH
 # from CI, no Tailscale.
 #
-# E2E (Playwright) is intentionally omitted: the auth-testkit shim was deleted
-# alongside genkan, the Zitadel adapter is pending (issue #19 Phase 3+), and
-# the auth-coupled specs no longer compile. Will be rebuilt once the Zitadel
-# adapter lands.
+# E2E (Playwright) is intentionally omitted: the auth-coupled specs were
+# never rewritten after the Zitadel cutover (issue #20) and now need a
+# Zitadel stub at test boot. Will be rebuilt once the testkit shim lands.
 #
 # Self-contained on purpose: one file is the entire menu CI surface.
 

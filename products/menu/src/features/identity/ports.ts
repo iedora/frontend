@@ -1,7 +1,7 @@
 /**
- * The shape of an organization as far as menu cares about it. Whatever
- * shape Genkan's API returns is normalised here so call sites never grow a
- * dependency on the wire format.
+ * The shape of an organization as far as menu cares about it. The wire
+ * format coming off Zitadel is normalised here so call sites never grow a
+ * dependency on it.
  */
 export type Organization = {
   id: string
@@ -10,17 +10,16 @@ export type Organization = {
 }
 
 /**
- * IdentityGateway — the slice's only dependency on Genkan (the IdaaS).
+ * IdentityGateway — the slice's only dependency on Zitadel.
  *
  * Every operation that needs to act on the user's organizations goes
- * through this port. Production wires `genkanHttpIdentity`, which calls
- * Genkan's HTTP organization API using the user's OAuth access token from
- * the local `account` row. Tests wire fakes.
+ * through this port. Production wires `zitadelHttpIdentity`, which calls
+ * Zitadel's management API using the menu service-account PAT. Tests
+ * wire fakes.
  *
  * The port is intentionally narrow: only the calls menu's UI actually
- * needs. The full Better Auth organization plugin surface (roles, member
- * management, invitations) is reachable directly via Genkan's UI — menu
- * doesn't need to mirror all of it.
+ * needs. The full Zitadel surface (roles, invitations, IDP config) is
+ * reachable via Zitadel's console — menu doesn't need to mirror it.
  */
 export interface IdentityGateway {
   /**
@@ -31,9 +30,9 @@ export interface IdentityGateway {
   listOrganizations(userId: string): Promise<Organization[]>
 
   /**
-   * Creates a new organization on Genkan with the given name + slug,
-   * returning the id Genkan assigned. `userId` identifies the caller —
-   * Genkan needs it to mint the owner membership.
+   * Creates a new Zitadel organization with the given name + slug,
+   * returning the id Zitadel assigned. `userId` identifies the caller —
+   * the adapter adds them as ORG_OWNER of the new org.
    */
   createOrganization(
     userId: string,
@@ -42,8 +41,10 @@ export interface IdentityGateway {
   ): Promise<Organization | null>
 
   /**
-   * Tells Genkan to set the given org as the user's active organization.
-   * Idempotent. Returns true on success.
+   * Mark the given org as the user's active organization. Zitadel doesn't
+   * model an active org today; the production adapter is a no-op that
+   * returns true. The hook remains so we can add a `user_preferences`
+   * mapping later without rewiring every call site.
    */
   setActiveOrganization(userId: string, organizationId: string): Promise<boolean>
 }

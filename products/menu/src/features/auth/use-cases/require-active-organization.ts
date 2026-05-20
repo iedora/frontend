@@ -7,11 +7,11 @@ import { getEffectiveOrganizationId } from './get-effective-organization-id'
 
 /**
  * Guarantees an authenticated session AND a resolved organizationId.
- * Redirects to /onboarding when the user has no organizations on Genkan
- * yet. Returns both so downstream guards don't need to re-query.
+ * Redirects to /onboarding when the user has no Zitadel orgs yet.
+ * Returns both so downstream guards don't need to re-query.
  *
  * The identity gateway is injected so tests can wire a fake against the
- * same use-case shape; production binds `genkanHttpIdentity` from the
+ * same use-case shape; production binds `zitadelHttpIdentity` from the
  * slice's `index.ts`.
  */
 export async function requireActiveOrganization(

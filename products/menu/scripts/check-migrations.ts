@@ -26,7 +26,8 @@ async function main() {
 
   try {
     // Per-product tracker — see drizzle.config.ts. Menu's lives in
-    // `menu.__drizzle_migrations` so it doesn't shadow genkan's tracker.
+    // `menu.__drizzle_migrations` so it doesn't shadow any sibling
+    // product sharing the database.
     const tableRows = await sql<{ exists: boolean }[]>`
       SELECT EXISTS (
         SELECT 1 FROM information_schema.tables

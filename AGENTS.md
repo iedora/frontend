@@ -20,15 +20,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Menu** (menu.iedora.com — `products/menu/`) — SaaS multi-tenant restaurant menu builder. Each tenant is an organization that owns one or more `restaurant` rows. Admins build menus via drag-and-drop; the public menu renders from the same data.
 - **House** (iedora.com — `products/house/`) — umbrella brand landing page. Astro static output, deployed to Cloudflare Workers Static Assets. No DB, no auth.
 
-**Identity is Zitadel.** Self-hosted at `auth.iedora.com` (single VPS, Tofu-managed). The old `products/genkan/` IdP has been deleted. Menu still uses Better Auth locally for sessions today; removal is queued under issue #20 (menu cuts over to Zitadel OIDC). Until then, `src/features/identity/` is dead code.
+**Identity is Zitadel.** Self-hosted at `auth.iedora.com` (single VPS, Tofu-managed). Menu is a thin OIDC client — no local user/session tables. The session is a single JWE cookie minted by `openid-client` + `jose` after the auth-code/PKCE dance. The identity slice calls Zitadel's management API for memberships + org provisioning via a TF-minted IAM_OWNER PAT. See `products/menu/src/features/auth/` and `products/menu/src/features/identity/`.
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack default, Cache Components).
 - **TypeScript** strict, every workspace.
 - **Drizzle ORM** + `postgres-js`, **Postgres 18**.
-- **Better Auth 1.6.11** — pinned exact in menu. Slated for removal once Zitadel cutover lands.
-- **Zitadel** v4.15.0 — self-hosted IdP (TF provider 2.12 declares org + project).
+- **`openid-client` v6 + `jose` v6** — Zitadel OIDC client + cookie JWE.
+- **Zitadel** v4.15.0 — self-hosted IdP (TF provider 2.12 declares org, project, OIDC app, machine user, PAT).
 - **shadcn/ui** + Tailwind v4 — menu only. Editorial primitives come from **`@iedora/design-system`**.
 - **@dnd-kit** — menu's drag-and-drop builder.
 - **Bun** — package manager, test runner, dev orchestrator. **Production runtime is Node** — `bun + next build` is unstable as of 2026 (oven-sh/bun#23944); `next start` runs under Node in the production container.
@@ -139,7 +139,7 @@ One workflow per workspace. Each is self-contained: own `paths:` trigger, own en
 1. **`paths:` filter per workflow** — a workflow only wakes when its workspace (or workspace deps, or root files like `bun.lock`) changes.
 2. **Composite action for setup** — `actions/setup` runs `oven-sh/setup-bun@v2` + `bun install --frozen-lockfile` at the root. Every job that needs deps is `uses: ./.github/actions/setup`.
 
-**Env:** Non-secret CI fixture literals (`DATABASE_URL`, `S3_*`) live at job-level. The one true secret in CI is `BETTER_AUTH_SECRET`.
+**Env:** Non-secret CI fixture literals (`DATABASE_URL`, `S3_*`, `MENU_SESSION_SECRET=test...`, `ZITADEL_*=test`) live at job-level. No CI-side secrets — auth/OIDC values are TF-minted at apply time.
 
 **Branch protection: deliberately off** — solo, AI-driven; CI itself is the signal.
 
@@ -148,7 +148,7 @@ One workflow per workspace. Each is self-contained: own `paths:` trigger, own en
 ## Where to look when unsure
 
 1. `node_modules/next/dist/docs/` — bundled, version-matched Next.js docs.
-2. `node_modules/better-auth/` — auth APIs (1.6.11 pinned in menu).
+2. `node_modules/openid-client/` and `node_modules/jose/` — OIDC + JWE APIs.
 3. `node_modules/drizzle-orm/` — query builder, types.
 4. `products/menu/src/features/<slice>/README.md` — every slice has a short doc.
 5. `packages/<package>/README.md` — every shared package documents its surface.

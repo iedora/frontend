@@ -77,8 +77,12 @@ Cloudflare credentials follow a two-tier pattern, deliberately:
 | `INFRA_ZITADEL_MASTERKEY` | 32-char masterkey encrypting Zitadel's internal secrets (signing keys, OAuth client secrets) | Attacker can decrypt the projection table | **Do NOT rotate casually.** Documented re-key flow only. Generate once via `openssl rand -base64 24 \| head -c 32` |
 | `INFRA_ZITADEL_FIRST_ADMIN_PASSWORD` | Bootstrap password for the `zitadel-admin` user on FIRST boot | Attacker who reaches `auth.iedora.com` with this gets `IAM_OWNER` | Rotate the live password in Zitadel UI — this BWS entry is only honored on the very first init |
 | `INFRA_OPENOBSERVE_ROOT_USER_PASSWORD` | OpenObserve admin login | Attacker can read every trace + metric | Rotate in OpenObserve UI; redeploy each product so the ingest header in env updates |
-| `MENU_AUTH_SECRET` | Signs menu's session cookies (HMAC) | Forge menu sessions | **`BETTER_AUTH_SECRETS` plural** — see below |
 | `INFRA_CLAUDE_CODE_OAUTH_TOKEN` | Claude Code Action's Pro/Max OAuth token; Tofu pushes to GH as `CLAUDE_CODE_OAUTH_TOKEN` | Attacker can run the Action against your subscription | `claude setup-token` → BWS edit → `just infra::deploy`. Revoke in Anthropic account if leaked. See `docs/ai.md` |
+
+> **Auth/OIDC secrets are not in BWS.** Menu's session-cookie key, Zitadel
+> OIDC client_id/secret, and the menu_sa management PAT all live in TF
+> state (`infra/tofu/zitadel.tf`). Producer + consumer share TF state, so
+> no BWS round-trip is required. Rotation = `tofu apply -replace=...`.
 
 ### Tofu-managed write-throughs
 
@@ -113,7 +117,7 @@ Cost: one extra round-trip. Benefit: pause/revert at any phase boundary without 
 For most secrets:
 
 ```bash
-just infra::rotate-secret MENU_AUTH_SECRET   # or whatever
+just infra::rotate-secret INFRA_POSTGRES_PASSWORD   # or whatever
 ```
 
 Prompts for new value (no echo), updates BWS, reminds you to `just infra::deploy`. `bin/with-secrets` re-reads BWS on every apply.
@@ -149,27 +153,31 @@ No code changes — `bin/with-secrets` reads it at runtime.
 | `INFRA_STATE_PASSPHRASE` | Decades (NIST: "up to several years"); rotate on incident | Manual |
 | `INFRA_POSTGRES_PASSWORD` | 90 days (PCI-DSS 8.3.9) | Manual |
 | `INFRA_BACKUP_PASSPHRASE` | Annually — archive `_OLD` forever | Manual |
-| `MENU_AUTH_SECRET` | Annually (with `BETTER_AUTH_SECRETS` plural, zero-downtime) | Manual |
+| Menu session-cookie key (TF) | Annually — `tofu apply -replace=random_password.menu_session_secret` (rotate forces re-login) | Manual |
+| Menu OIDC client_secret (TF) | On suspicion of leak — `tofu apply -replace=zitadel_application_oidc.menu` | Manual |
+| Menu management PAT (TF) | On suspicion of leak — `tofu apply -replace=zitadel_personal_access_token.menu_sa` | Manual |
 | `BWS_ACCESS_TOKEN` | 6–12 months | Manual; blue/green |
 | Tofu write-throughs (`INFRA_HOUSE_WORKERS_TOKEN`) | Inherit from source; rotate via `tofu apply -replace=` | n/a |
 
 ## Zero-downtime rotation patterns
 
-### Better Auth signing secrets — plural array
+### Menu session-cookie key — hard rotation
 
-Better Auth 1.5+ ships **versioned secrets** via `BETTER_AUTH_SECRETS` (JSON array). First entry signs new envelopes; remaining decrypt-only:
+The session cookie is a single-key JWE (jose, `dir`/`A256GCM`). There is no
+plural-array decrypt-only fallback today: rotating the secret invalidates
+every live session. Pre-customer this is a non-event.
 
-```
-MENU_AUTH_SECRETS=["new-secret","old-secret"]
-```
-
-Deploy → all NEW cookies sign with `new-secret`; existing ones validate against `old-secret`. After every issued cookie has been touched once, drop the old:
-
-```
-MENU_AUTH_SECRETS=["new-secret"]
+```bash
+just infra::deploy   # after editing `infra/tofu/zitadel.tf` to taint the secret
+# or:
+bin/with-secrets tofu -chdir=tofu apply -replace=random_password.menu_session_secret
 ```
 
-The singular `MENU_AUTH_SECRET` stays as automatic fallback. ([Better Auth options](https://better-auth.com/docs/reference/options).)
+Effect: every browser holding a `menu_session` cookie sees a `null` open
+on next request → DAL redirects to `/api/auth/login` → fresh OIDC dance →
+new cookie. If we ever need zero-downtime rotation, the session adapter
+can accept a `["new","old"]` list at construction time without changing
+the cookie wire format.
 
 ### Postgres password — dual-role pattern
 

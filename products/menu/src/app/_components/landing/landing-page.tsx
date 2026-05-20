@@ -2,26 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { APP_HOSTNAME, BRAND_NAME, BRAND_URL, CONTACT_EMAIL, GENKAN_URL } from "@/shared/brand";
-import { authClient } from "@/features/auth/client";
+import { APP_HOSTNAME, BRAND_NAME, BRAND_URL, CONTACT_EMAIL, SIGN_IN_PATH } from "@/shared/brand";
 import "./landing.css";
 
 /**
- * Kicks off the OIDC dance: redirects to Genkan's /oauth2/authorize, which
- * (after sign-in or sign-up on Genkan) bounces back to menu's
- * /api/auth/oauth2/callback/genkan. Better Auth's `generic-oauth` plugin
- * exchanges the code for tokens and creates the local session — by the
- * time the browser lands on `/dashboard` the user is signed in.
- *
- * The proxy.ts redirect path for deep-linked-while-signed-out visitors
- * uses `/sign-in?next=<path>` instead — see app/sign-in/page.tsx. This
- * landing handler only fires from the explicit CTAs, where there's no
- * meaningful original path to preserve.
+ * Sign-in / sign-up share the same destination: `/api/auth/login` is a
+ * server-side handler that mints the PKCE-state cookie and 302s the
+ * browser to Zitadel's /oauth/v2/authorize. From the user's perspective
+ * "Sign in" and "Get started" are the same OIDC flow — Zitadel decides
+ * whether to render its login or registration form.
  */
-function startGenkanSignIn(e: React.MouseEvent) {
-  e.preventDefault();
-  authClient.signIn.oauth2({ providerId: "genkan", callbackURL: "/dashboard" });
-}
+const AUTH_HREF = SIGN_IN_PATH;
 
 type LangCode = "en" | "pt" | "es" | "fr";
 
@@ -491,8 +482,8 @@ function Nav({ c, lang, setLang }: { c: Copy; lang: LangCode; setLang: (l: LangC
         </ul>
         <div className="nav-right">
           <LangSwitcher lang={lang} setLang={setLang} />
-          <Link href={`${GENKAN_URL}/login`} className="nav-link" onClick={startGenkanSignIn}>{c.nav.signin}</Link>
-          <Link href={`${GENKAN_URL}/signup`} className="nav-cta" onClick={startGenkanSignIn}>{c.nav.cta}</Link>
+          <Link href={AUTH_HREF} className="nav-link">{c.nav.signin}</Link>
+          <Link href={AUTH_HREF} className="nav-cta">{c.nav.cta}</Link>
         </div>
       </div>
       <ScrollProgress />
@@ -667,7 +658,7 @@ function Hero({
             <h1>{c.hero.headline.roman}</h1>
             <p className="tagline">{c.hero.headline.tagline}</p>
             <div className="hero-ctas">
-              <Link className="btn btn-primary" href={`${GENKAN_URL}/signup`} onClick={startGenkanSignIn}>{c.hero.ctaPrimary}</Link>
+              <Link className="btn btn-primary" href={AUTH_HREF}>{c.hero.ctaPrimary}</Link>
             </div>
             <div className="meta-line">
               {c.hero.meta.map((m, i) => (
@@ -764,7 +755,7 @@ function Pricing({ c }: { c: Copy }) {
               {c.pricing.free.feats.map((f, i) => <li key={i}>{f}</li>)}
             </ul>
             <div className="menu-card-foot">
-              <Link className="btn btn-ghost" href={`${GENKAN_URL}/signup`} onClick={startGenkanSignIn}>{c.pricing.free.cta}</Link>
+              <Link className="btn btn-ghost" href={AUTH_HREF}>{c.pricing.free.cta}</Link>
             </div>
           </article>
 
@@ -781,7 +772,7 @@ function Pricing({ c }: { c: Copy }) {
               {c.pricing.pro.feats.map((f, i) => <li key={i}>{f}</li>)}
             </ul>
             <div className="menu-card-foot">
-              <Link className="btn btn-primary" href={`${GENKAN_URL}/signup`} onClick={startGenkanSignIn}>{c.pricing.pro.cta}</Link>
+              <Link className="btn btn-primary" href={AUTH_HREF}>{c.pricing.pro.cta}</Link>
             </div>
           </article>
         </div>
@@ -800,7 +791,7 @@ function Closing({ c }: { c: Copy }) {
           <h2>{c.closing.h}</h2>
           <p>{c.closing.p}</p>
           <div className="hero-ctas" style={{ justifyContent: "center" }}>
-            <Link className="btn btn-primary" href={`${GENKAN_URL}/signup`} onClick={startGenkanSignIn}>{c.closing.ctaPrimary}</Link>
+            <Link className="btn btn-primary" href={AUTH_HREF}>{c.closing.ctaPrimary}</Link>
             <Link className="btn btn-ghost" href={`mailto:${CONTACT_EMAIL}`}>{c.closing.ctaGhost}</Link>
           </div>
         </div>

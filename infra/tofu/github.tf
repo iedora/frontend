@@ -21,8 +21,8 @@
 # (e.g. for a fork pointing at a different deployment).
 locals {
   github_variables = {
-    BWS_PROJECT_ID        = var.bws_project_id
-    MENU_PUBLIC_HOSTNAME  = var.menu_public_hostname
+    BWS_PROJECT_ID       = var.bws_project_id
+    MENU_PUBLIC_HOSTNAME = var.menu_public_hostname
     # Bootstrap input for `bin/with-secrets` (it reads CLOUDFLARE_ACCOUNT_ID
     # from env, not from BWS — it's the pointer that selects which CF
     # account owns the rest of the secrets). Local dev gets it from
@@ -34,9 +34,9 @@ locals {
   # the values flow into GH-encrypted-secrets and never persist in
   # plaintext beyond the apply.
   github_secrets = {
-    BWS_ACCESS_TOKEN            = var.bws_access_token
-    INFRA_SSH_PRIVATE_KEY = var.infra_ssh_private_key
-    CLAUDE_CODE_OAUTH_TOKEN     = var.claude_code_oauth_token
+    BWS_ACCESS_TOKEN        = var.bws_access_token
+    INFRA_SSH_PRIVATE_KEY   = var.infra_ssh_private_key
+    CLAUDE_CODE_OAUTH_TOKEN = var.claude_code_oauth_token
   }
 }
 

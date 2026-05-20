@@ -362,8 +362,8 @@ resource "docker_container" "zitadel_login" {
 # add more route blocks to the Caddyfile + DNS records here.
 
 # ── Menu app (Next.js SaaS) ─────────────────────────────────────────────────
-# SHA-pinned image. CI writes `${{ github.sha }}` to BWS as MENU_IMAGE_SHA
-# after each successful build; bin/with-secrets exports it as
+# SHA-pinned image. CI writes `${{ github.sha }}` and dispatches infra-deploy
+# with it as a workflow input; bin/with-secrets exports it as
 # TF_VAR_menu_image_sha. When the SHA changes, the image resource's `name`
 # changes → force-replace → docker_container.menu_web also replaces because
 # it references `docker_image.menu.image_id`.
@@ -375,9 +375,19 @@ resource "docker_container" "zitadel_login" {
 # Migrations: `node scripts/migrate.mjs` holds a `pg_advisory_lock` so a
 # rolling restart (multiple replicas one day) doesn't double-migrate. It's
 # safe to re-run on a populated DB.
+#
+# Auth wiring (#20):
+#   - ZITADEL_OAUTH_CLIENT_* and MENU_SESSION_SECRET flow straight from
+#     other TF resources in this same root (zitadel_application_oidc.menu,
+#     random_password.menu_session_secret). No BWS, no chicken-egg.
+#   - Container gates on `local.zitadel_bootstrapped`: during the one-time
+#     bootstrap window (before the SA key reaches BWS) the OIDC app
+#     doesn't exist, so menu can't boot. Acceptable for the few-minute
+#     bootstrap; menu is back up on the second `just infra::deploy`.
 
 resource "docker_image" "menu" {
-  name = "ghcr.io/${var.github_owner}/menu:${var.menu_image_sha}"
+  count = local.zitadel_bootstrapped ? 1 : 0
+  name  = "ghcr.io/${var.github_owner}/menu:${var.menu_image_sha}"
 
   # Keep the image cached on the host so a container restart doesn't re-pull.
   # New SHA = new name = force-replace = single pull on next apply.
@@ -385,8 +395,9 @@ resource "docker_image" "menu" {
 }
 
 resource "docker_container" "menu_web" {
+  count   = local.zitadel_bootstrapped ? 1 : 0
   name    = "infra-menu-web"
-  image   = docker_image.menu.image_id
+  image   = docker_image.menu[0].image_id
   restart = "unless-stopped"
 
   # Migrate then serve. The Next.js standalone build's server is at /app/server.js
@@ -400,25 +411,30 @@ resource "docker_container" "menu_web" {
 
   env = [
     "NEXT_TELEMETRY_DISABLED=1",
-    "BETTER_AUTH_URL=https://${var.menu_public_hostname}",
-    "BETTER_AUTH_SECRET=${var.menu_auth_secret}",
     "DATABASE_URL=postgres://postgres:${var.infra_postgres_password}@infra-postgres:5432/menu",
-    # OIDC client. Menu's env.ts (Zod schema in src/shared/env.ts) still
-    # validates GENKAN_OAUTH_CLIENT_* + GENKAN_ISSUER_URL — that wiring
-    # gets ripped out in issue #20 (drop Better Auth, native Zitadel OIDC).
-    # Until then we pass the Zitadel-flavoured values under the legacy
-    # GENKAN_* env names so the container's env validation passes + it boots.
-    # The auth flow won't complete until #20 lands; that's accepted scope.
-    "GENKAN_OAUTH_CLIENT_ID=${var.menu_oauth_client_id}",
-    "GENKAN_OAUTH_CLIENT_SECRET=${var.menu_oauth_client_secret}",
-    "GENKAN_ISSUER_URL=https://${var.zitadel_hostname}",
+
+    # ── Auth (#20) ────────────────────────────────────────────────────────
+    # The menu app is a thin Zitadel OIDC client. Issuer URL drives
+    # openid-client's discovery + the JWKS used to verify access tokens.
+    "MENU_PUBLIC_URL=https://${var.menu_public_hostname}",
+    "MENU_SESSION_SECRET=${random_password.menu_session_secret.result}",
+    "ZITADEL_ISSUER_URL=https://${var.zitadel_hostname}",
+    "ZITADEL_OAUTH_CLIENT_ID=${zitadel_application_oidc.menu[0].client_id}",
+    "ZITADEL_OAUTH_CLIENT_SECRET=${zitadel_application_oidc.menu[0].client_secret}",
+    # PAT for the menu service account (IAM_OWNER). The identity slice
+    # calls Zitadel management API with this bearer for memberships +
+    # onboarding-time org creation.
+    "ZITADEL_MANAGEMENT_TOKEN=${zitadel_personal_access_token.menu_sa[0].token}",
+
+    # ── Object storage ────────────────────────────────────────────────────
     # R2 assets bucket — Tofu-managed in products/menu/infra/tofu/.
     "S3_ENDPOINT=${var.infra_menu_assets_endpoint}",
     "S3_REGION=us-east-1",
     "S3_BUCKET=${var.infra_menu_assets_bucket}",
     "S3_ACCESS_KEY=${var.infra_menu_assets_access_key}",
     "S3_SECRET_KEY=${var.infra_menu_assets_secret_key}",
-    # OpenObserve OTLP — same `kamal` network, container-DNS reachable.
+
+    # ── Observability ─────────────────────────────────────────────────────
     "OTEL_EXPORTER_OTLP_ENDPOINT=http://infra-openobserve:5080/api/default",
     "OTEL_EXPORTER_OTLP_HEADERS=${var.infra_openobserve_ingest_header}",
     "HOST_NAME=${hcloud_server.iedora.name}",
@@ -469,7 +485,7 @@ resource "docker_container" "caddy" {
   # The `versions h2c 2` clause forces HTTP/2 cleartext to the upstream;
   # without it Caddy speaks HTTP/1.1 and gRPC requests fail mid-stream.
   upload {
-    file = "/etc/caddy/Caddyfile"
+    file    = "/etc/caddy/Caddyfile"
     content = <<-EOT
       {
         # Email used for Let's Encrypt account registration + expiry warnings.

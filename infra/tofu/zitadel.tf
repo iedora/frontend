@@ -71,13 +71,119 @@ resource "zitadel_org" "iedora" {
   is_default = true
 }
 
-# The iedora project — parent for OIDC apps (menu, oauth2-proxy) coming
-# in Phases 2-3. `project_role_assertion = true` makes Zitadel
-# include the user's project roles in the access token, which menu's
-# Better-Auth generic-oauth provider will consume directly (Phase 3).
+# The iedora project — parent for every menu-side OIDC app.
+# `project_role_assertion = true` makes Zitadel include the user's project
+# roles in the access token; menu's OIDC client reads them off the
+# id_token claims (no userinfo round-trip).
 resource "zitadel_project" "iedora" {
   count                  = local.zitadel_bootstrapped ? 1 : 0
   name                   = "iedora"
   org_id                 = zitadel_org.iedora[0].id
   project_role_assertion = true
+}
+
+# ── Menu OIDC app (#20) ──────────────────────────────────────────────────────
+# Confidential web client. Menu's auth slice (openid-client + jose) drives
+# the standard auth-code-with-PKCE flow against this app:
+#   menu → /oauth/v2/authorize → Zitadel login → /api/auth/callback → menu
+#
+# Both client_id and client_secret are exposed as sensitive computed
+# attributes; piped directly into docker_container.menu_web env in
+# containers.tf. No BWS round-trip — producer + consumer share TF state.
+#
+# Why these specific switches:
+#   - app_type WEB + auth_method BASIC: classic confidential OIDC client.
+#     PKCE is still required by Zitadel for OAuth 2.1 compliance; the
+#     openid-client lib sends code_challenge automatically.
+#   - response_types CODE / grant_types AUTHORIZATION_CODE + REFRESH_TOKEN:
+#     standard backend-server flow. No implicit, no device.
+#   - access_token_type JWT: lets the menu container verify access tokens
+#     against the Zitadel JWKS (jose.createRemoteJWKSet) without a
+#     server-side introspection round-trip.
+#   - all three *_assertion flags TRUE: the id_token + access_token both
+#     carry the `urn:zitadel:iam:user:resourceowner:*` claims menu reads
+#     to derive the user's home org without a second API call.
+#   - login_v2.base_uri: route Zitadel-side login UI through the V2 login
+#     container that the FirstInstance step provisioned. Without it the
+#     redirect lands on the legacy /ui/login (different container).
+resource "zitadel_application_oidc" "menu" {
+  count      = local.zitadel_bootstrapped ? 1 : 0
+  org_id     = zitadel_org.iedora[0].id
+  project_id = zitadel_project.iedora[0].id
+  name       = "menu"
+
+  redirect_uris             = ["https://${var.menu_public_hostname}/api/auth/callback"]
+  post_logout_redirect_uris = ["https://${var.menu_public_hostname}/"]
+  response_types            = ["OIDC_RESPONSE_TYPE_CODE"]
+  grant_types               = ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN"]
+  app_type                  = "OIDC_APP_TYPE_WEB"
+  auth_method_type          = "OIDC_AUTH_METHOD_TYPE_BASIC"
+  version                   = "OIDC_VERSION_1_0"
+  access_token_type         = "OIDC_TOKEN_TYPE_JWT"
+  dev_mode                  = false
+
+  access_token_role_assertion = true
+  id_token_role_assertion     = true
+  id_token_userinfo_assertion = true
+
+  login_version {
+    login_v2 {
+      base_uri = "https://${var.zitadel_hostname}/ui/v2/login"
+    }
+  }
+}
+
+# ── Menu service account ─────────────────────────────────────────────────────
+# IAM_OWNER machine user the menu container uses for the small set of
+# privileged calls it has to make on the user's behalf — list memberships,
+# create an org at first onboarding, add a user as ORG_OWNER. The user's
+# own OIDC access token wouldn't carry the right scopes for any of these.
+#
+# A long-lived Personal Access Token is simpler than a JWT key here: the
+# token flows in plaintext as `Authorization: Bearer <pat>` and Zitadel
+# treats it as the machine user's access token. JWT keys would add a
+# client-credentials grant step at runtime for no security gain (the menu
+# container still has a long-lived bearer in env either way).
+resource "zitadel_machine_user" "menu_sa" {
+  count             = local.zitadel_bootstrapped ? 1 : 0
+  org_id            = zitadel_org.iedora[0].id
+  user_name         = "menu-sa"
+  name              = "Menu"
+  description       = "Service account menu uses for org provisioning + membership lookups (#20)."
+  access_token_type = "ACCESS_TOKEN_TYPE_BEARER"
+}
+
+# IAM-level role grant. Required so menu_sa can call `/admin/v1/orgs`
+# (org creation at onboarding) and read memberships across orgs.
+# Once orgs scale we can narrow this to ORG-scoped grants per tenant org.
+resource "zitadel_instance_member" "menu_sa_iam_owner" {
+  count   = local.zitadel_bootstrapped ? 1 : 0
+  user_id = zitadel_machine_user.menu_sa[0].id
+  roles   = ["IAM_OWNER"]
+}
+
+# Long-lived PAT. 75-year expiry matches the login-client PAT minted by
+# FirstInstance; rotation path is `tofu apply -replace=...menu_sa` (which
+# also recreates the IAM_OWNER grant — same call).
+resource "zitadel_personal_access_token" "menu_sa" {
+  count           = local.zitadel_bootstrapped ? 1 : 0
+  org_id          = zitadel_org.iedora[0].id
+  user_id         = zitadel_machine_user.menu_sa[0].id
+  expiration_date = "2099-01-01T00:00:00Z"
+}
+
+# ── Menu session-cookie encryption key ───────────────────────────────────────
+# 32-byte symmetric key for the menu app's session JWE (jose, alg=dir,
+# enc=A256GCM). Replaces the old BWS-stored MENU_AUTH_SECRET.
+#
+# Pros over BWS: single source of truth, no manual rotation, no third-party
+# round-trip. The key is sensitive in state (state is encrypted at rest via
+# the pbkdf2/AES-GCM block in versions.tf).
+#
+# Rotation: `tofu apply -replace=random_password.menu_session_secret`. All
+# existing sessions invalidate (cookies become undecryptable) → every user
+# bounces through the OIDC dance again. Pre-customer this is a non-event.
+resource "random_password" "menu_session_secret" {
+  length  = 48 # 48 base64 chars > 32 raw bytes, hashed to 32 in app code
+  special = false
 }

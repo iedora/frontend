@@ -1,20 +1,20 @@
 import 'server-only'
 import { redirect } from 'next/navigation'
-import { GENKAN_URL } from '@/shared/brand'
+import { signInUrl } from '@/shared/brand'
 import type { AuthGateway } from '../ports'
 
 /**
- * Resolves the current session. Redirects to Genkan's /login when the
- * caller is unauthenticated; returns the (non-null) session otherwise.
+ * Resolves the current session. Redirects to menu's local /api/auth/login
+ * (which mints PKCE+state cookies and bounces to Zitadel) when the caller
+ * is unauthenticated; returns the (non-null) session otherwise.
  *
- * Genkan (genkan.iedora.com) owns sign-in/sign-up UI. After successful
- * sign-in Genkan redirects to menu's `/api/auth/oauth2/callback/genkan`,
- * which Better Auth's `generic-oauth` plugin handles automatically.
+ * The redirect target is on menu's OWN host so the session cookie set on
+ * the OIDC callback is same-origin with the page that asked for it.
  */
 export async function verifySession(auth: AuthGateway) {
   const session = await auth.getSession()
   if (!session?.user) {
-    redirect(`${GENKAN_URL}/login`)
+    redirect(signInUrl())
   }
   return session
 }

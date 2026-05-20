@@ -1,8 +1,6 @@
 import Link from 'next/link'
-import { headers } from 'next/headers'
 import { Wordmark } from '@iedora/design-system'
-import { auth } from '@/features/auth/adapters/better-auth-instance'
-import { getEffectiveOrganizationId } from '@/features/auth'
+import { getEffectiveOrganizationId, getSession } from '@/features/auth'
 import { getOrganizationPlan, planHas } from '@/features/plans'
 import { LogoutButton } from '@/features/dashboard-home/ui/logout-button'
 import { UserLocaleSwitcher } from '@/features/dashboard-home/ui/user-locale-switcher'
@@ -17,7 +15,7 @@ export default async function DashboardLayout({
   // the per-page DAL guards (`verifySession`, `requireActiveOrganization`).
   // The layout only needs whatever data the chrome renders; missing values
   // collapse the relevant slots instead of throwing.
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   const organizationId = session?.user
     ? await getEffectiveOrganizationId(session.user.id)
     : null

@@ -1,14 +1,13 @@
 import Link from 'next/link'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Wordmark } from '@iedora/design-system'
-import { auth } from '@/features/auth/adapters/better-auth-instance'
-import { GENKAN_URL } from '@/shared/brand'
+import { getSession } from '@/features/auth'
+import { signInUrl } from '@/shared/brand'
 import { OnboardingForm } from './onboarding-form'
 
 export default async function OnboardingPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) redirect(`${GENKAN_URL}/login`)
+  const session = await getSession()
+  if (!session?.user) redirect(signInUrl('/onboarding'))
 
   // No org-existence gate here: /onboarding doubles as the "add another
   // restaurant" form for existing users. The action (`completeOnboarding`)

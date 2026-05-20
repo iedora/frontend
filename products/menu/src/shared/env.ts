@@ -19,40 +19,38 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
   // Database ------------------------------------------------------------
-  // Required at runtime — every request path that hits Drizzle needs it.
   DATABASE_URL: z.url(),
 
-  // Auth ----------------------------------------------------------------
-  // Better Auth signs LOCAL sessions on menu.iedora.com with this. NOT
-  // shared with Genkan — menu is a pure OAuth client of genkan now, so
-  // each app signs its own session cookie on its own host.
-  BETTER_AUTH_SECRET: z.string().min(32),
-  BETTER_AUTH_URL: z.url(),
+  // Auth (Zitadel native OIDC) ------------------------------------------
+  // Menu's public base URL — used to build the OIDC redirect_uri and
+  // post-logout URI. Must match the values declared in TF for
+  // zitadel_application_oidc.menu (infra/tofu/zitadel.tf).
+  MENU_PUBLIC_URL: z.url(),
 
-  // Genkan OAuth client credentials. Issued by genkan when menu was
-  // registered as an OIDC client. Required in production. The discovery
-  // URL (`${GENKAN_ISSUER_URL}/.well-known/openid-configuration`) is
-  // resolved by Better Auth's `generic-oauth` plugin at request time —
-  // we only configure the issuer + client id/secret.
-  GENKAN_OAUTH_CLIENT_ID: z.string().min(1),
-  GENKAN_OAUTH_CLIENT_SECRET: z.string().min(1),
-  // Issuer base URL. `https://genkan.iedora.com` in prod,
-  // `http://localhost:3001` in dev. The OIDC discovery + organization API
-  // endpoints are derived from this.
-  GENKAN_ISSUER_URL: z.url(),
+  // 32-byte (or more) secret used to derive the JWE encryption key for
+  // the menu session cookie (jose, alg=dir, enc=A256GCM). Minted in TF
+  // by random_password.menu_session_secret. Rotating it invalidates
+  // every session — see infra/tofu/zitadel.tf.
+  MENU_SESSION_SECRET: z.string().min(32),
 
-  // Optional knob consumed by lib/auth.ts. Tests set it to disable the
-  // in-memory rate limiter so the E2E suite can create users in a loop.
-  DISABLE_AUTH_RATE_LIMIT: z.enum(['true', 'false']).optional(),
+  // Zitadel issuer base URL. Discovery doc lives at
+  // `${ZITADEL_ISSUER_URL}/.well-known/openid-configuration`. Production:
+  // https://auth.iedora.com — dev points at a local stand-in.
+  ZITADEL_ISSUER_URL: z.url(),
+  ZITADEL_OAUTH_CLIENT_ID: z.string().min(1),
+  ZITADEL_OAUTH_CLIENT_SECRET: z.string().min(1),
+
+  // PAT for menu's IAM_OWNER service account. Identity slice uses this
+  // bearer for org provisioning + membership lookups. Minted in TF by
+  // zitadel_personal_access_token.menu_sa.
+  ZITADEL_MANAGEMENT_TOKEN: z.string().min(1),
 
   // Rate-limit kill-switch. Set 'true' in e2e tests so the slice short-circuits
   // to "always ok" and load-bearing flows (org creation, asset upload) can
-  // run in tight loops. Never enable in production. Mirrors the equivalent
-  // DISABLE_AUTH_RATE_LIMIT toggle for Better Auth's own throttle.
+  // run in tight loops. Never enable in production.
   DISABLE_RATE_LIMIT: z.enum(['true', 'false']).optional(),
 
   // Object storage (S3 / MinIO / LocalStack / R2) -----------------------
-  // All required — every uploaded asset path goes through getStorage().
   S3_ENDPOINT: z.url(),
   S3_REGION: z.string().min(1),
   S3_ACCESS_KEY: z.string().min(1),

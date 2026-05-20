@@ -10,11 +10,12 @@
  * against a separate PGLite instance via the factory.
  */
 process.env.DATABASE_URL ||= 'postgres://test:test@localhost/test'
-process.env.BETTER_AUTH_SECRET ||= 'x'.repeat(32)
-process.env.BETTER_AUTH_URL ||= 'http://localhost:3000'
-process.env.GENKAN_OAUTH_CLIENT_ID ||= 'menu-test'
-process.env.GENKAN_OAUTH_CLIENT_SECRET ||= 'test-secret'
-process.env.GENKAN_ISSUER_URL ||= 'http://localhost:3001'
+process.env.MENU_PUBLIC_URL ||= 'http://localhost:3000'
+process.env.MENU_SESSION_SECRET ||= 'a'.repeat(48)
+process.env.ZITADEL_ISSUER_URL ||= 'http://localhost:3001'
+process.env.ZITADEL_OAUTH_CLIENT_ID ||= 'menu-test'
+process.env.ZITADEL_OAUTH_CLIENT_SECRET ||= 'test-secret'
+process.env.ZITADEL_MANAGEMENT_TOKEN ||= 'test-pat'
 process.env.S3_ENDPOINT ||= 'http://localhost:4566'
 process.env.S3_REGION ||= 'us-east-1'
 process.env.S3_ACCESS_KEY ||= 'test'

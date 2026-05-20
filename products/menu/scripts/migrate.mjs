@@ -62,9 +62,9 @@ const db = drizzle(sql)
 try {
   await sql`SELECT pg_advisory_lock(${LOCK_KEY})`
   // Per-product tracker — see drizzle.config.ts. Without this, menu and
-  // genkan would write into the same `drizzle.__drizzle_migrations` and
-  // shadow each other (the migrator only applies entries newer than
-  // max(created_at)).
+  // any future product sharing the database would write into the same
+  // `drizzle.__drizzle_migrations` and shadow each other (the migrator
+  // only applies entries newer than max(created_at)).
   await migrate(db, {
     migrationsFolder: './drizzle',
     migrationsTable: '__drizzle_migrations',

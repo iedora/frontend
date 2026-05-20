@@ -6,7 +6,8 @@ Self-hosted, multi-tenant SaaS for restaurants to build digital menus by drag-an
 
 ```bash
 bun install
-cp .env.example .env.local            # then paste a fresh BETTER_AUTH_SECRET
+cd products/menu
+cp .env.example .env.local            # paste MENU_SESSION_SECRET + Zitadel creds
 docker compose up -d                  # postgres, localstack
 bun run db:migrate
 bun run dev

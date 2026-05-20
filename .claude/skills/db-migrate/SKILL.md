@@ -22,10 +22,6 @@ Hard rule from `AGENTS.md` #2: **schema is the source of truth, migrations are g
 
 Only for throwaway local exploration. Never on a branch that will be pushed. The committed migration files in `drizzle/` are the audit trail.
 
-## After Better Auth plugin changes
-
-Use the `auth-sync` skill instead — it runs `bun run auth:generate` first to refresh the auth tables in `schema.ts`, then loops back through generate/migrate.
-
 ## Money columns
 
 Always `priceCents: integer(...)` plus a separate `currency: text(...)`. Never floats. (Hard rule #6.)

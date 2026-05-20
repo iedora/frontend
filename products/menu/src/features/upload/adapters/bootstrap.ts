@@ -75,7 +75,7 @@ export async function ensureBucket(storage: S3Storage, bucket: string): Promise<
             MaxAgeSeconds: 3000,
           },
           {
-            AllowedOrigins: [env.BETTER_AUTH_URL],
+            AllowedOrigins: [env.MENU_PUBLIC_URL],
             AllowedMethods: ['PUT', 'HEAD'],
             AllowedHeaders: ['*'],
             ExposeHeaders: ['ETag'],

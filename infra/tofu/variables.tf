@@ -130,7 +130,7 @@ variable "claude_code_oauth_token" {
 }
 
 variable "menu_public_hostname" {
-  description = "Public FQDN for the menu app — used as Better Auth's BETTER_AUTH_URL, the A record name, and the Caddyfile site label."
+  description = "Public FQDN for the menu app — used as MENU_PUBLIC_URL, the A record name, the Caddyfile site label, and the Zitadel OIDC redirect URI base."
   type        = string
   default     = "menu.iedora.com"
 }
@@ -265,29 +265,15 @@ variable "infra_zitadel_first_admin_password" {
 
 # ── Menu app secrets (consumed by docker_container.menu_web) ─────────────────
 # These vars wire the menu container's runtime env from BWS through TF_VAR_*.
-
-variable "menu_auth_secret" {
-  description = "Better Auth signing secret for menu. TF_VAR_menu_auth_secret (from BWS MENU_AUTH_SECRET)."
-  type        = string
-  sensitive   = true
-}
-
-variable "menu_oauth_client_id" {
-  description = <<-EOT
-    OAuth client ID menu uses against the identity provider. Was genkan during
-    Phases 1-2; will be Zitadel from Phase 3 onward (issue #19). For now this
-    is read but auth flow won't complete (genkan is gone). Pre-customer; OK.
-    TF_VAR_menu_oauth_client_id (from BWS MENU_OAUTH_CLIENT_ID).
-  EOT
-  type        = string
-  sensitive   = true
-}
-
-variable "menu_oauth_client_secret" {
-  description = "OAuth client secret matching `menu_oauth_client_id`. TF_VAR_menu_oauth_client_secret (from BWS MENU_OAUTH_CLIENT_SECRET)."
-  type        = string
-  sensitive   = true
-}
+#
+# The auth/OIDC secrets that used to live here (MENU_AUTH_SECRET,
+# MENU_OAUTH_CLIENT_ID, MENU_OAUTH_CLIENT_SECRET) are gone as of issue #20.
+# Replacements live entirely inside TF state:
+#   - Session-cookie key      → random_password.menu_session_secret (zitadel.tf)
+#   - OIDC client id/secret   → zitadel_application_oidc.menu (zitadel.tf)
+#   - SA token for management → zitadel_personal_access_token.menu_sa (zitadel.tf)
+# No BWS round-trip — producer (zitadel_*) and consumer (menu_web env) are in
+# the same Tofu root, so the values flow output → env directly.
 
 variable "infra_menu_assets_access_key" {
   description = "R2 S3-compatible access key for the menu assets bucket. TF_VAR_infra_menu_assets_access_key (from BWS INFRA_MENU_ASSETS_ACCESS_KEY)."

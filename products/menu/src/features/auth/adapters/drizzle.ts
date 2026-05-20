@@ -1,22 +1,35 @@
 import 'server-only'
-import { headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { and, eq } from 'drizzle-orm'
-import { auth } from './better-auth-instance'
 import { db } from '@/shared/db/client'
 import { restaurant } from '@/shared/db/schema'
+import { env } from '@/shared/env'
 import type { AuthGateway } from '../ports'
+import {
+  makeSessionAdapter,
+  SESSION_COOKIE,
+  type Session,
+} from './session'
 
 /**
- * Production AuthGateway. Wraps Better Auth (session lookup) and Drizzle
- * (restaurant lookup scoped to a tenant id). The tenant-membership check
- * itself runs against Genkan via `@/features/identity` — see the use-cases.
+ * Production AuthGateway. Wraps the menu session cookie (jose JWE) and
+ * Drizzle (restaurant lookup scoped to a tenant id). The tenant-membership
+ * check itself runs against Zitadel via `@/features/identity` — see the
+ * use-cases.
  *
- * Server-only: `headers()` and the Drizzle client never belong on the client.
+ * Server-only: `cookies()` and the Drizzle client never belong on the client.
  */
-export const betterAuthGateway: AuthGateway = {
-  async getSession() {
-    return auth.api.getSession({ headers: await headers() })
-  },
+const sessions = makeSessionAdapter(env.MENU_SESSION_SECRET)
+
+async function readSessionCookie(): Promise<Session | null> {
+  const jar = await cookies()
+  const raw = jar.get(SESSION_COOKIE)?.value
+  if (!raw) return null
+  return sessions.open(raw)
+}
+
+export const drizzleAuthGateway: AuthGateway = {
+  getSession: readSessionCookie,
 
   async findRestaurantByIdInOrg({ restaurantId, organizationId }) {
     const rows = await db

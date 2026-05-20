@@ -1,6 +1,5 @@
 import { relations } from 'drizzle-orm'
 import {
-  bigint,
   pgSchema,
   primaryKey,
   text,
@@ -13,103 +12,18 @@ import {
 import type { LanguageCode, LocalizedText } from '@/features/i18n/types'
 import type { PlanCode } from '@/features/plans/types'
 
-// Single Postgres schema for the menu product: `menu.*`. Genkan (the IdaaS)
-// owns its own database — menu has ZERO coupling to genkan's tables. Identity
-// federates over OAuth via Better Auth's `generic-oauth` plugin (see
-// `features/auth/adapters/better-auth-instance.ts`).
-//
-// The Better Auth client tables (`user`, `session`, `account`, `verification`)
-// live under `menu.*` and represent the LOCAL cache of users who have signed
-// in to menu through genkan. The canonical identity record lives in genkan;
-// these rows are created by Better Auth on the first OAuth callback.
+// Single Postgres schema for the menu product: `menu.*`. Zitadel owns its
+// own database — menu has ZERO local identity state. The user/session/
+// account/verification tables Better Auth used were dropped in #20; menu
+// now mints its own session JWE (jose / random_password.menu_session_secret)
+// and reads user claims off the Zitadel-issued id_token.
 export const menuSchema = pgSchema('menu')
 
-// ─── Better Auth: client tables (local cache of federated identity) ──────────
-// Regenerate with `bun run auth:generate` after changing auth plugins.
-
-export const user = menuSchema.table('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').default(false).notNull(),
-  image: text('image'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-})
-
-export const session = menuSchema.table(
-  'session',
-  {
-    id: text('id').primaryKey(),
-    expiresAt: timestamp('expires_at').notNull(),
-    token: text('token').notNull().unique(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .$onUpdate(() => new Date())
-      .notNull(),
-    ipAddress: text('ip_address'),
-    userAgent: text('user_agent'),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-  },
-  (t) => [index('session_userId_idx').on(t.userId)],
-)
-
-// `account` is where Better Auth's generic-oauth plugin stores the user's
-// OAuth tokens (access_token, refresh_token, expiry). One row per
-// (userId, providerId='genkan'). The identity slice reads `accessToken` here
-// before calling genkan's HTTP organization API on the user's behalf.
-export const account = menuSchema.table(
-  'account',
-  {
-    id: text('id').primaryKey(),
-    accountId: text('account_id').notNull(),
-    providerId: text('provider_id').notNull(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    accessToken: text('access_token'),
-    refreshToken: text('refresh_token'),
-    idToken: text('id_token'),
-    accessTokenExpiresAt: timestamp('access_token_expires_at'),
-    refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-    scope: text('scope'),
-    password: text('password'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (t) => [index('account_userId_idx').on(t.userId)],
-)
-
-// `verification` is required by Better Auth's core even when email/password is
-// disabled — the generic-oauth flow uses it for OAuth state + PKCE storage.
-export const verification = menuSchema.table(
-  'verification',
-  {
-    id: text('id').primaryKey(),
-    identifier: text('identifier').notNull(),
-    value: text('value').notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (t) => [index('verification_identifier_idx').on(t.identifier)],
-)
-
-// ─── Org plan (menu-owned billing metadata, keyed by genkan orgId) ───────────
-// Genkan owns the organization record. The plan / tier is a menu-domain
+// ─── Org plan (menu-owned billing metadata, keyed by Zitadel orgId) ──────────
+// Zitadel owns the organization record. The plan / tier is a menu-domain
 // concern (it gates restaurant counts, monthly views, etc.) so it lives here.
-// `organizationId` is a UUID handed back by genkan's create-organization API;
-// no FK — genkan is a separate database.
+// `organizationId` is a UUID handed back by Zitadel's create-org API; no FK
+// — Zitadel is a separate database.
 export const orgPlan = menuSchema.table('org_plan', {
   organizationId: text('organization_id').primaryKey(),
   plan: text('plan').$type<PlanCode>().notNull().default('free'),
@@ -137,9 +51,9 @@ export const restaurant = menuSchema.table(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    // Genkan-issued organization UUID. No FK — genkan lives in a separate
+    // Zitadel-issued organization UUID. No FK — Zitadel lives in a separate
     // database. Tenancy is enforced at the DAL via the identity slice
-    // (`requireRestaurantAccess` calls `listOrganizations` against genkan).
+    // (`requireRestaurantAccess` calls `listOrganizations` against Zitadel).
     organizationId: text('organization_id').notNull(),
     name: text('name').notNull(),
     slug: text('slug').notNull().unique(),
@@ -297,7 +211,7 @@ export const viewSeen = menuSchema.table(
 export const dailyView = menuSchema.table(
   'daily_view',
   {
-    // Genkan-issued org UUID. No FK — genkan is a separate database.
+    // Zitadel-issued org UUID. No FK — Zitadel is a separate database.
     organizationId: text('organization_id').notNull(),
     restaurantId: text('restaurant_id')
       .notNull()
@@ -322,7 +236,7 @@ export type InvoiceStatus = 'paid' | 'pending' | 'void'
  * never rewrites historical invoices. Stripe (or any PSP) will fill these in
  * later via webhook; for now the table is the single source of truth.
  *
- * `organizationId` is a genkan-issued UUID — no FK, since genkan is a
+ * `organizationId` is a Zitadel-issued UUID — no FK, since Zitadel is a
  * separate database.
  */
 export const invoice = menuSchema.table(
@@ -366,31 +280,7 @@ export const rateLimitEvent = menuSchema.table(
   (t) => [index('rate_limit_event_key_time_idx').on(t.key, t.occurredAt)],
 )
 
-// Better Auth's own rate-limit store (when `rateLimit.storage: 'database'`).
-// Separate from `rate_limit_event` above — Better Auth keeps a single row
-// per key with running count + lastRequest timestamp; our app-side limiter
-// uses an append-only event log. Both can coexist trivially.
-export const rateLimit = menuSchema.table('rate_limit', {
-  id: text('id').primaryKey(),
-  key: text('key').notNull().unique(),
-  count: integer('count').notNull(),
-  lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
-})
-
 // ─── Relations ────────────────────────────────────────────────────────────────
-
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session),
-  accounts: many(account),
-}))
-
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, { fields: [session.userId], references: [user.id] }),
-}))
-
-export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, { fields: [account.userId], references: [user.id] }),
-}))
 
 export const restaurantRelations = relations(restaurant, ({ many }) => ({
   menus: many(menu),

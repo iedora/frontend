@@ -93,8 +93,7 @@ for KEY in INFRA_CLOUDFLARE_API_TOKEN INFRA_STATE_PASSPHRASE \
            INFRA_POSTGRES_PASSWORD INFRA_BACKUP_PASSPHRASE INFRA_GHCR_TOKEN \
            INFRA_SSH_PRIVATE_KEY \
            INFRA_ZITADEL_MASTERKEY INFRA_ZITADEL_FIRST_ADMIN_PASSWORD \
-           INFRA_OPENOBSERVE_ROOT_USER_PASSWORD \
-           MENU_AUTH_SECRET; do
+           INFRA_OPENOBSERVE_ROOT_USER_PASSWORD; do
   read -s -p "$KEY: " V && echo
   bws secret create "$KEY" "$V" "$BWS_PROJECT_ID" -o none
 done
@@ -255,7 +254,7 @@ Cost: ~30 lines duplicated per root (versions.tf, credentials, `data.cloudflare_
 
 **`unable to find image` on the server** — GHCR pull failed. `INFRA_GHCR_TOKEN` in BWS is wrong; regenerate.
 
-**Build-time warnings about `BETTER_AUTH_SECRET`** — Better Auth reads `process.env` during `next build`. `products/menu/infra/Dockerfile` sets placeholder build-only values; runtime values from container env override. If warnings come back after a Dockerfile change, re-add the placeholder `ENV` lines before `RUN node --run build`.
+**`Environment validation failed` on container start** — `SKIP_ENV_VALIDATION=1` is set during `next build` so Zod's `MENU_SESSION_SECRET` / `ZITADEL_*` checks don't fire on placeholder values. Runtime env (from `docker_container.menu_web` in TF) must populate every key in `src/shared/env.ts`. Check `just infra::logs menu_web` for the offending name.
 
 **`tofu destroy` prints `Warning: Resource Destruction Considerations` for `cloudflare_r2_bucket_cors`** — harmless. Cloudflare doesn't expose a separate delete endpoint; the subresource goes when its parent does. Tofu only removes it from local state.
 

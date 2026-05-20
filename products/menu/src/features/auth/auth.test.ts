@@ -3,14 +3,14 @@ import { and, eq } from 'drizzle-orm'
 import * as schema from '@/shared/db/schema'
 import { makeTestDb, type TestDb } from '@/shared/testing/pglite'
 import type { IdentityGateway, Organization } from '@/features/identity'
-import type { Session } from './adapters/better-auth-instance'
+import type { Session } from './adapters/session'
 import type { AuthGateway } from './ports'
 import { verifySession } from './use-cases/verify-session'
 import { requireRestaurantAccess } from './use-cases/require-restaurant-access'
 
-// The use-cases call next/navigation's `redirect()` / `notFound()`, which
-// only work inside a real Next request scope. In Vitest we replace them with
-// throws so the assertion side of the test can detect the redirect path.
+// The use-cases call next/navigation's `redirect()`, which only works inside
+// a real Next request scope. In Vitest we replace it with a throw so the
+// assertion side of the test can detect the redirect path.
 vi.mock('next/navigation', () => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`__REDIRECT__:${path}`)
@@ -21,7 +21,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 // `server-only` would throw at import-time outside a Next server context;
-// in Vitest we neutralize it.
+// in Vitest we neutralise it.
 vi.mock('server-only', () => ({}))
 
 let t: TestDb
@@ -34,22 +34,17 @@ afterEach(async () => {
   await t.cleanup()
 })
 
-/**
- * Build a `Session` shape matching what Better Auth returns. We only need
- * the user.id field; everything else gets a minimal stub plus an
- * `as unknown as Session` cast.
- */
 function makeSession(opts: { userId: string }): Session {
   return {
-    user: { id: opts.userId },
-    session: {},
-  } as unknown as Session
+    user: { id: opts.userId, email: 'u@example.test', name: 'U' },
+    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+  }
 }
 
 /**
  * Hand-rolled `AuthGateway` whose restaurant lookups run against the test
  * PGLite db, so we exercise real Drizzle queries (and therefore real
- * Postgres semantics) without standing up Better Auth.
+ * Postgres semantics) without standing up the OIDC adapter.
  */
 function makeAuthGateway(
   testDb: TestDb,
@@ -93,7 +88,7 @@ function makeAuthGateway(
 }
 
 /**
- * Fake IdentityGateway. In production this calls Genkan over HTTP; in
+ * Fake IdentityGateway. In production this calls Zitadel over HTTP; in
  * tests we hand it a static list keyed by userId so the use-cases can
  * exercise the "user belongs to org" join purely against the membership
  * map the test set up.
@@ -115,14 +110,16 @@ function makeIdentityGateway(
 }
 
 describe('verifySession', () => {
-  it("redirects to Genkan's /login when there is no session", async () => {
+  it('redirects to /api/auth/login when there is no session', async () => {
     const gw: AuthGateway = {
       getSession: async () => null,
     } as unknown as AuthGateway
 
-    // Genkan is the SSO entryway — every unauthenticated request bounces to
-    // its /login. Dev uses :3001, prod uses https://genkan.iedora.com.
-    await expect(verifySession(gw)).rejects.toThrow(/__REDIRECT__:.*\/login$/)
+    // The login route lives on menu's OWN host. Bouncing direct to Zitadel
+    // skips the PKCE-state-cookie hand-off and breaks the dance.
+    await expect(verifySession(gw)).rejects.toThrow(
+      '__REDIRECT__:/api/auth/login',
+    )
   })
 
   it('returns the session when present', async () => {
@@ -137,9 +134,9 @@ describe('verifySession', () => {
 
 describe('requireRestaurantAccess', () => {
   beforeEach(async () => {
-    // Seed the canonical happy-path: restaurant r1 belongs to org o1.
-    // Genkan would tell us "u1 is a member of o1" via the IdentityGateway
-    // — we wire that mapping in each test below.
+    // Seed: restaurant r1 belongs to org o1. Zitadel tells us "u1 is a
+    // member of o1" via the IdentityGateway — we wire that mapping in each
+    // test below.
     await t.db.insert(schema.restaurant).values({
       id: 'r1',
       organizationId: 'o1',
@@ -163,9 +160,6 @@ describe('requireRestaurantAccess', () => {
   })
 
   it('redirects to /dashboard when the restaurant belongs to a different org', async () => {
-    // Second restaurant in o2 — u1 is NOT a member of o2 (identity returns
-    // only o1), so the effective org resolves to o1 and r2 won't be found
-    // under it.
     await t.db.insert(schema.restaurant).values({
       id: 'r2',
       organizationId: 'o2',
@@ -184,10 +178,9 @@ describe('requireRestaurantAccess', () => {
     )
   })
 
-  it('falls back to the first organization Genkan returns when picking the active org', async () => {
+  it('falls back to the first organization Zitadel returns when picking the active org', async () => {
     const session = makeSession({ userId: 'u1' })
     const auth = makeAuthGateway(t, session)
-    // Multiple orgs — picks the first (Genkan's response order).
     const identity = makeIdentityGateway({
       u1: [
         { id: 'o1', name: 'Org One', slug: 'org-one' },
@@ -201,7 +194,7 @@ describe('requireRestaurantAccess', () => {
     expect(result.restaurantId).toBe('r1')
   })
 
-  it('redirects to /onboarding when the user has no orgs on Genkan', async () => {
+  it('redirects to /onboarding when the user has no orgs on Zitadel', async () => {
     const session = makeSession({ userId: 'u2' })
     const auth = makeAuthGateway(t, session)
     const identity = makeIdentityGateway({}) // u2 → no orgs
@@ -209,76 +202,5 @@ describe('requireRestaurantAccess', () => {
     await expect(requireRestaurantAccess(auth, identity, 'r1')).rejects.toThrow(
       '__REDIRECT__:/onboarding',
     )
-  })
-})
-
-/**
- * Better Auth `rateLimit.storage: 'database'` writes into the `rateLimit`
- * table at runtime — one row per (key) with running count + lastRequest
- * timestamp. Schema generated by `bun run auth:generate`.
- *
- * This test exists to catch a silent regression: if someone removes the
- * `rateLimit` table from the schema (or renames a column), Better Auth's
- * runtime call would crash on the *first* auth request that hits the
- * limiter — which would be missed by every test except this one.
- */
-describe('Better Auth rateLimit table — schema contract', () => {
-  it('accepts the row shape Better Auth writes (key + count + lastRequest)', async () => {
-    const now = Date.now()
-    await t.db.insert(schema.rateLimit).values({
-      id: 'r-1',
-      key: 'login:127.0.0.1',
-      count: 1,
-      lastRequest: now,
-    })
-
-    const [row] = await t.db
-      .select()
-      .from(schema.rateLimit)
-      .where(eq(schema.rateLimit.key, 'login:127.0.0.1'))
-      .limit(1)
-
-    expect(row?.count).toBe(1)
-    expect(row?.lastRequest).toBe(now)
-  })
-
-  it('enforces unique constraint on `key` so increments stay collapsed to one row', async () => {
-    await t.db.insert(schema.rateLimit).values({
-      id: 'r-a',
-      key: 'shared-key',
-      count: 1,
-      lastRequest: 1000,
-    })
-    await expect(
-      t.db.insert(schema.rateLimit).values({
-        id: 'r-b',
-        key: 'shared-key',
-        count: 2,
-        lastRequest: 2000,
-      }),
-    ).rejects.toThrow()
-  })
-
-  it('round-trips a realistic Better Auth lifecycle (create → update)', async () => {
-    // Mirrors createDatabaseStorageWrapper.set when _update is false then true.
-    await t.db.insert(schema.rateLimit).values({
-      id: 'r-2',
-      key: 'auth:rl:x',
-      count: 1,
-      lastRequest: 1000,
-    })
-    await t.db
-      .update(schema.rateLimit)
-      .set({ count: 2, lastRequest: 2000 })
-      .where(eq(schema.rateLimit.key, 'auth:rl:x'))
-
-    const [row] = await t.db
-      .select()
-      .from(schema.rateLimit)
-      .where(eq(schema.rateLimit.key, 'auth:rl:x'))
-      .limit(1)
-
-    expect(row?.count).toBe(2)
-    expect(row?.lastRequest).toBe(2000)
   })
 })

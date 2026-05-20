@@ -1,16 +1,14 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { auth } from '@/features/auth/adapters/better-auth-instance'
-import { getEffectiveOrganizationId } from '@/features/auth'
+import { getEffectiveOrganizationId, getSession } from '@/features/auth'
 import {
   createOrganization,
   setActiveOrganization,
 } from '@/features/identity'
-import { GENKAN_URL } from '@/shared/brand'
+import { signInUrl } from '@/shared/brand'
 import { db } from '@/shared/db/client'
 import { menu, restaurant } from '@/shared/db/schema'
 import { canAddRestaurant } from '@/features/plans'
@@ -73,10 +71,9 @@ export async function completeOnboarding(
   }
 
   const { restaurantName, slug } = parsed.data
-  const reqHeaders = await headers()
 
-  const session = await auth.api.getSession({ headers: reqHeaders })
-  if (!session?.user) redirect(`${GENKAN_URL}/login`)
+  const session = await getSession()
+  if (!session?.user) redirect(signInUrl('/onboarding'))
 
   // Throttle per-user — org doesn't exist yet on first call. Fail-open by
   // policy (cosmetic UX gate, not a brute-force surface).

@@ -78,20 +78,6 @@ deploy:
       {{tofu}} apply -auto-approve
     fi
 
-    # Write-through outputs to BWS.
-    HETZNER_IPV4=$({{tofu}} output -raw hetzner_ipv4)
-    for KEY_VAL in "INFRA_HOST_IP:$HETZNER_IPV4"; do
-      KEY=${KEY_VAL%%:*}
-      VAL=${KEY_VAL#*:}
-      SECRET_ID=$(bws secret list "$BWS_PROJECT_ID" -o json \
-        | jq -r --arg k "$KEY" '.[] | select(.key==$k) | .id')
-      if [ -n "$SECRET_ID" ]; then
-        bws secret edit "$SECRET_ID" --value "$VAL" -o none
-      else
-        bws secret create -o none -- "$KEY" "$VAL" "$BWS_PROJECT_ID"
-      fi
-    done
-
 # Tear down EVERY Tofu-managed resource — Hetzner VPS + Cloudflare + the
 # infra containers (containers go with the VPS). Destructive: wipes the
 # Hetzner data dir; restore from R2 dump to recover.

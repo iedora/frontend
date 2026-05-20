@@ -57,12 +57,8 @@ ENV NODE_ENV=production
 
 # SKIP_ENV_VALIDATION=1 returns a build-time stub Proxy from src/shared/env.ts
 # so Next can collect page data without real env. Runtime env is injected
-# by the repo-root Tofu container resource (env block sourced from BWS).
+# by the repo-root Tofu container resource (TF-minted OIDC + session secrets).
 ENV SKIP_ENV_VALIDATION=1
-
-# Better Auth reads process.env at module load — placeholders so build is quiet.
-ENV BETTER_AUTH_SECRET=build-placeholder-overridden-at-runtime-32chars
-ENV BETTER_AUTH_URL=http://build.local
 
 RUN node --run build
 

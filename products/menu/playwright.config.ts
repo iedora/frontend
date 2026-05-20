@@ -27,9 +27,8 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
-    // Better Auth enforces an Origin header on state-changing requests as CSRF
-    // protection. Browser navigation sets it automatically; the `request`
-    // fixture does not, so we set it globally here.
+    // Origin header is harmless on Next routes; carried over from the
+    // earlier era where it was load-bearing for CSRF.
     extraHTTPHeaders: { Origin: BASE_URL },
     trace: 'on-first-retry',
     video: 'retain-on-failure',
@@ -74,24 +73,19 @@ export default defineConfig({
       env: {
         DATABASE_URL:
           'postgresql://postgres:postgres@localhost:5432/menu_test',
-        BETTER_AUTH_SECRET: MENU_TEST_SECRET,
-        BETTER_AUTH_URL: BASE_URL,
-        DISABLE_AUTH_RATE_LIMIT: 'true',
+        MENU_PUBLIC_URL: BASE_URL,
+        MENU_SESSION_SECRET: MENU_TEST_SECRET,
         DISABLE_RATE_LIMIT: 'true',
-        // Genkan OAuth client wiring — the testkit pre-registers a "menu"
-        // client with the same id/secret. The shim proxies through to the
-        // testkit for everything except the three bearer-adapted org
-        // endpoints (see _bootstrap.ts).
-        GENKAN_OAUTH_CLIENT_ID: 'menu',
-        GENKAN_OAUTH_CLIENT_SECRET: 'menu-secret',
-        GENKAN_ISSUER_URL: SHIM_URL,
-        // `src/shared/brand.ts::GENKAN_URL` is imported by client components
-        // (landing-page.tsx, logout-button.tsx). NEXT_PUBLIC_* is inlined at
-        // BUILD time into the client bundle. Setting it here covers the
-        // local dev path (`bun run build && bun run start` runs from this
-        // env block). CI's build step has the same value pinned in ci.yml
-        // because the build runs in a separate step from `bun run start`.
-        NEXT_PUBLIC_GENKAN_URL: SHIM_URL,
+        // Zitadel-shaped wiring. The Zitadel testkit shim is not yet
+        // restored after the #20 cutover; the values below let env.ts
+        // pass its Zod gate so the dev-loop smoke + non-auth specs run.
+        // Auth-coupled specs need a stub at SHIM_URL that answers
+        // /.well-known/openid-configuration + /oauth/v2/* — see TODO in
+        // tests/e2e/_bootstrap.ts.
+        ZITADEL_ISSUER_URL: SHIM_URL,
+        ZITADEL_OAUTH_CLIENT_ID: 'menu',
+        ZITADEL_OAUTH_CLIENT_SECRET: 'menu-secret',
+        ZITADEL_MANAGEMENT_TOKEN: 'test-pat',
         // Storage — LocalStack via docker-compose. Separate bucket so tests
         // don't collide with dev assets.
         S3_ENDPOINT: 'http://localhost:4566',
@@ -99,10 +93,6 @@ export default defineConfig({
         S3_ACCESS_KEY: 'test',
         S3_SECRET_KEY: 'test',
         S3_BUCKET: 'menu-test',
-        // Mirrors `process.env.NODE_ENV === 'production'` so `src/shared/brand.ts`
-        // resolves `GENKAN_URL` to the localhost (3001) dev default. Tests
-        // never visit that URL — they hit the shim through Better Auth's
-        // generic-oauth `discoveryUrl` which is set above.
         NODE_ENV: 'production',
       },
     },
