@@ -1,7 +1,7 @@
 {
   "version": 5,
   "dashboardId": "",
-  "title": "Iedora — Business",
+  "title": "Iedora \u2014 Business",
   "description": "Tenant adoption + public-menu engagement. KPIs the team checks Monday morning.",
   "owner": "",
   "role": "",
@@ -16,20 +16,32 @@
           "title": "Public menu views (24h)",
           "description": "Sum of iedora.restaurant_views_total over the last 24h. Beacon-deduped per (visitor, restaurant, hour).",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 0, "w": 4, "h": 4, "i": 1 },
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "i": 1
+          },
           "config": {
             "show_legends": false,
             "unit": "short",
             "decimals": 0,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '24 hour'",
+              "query": "SELECT SUM(value) AS y_axis_1 FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '24 hour'",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [
@@ -41,9 +53,15 @@
                     "aggregationFunction": "sum"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -53,20 +71,32 @@
           "title": "Active restaurants (7d)",
           "description": "Distinct tenant.restaurant_id with at least one beacon-tracked view in the last 7 days.",
           "queryType": "sql",
-          "layout": { "x": 4, "y": 0, "w": 4, "h": 4, "i": 2 },
+          "layout": {
+            "x": 4,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "i": 2
+          },
           "config": {
             "show_legends": false,
             "unit": "short",
             "decimals": 0,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT COUNT(DISTINCT tenant_restaurant_id) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '7 day'",
+              "query": "SELECT COUNT(DISTINCT tenant_restaurant_id) AS y_axis_1 FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '7 day'",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [
@@ -75,12 +105,18 @@
                     "alias": "y_axis_1",
                     "column": "y_axis_1",
                     "color": "#5960b2",
-                    "aggregationFunction": "count_distinct"
+                    "aggregationFunction": "count-distinct"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -88,22 +124,34 @@
           "id": "p_orgs_created_7d",
           "type": "metric",
           "title": "New orgs (7d)",
-          "description": "Successful Zitadel create-org calls in the last 7 days. The funnel top — every new tenant.",
+          "description": "Successful Zitadel create-org calls in the last 7 days. The funnel top \u2014 every new tenant.",
           "queryType": "sql",
-          "layout": { "x": 8, "y": 0, "w": 4, "h": 4, "i": 3 },
+          "layout": {
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "i": 3
+          },
           "config": {
             "show_legends": false,
             "unit": "short",
             "decimals": 0,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.zitadel.calls_total' AND attributes.iedora_zitadel_endpoint = 'create-org' AND attributes.iedora_zitadel_outcome = 'success' AND _timestamp > now() - INTERVAL '7 day'",
+              "query": "SELECT SUM(value) AS y_axis_1 FROM \"iedora_zitadel_calls_total\" WHERE iedora_zitadel_endpoint = 'create-org' AND iedora_zitadel_outcome = 'success' AND _timestamp > now() - INTERVAL '7 day'",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_zitadel_calls_total",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [
@@ -115,9 +163,15 @@
                     "aggregationFunction": "sum"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -127,22 +181,39 @@
           "title": "Views per day (30d)",
           "description": "Daily public-menu views across the whole estate. Trend > absolute number.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 4, "w": 12, "h": 6, "i": 4 },
+          "layout": {
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 6,
+            "i": 4
+          },
           "config": {
             "show_legends": true,
             "unit": "short",
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT histogram(_timestamp, '1 day') AS x_axis_1, SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '30 day' GROUP BY x_axis_1 ORDER BY x_axis_1",
+              "query": "SELECT histogram(_timestamp, '1 day') AS x_axis_1, SUM(value) AS y_axis_1 FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '30 day' GROUP BY x_axis_1 ORDER BY x_axis_1",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [
-                  { "label": "Day", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Day",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -153,9 +224,15 @@
                     "aggregationFunction": "sum"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -165,22 +242,39 @@
           "title": "Top 10 restaurants by views (7d)",
           "description": "Where engagement is concentrated. Useful when picking case studies or noticing a single tenant driving the whole estate's metrics.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 10, "w": 6, "h": 6, "i": 5 },
+          "layout": {
+            "x": 0,
+            "y": 10,
+            "w": 6,
+            "h": 6,
+            "i": 5
+          },
           "config": {
             "show_legends": false,
             "top_results": 10,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT tenant_restaurant_id AS x_axis_1, SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '7 day' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC LIMIT 10",
+              "query": "SELECT tenant_restaurant_id AS x_axis_1, SUM(value) AS y_axis_1 FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '7 day' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC LIMIT 10",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [
-                  { "label": "Restaurant", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Restaurant",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -191,9 +285,15 @@
                     "aggregationFunction": "sum"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -203,21 +303,38 @@
           "title": "Views by language (7d)",
           "description": "Which i18n languages real users hit. Drives the language-registry priority list.",
           "queryType": "sql",
-          "layout": { "x": 6, "y": 10, "w": 6, "h": 6, "i": 6 },
+          "layout": {
+            "x": 6,
+            "y": 10,
+            "w": 6,
+            "h": 6,
+            "i": 6
+          },
           "config": {
             "show_legends": true,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT iedora_language AS x_axis_1, SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '7 day' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+              "query": "SELECT iedora_language AS x_axis_1, SUM(value) AS y_axis_1 FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '7 day' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [
-                  { "label": "Language", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Language",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -228,9 +345,15 @@
                     "aggregationFunction": "sum"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         }
