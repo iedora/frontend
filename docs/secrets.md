@@ -137,7 +137,8 @@ Then `just deploy` — `bin/with-secrets` re-reads BWS on every apply.
 For `AUTOGEN_INFRA_*` secrets (Tofu-minted):
 
 ```bash
-bin/with-secrets tofu -chdir=infra/tofu apply -replace=random_password.<name>
+just with-secrets tofu -chdir=tofu apply -replace=random_password.<name>
+# (or, from inside infra/: bin/with-secrets tofu -chdir=tofu apply -replace=random_password.<name>)
 ```
 
 Where `<name>` is `postgres`, `backup_passphrase`, `zitadel_first_admin`, or `openobserve_password`. The replace generates a fresh value; `null_resource.bws_sync_autogen` write-throughs the new value to BWS automatically. `random_password.zitadel_masterkey` is guarded by `lifecycle.prevent_destroy = true` — rotating it requires removing the lifecycle block and goes through the documented re-key flow.
@@ -145,13 +146,12 @@ Where `<name>` is `postgres`, `backup_passphrase`, `zitadel_first_admin`, or `op
 For `INFRA_CLOUDFLARE_API_TOKEN` rotation: sub-tokens are independent credentials, they keep working when the master rotates. Only rotate sub-tokens if individually compromised:
 
 ```bash
-# Rotate a specific sub-token:
-cd products/menu/infra
-bin/with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.assets_r2
+# Rotate sub-tokens (use just with-secrets from anywhere; the recipe cds into infra/):
+just with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.backups_r2
+just with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.observability_r2
 
-cd infra
-bin/with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.backups_r2
-bin/with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.observability_r2
+# For the menu-local assets sub-token, that one lives in products/menu/infra/:
+cd products/menu/infra && bin/with-secrets tofu -chdir=tofu apply -replace=cloudflare_api_token.assets_r2
 ```
 
 For `BWS_ACCESS_TOKEN`:

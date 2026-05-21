@@ -76,3 +76,19 @@ dev *FLAGS:
 [doc("preflight check: PATH, BWS auth, bootstrap secrets present")]
 doctor:
     @cd infra && bin/iedora doctor
+
+# BWS env wrapper — exec any command with every BWS secret hydrated into
+# env (+ TF_VAR_* aliases for the bootstrap-secret shape Tofu expects).
+# Useful for ad-hoc `tofu state` operations and one-off
+# `apply -replace=<resource>` runs without dragging the whole orchestrator.
+#
+# Examples:
+#   just with-secrets tofu -chdir=tofu state list
+#   just with-secrets tofu -chdir=tofu apply -replace=random_password.postgres
+#   just with-secrets bash -c 'echo $TF_VAR_state_passphrase'
+#
+# Same wrapper bin/iedora layers on top — exposing it here means you don't
+# have to `cd infra && bin/with-secrets …` for the day-to-day cases.
+[doc("exec a command with every BWS secret + TF_VAR_* hydrated into env")]
+with-secrets *CMD:
+    @cd infra && bin/with-secrets {{CMD}}

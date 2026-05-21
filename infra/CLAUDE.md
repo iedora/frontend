@@ -80,6 +80,7 @@ just deploy --destroy     # → bin/iedora deploy --destroy (same binary, flag p
 just deploy -d            # short form of --destroy
 just doctor               # → bin/iedora doctor (preflight: PATH, BWS auth, bootstrap secrets)
 just dev                  # → infra/cmd/dev (local OpenTofu dev stack; --destroy to wipe, --reset-db <service> to scope a DB reset)
+just with-secrets <cmd>   # → bin/with-secrets <cmd> (exec any command with BWS secrets + TF_VAR_* hydrated)
 ```
 
 Day-2 ops (logs, psql, backup, restore, secret rotation, postgres wipe,
