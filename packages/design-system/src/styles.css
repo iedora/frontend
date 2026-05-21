@@ -469,6 +469,189 @@
 
 .ds-textarea { resize: vertical; min-height: 64px; line-height: 1.45; }
 
+/* Combobox — searchable dropdown. See components/combobox.tsx.
+
+   The trigger reads as a `<Field>`-style underline input: serif body,
+   12px vertical padding, hairline bottom border, chevron on the right.
+   When nothing is selected, the visible value sits in `--ink-40` italic
+   (matches `::placeholder` rules above).
+
+   The popover paints on `--paper` with a hairline frame and a thin
+   shadow; the search input inside the header reuses the same underline
+   treatment so the visual rhythm stays editorial.
+
+   The width matches the trigger via Radix's
+   `--radix-popover-trigger-width` CSS var so the dropdown lines up
+   under the field on any viewport; `max-height: clamp(...)` keeps it
+   inside the viewport on mobile and scrolls internally.
+*/
+.ds-combobox__trigger {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ink-22);
+  padding: 12px 24px 12px 0;
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--ink);
+  outline: none;
+  width: 100%;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color var(--d-2) var(--ease);
+  position: relative;
+}
+.ds-combobox__trigger:hover:not(:disabled),
+.ds-combobox__trigger[aria-expanded="true"],
+.ds-combobox__trigger:focus-visible {
+  border-color: var(--ink);
+}
+.ds-combobox__trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ds-combobox__trigger[data-placeholder] .ds-combobox__value {
+  color: var(--ink-40);
+  font-style: italic;
+}
+.ds-combobox__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-combobox__chevron {
+  display: inline-flex;
+  color: var(--ink-55);
+  flex: none;
+  transition: transform var(--d-2) var(--ease);
+}
+.ds-combobox__trigger[aria-expanded="true"] .ds-combobox__chevron {
+  transform: rotate(180deg);
+}
+
+.ds-combobox__popover {
+  background: var(--paper);
+  border: 1px solid var(--ink-14);
+  box-shadow: 0 4px 16px rgba(26, 24, 21, 0.04);
+  width: var(--radix-popover-trigger-width);
+  /* Clamp to viewport so it scrolls internally on mobile rather than
+     forcing the page to scroll. */
+  max-height: clamp(180px, 50vh, 360px);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  outline: none;
+  /* Radix open/close hooks for the entrance + exit animations. */
+  animation: ds-combobox-fade-in var(--d-2) var(--ease) both;
+}
+.ds-combobox__popover[data-state="closed"] {
+  animation-name: ds-combobox-fade-out;
+}
+@keyframes ds-combobox-fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ds-combobox-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-2px); }
+}
+
+.ds-combobox__searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ink-14);
+}
+.ds-combobox__search {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+  padding: 4px 0;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+  width: 100%;
+}
+.ds-combobox__search::placeholder {
+  color: var(--ink-40);
+  font-style: italic;
+}
+.ds-combobox__clear {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  font-family: var(--mono);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.ds-combobox__clear:hover {
+  color: var(--cinnabar);
+}
+
+.ds-combobox__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  /* Keep wheel events from bubbling to the page. */
+  overscroll-behavior: contain;
+}
+.ds-combobox__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+  /* Hairline left rail flips to cinnabar when selected. */
+  border-left: 2px solid transparent;
+}
+.ds-combobox__item--active {
+  background: var(--ink-14);
+}
+.ds-combobox__item--selected {
+  border-left-color: var(--cinnabar);
+}
+.ds-combobox__item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-combobox__item-hint {
+  font-family: var(--mono);
+  font-size: var(--t-2xs);
+  letter-spacing: 0.10em;
+  color: var(--ink-40);
+  flex: none;
+}
+
+.ds-combobox__empty {
+  padding: 16px 12px;
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink-40);
+  text-align: center;
+}
+
 /* Checkbox */
 .ds-check {
   display: inline-flex;

@@ -55,6 +55,11 @@ export {
   FieldInput,
   FieldTextarea,
 } from "./components/field";
+export {
+  Combobox,
+  type ComboboxOption,
+  type ComboboxProps,
+} from "./components/combobox";
 export { Checkbox, Toggle } from "./components/check-toggle";
 export { Table, Th, Td, TableRowNum } from "./components/table";
 export {
