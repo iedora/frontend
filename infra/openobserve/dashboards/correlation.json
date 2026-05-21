@@ -1,7 +1,7 @@
 {
   "version": 5,
   "dashboardId": "",
-  "title": "Iedora — Correlation",
+  "title": "Iedora \u2014 Correlation",
   "description": "Where business and technical signals cross. Which tenants suffer when latency degrades, which restaurants generate the errors, which traces span products.",
   "owner": "",
   "role": "",
@@ -14,13 +14,25 @@
           "id": "p_lat_by_tenant",
           "type": "table",
           "title": "p95 request latency by tenant (1h)",
-          "description": "Which restaurants are seeing the worst end-user latency right now. Sort desc — the top of the list is who to call.",
+          "description": "Which restaurants are seeing the worst end-user latency right now. Sort desc \u2014 the top of the list is who to call.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 0, "w": 6, "h": 8, "i": 1 },
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 8,
+            "i": 1
+          },
           "config": {
             "show_legends": false,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
@@ -30,7 +42,12 @@
                 "stream": "traces",
                 "stream_type": "traces",
                 "x": [
-                  { "label": "Restaurant", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Restaurant",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -48,9 +65,15 @@
                     "aggregationFunction": "count"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -58,13 +81,25 @@
           "id": "p_errors_by_tenant",
           "type": "table",
           "title": "Errors by tenant (24h)",
-          "description": "Count of span errors per restaurant in the last 24h. Combine with the latency table — same restaurant in both = real degradation.",
+          "description": "Count of span errors per restaurant in the last 24h. Combine with the latency table \u2014 same restaurant in both = real degradation.",
           "queryType": "sql",
-          "layout": { "x": 6, "y": 0, "w": 6, "h": 8, "i": 2 },
+          "layout": {
+            "x": 6,
+            "y": 0,
+            "w": 6,
+            "h": 8,
+            "i": 2
+          },
           "config": {
             "show_legends": false,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
@@ -74,7 +109,12 @@
                 "stream": "traces",
                 "stream_type": "traces",
                 "x": [
-                  { "label": "Restaurant", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Restaurant",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -85,9 +125,15 @@
                     "aggregationFunction": "count"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -97,22 +143,39 @@
           "title": "Views vs p95 latency per restaurant (24h)",
           "description": "Each dot is a restaurant. Up-right = busy AND slow (real customer pain). Far-left = quiet, ignore. The diagonal slope reveals whether load is correlated with degradation.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 8, "w": 12, "h": 8, "i": 3 },
+          "layout": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8,
+            "i": 3
+          },
           "config": {
             "show_legends": false,
             "unit": "milliseconds",
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "WITH views AS (SELECT tenant_restaurant_id, SUM(value) AS view_count FROM \"default\" WHERE metric_name = 'iedora.restaurant_views_total' AND _timestamp > now() - INTERVAL '24 hour' GROUP BY tenant_restaurant_id), lat AS (SELECT tenant_restaurant_id, approx_percentile_cont(duration_ms, 0.95) AS p95_ms FROM \"default\" WHERE service_name = 'iedora-menu' AND tenant_restaurant_id IS NOT NULL AND _timestamp > now() - INTERVAL '24 hour' GROUP BY tenant_restaurant_id) SELECT v.tenant_restaurant_id AS x_axis_1, v.view_count AS y_axis_1, lat.p95_ms AS z_axis_1 FROM views v JOIN lat ON v.tenant_restaurant_id = lat.tenant_restaurant_id ORDER BY v.view_count DESC LIMIT 200",
+              "query": "WITH views AS (SELECT tenant_restaurant_id, SUM(value) AS view_count FROM \"iedora_restaurant_views_total\" WHERE _timestamp > now() - INTERVAL '24 hour' GROUP BY tenant_restaurant_id), lat AS (SELECT tenant_restaurant_id, approx_percentile_cont(duration_ms, 0.95) AS p95_ms FROM \"default\" WHERE service_name = 'iedora-menu' AND tenant_restaurant_id IS NOT NULL AND _timestamp > now() - INTERVAL '24 hour' GROUP BY tenant_restaurant_id) SELECT v.tenant_restaurant_id AS x_axis_1, v.view_count AS y_axis_1, lat.p95_ms AS z_axis_1 FROM views v JOIN lat ON v.tenant_restaurant_id = lat.tenant_restaurant_id ORDER BY v.view_count DESC LIMIT 200",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_restaurant_views_total",
                 "stream_type": "metrics",
                 "x": [
-                  { "label": "Views", "alias": "y_axis_1", "column": "y_axis_1", "color": null }
+                  {
+                    "label": "Views",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -123,9 +186,15 @@
                     "aggregationFunction": "avg"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         }
@@ -139,23 +208,40 @@
           "id": "p_zitadel_cascade",
           "type": "line",
           "title": "Zitadel calls per minute by outcome (15m)",
-          "description": "Layer this with HTTP p95 in the other tab — Zitadel saturation pushes request latency. If both spike together, the root cause is upstream of menu.",
+          "description": "Layer this with HTTP p95 in the other tab \u2014 Zitadel saturation pushes request latency. If both spike together, the root cause is upstream of menu.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 0, "w": 12, "h": 6, "i": 1 },
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 1
+          },
           "config": {
             "show_legends": true,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
-              "query": "SELECT histogram(_timestamp, '1 minute') AS x_axis_1, attributes.iedora_zitadel_outcome AS breakdown_1, SUM(value) AS y_axis_1 FROM \"default\" WHERE metric_name = 'iedora.zitadel.calls_total' AND _timestamp > now() - INTERVAL '15 minute' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "query": "SELECT histogram(_timestamp, '1 minute') AS x_axis_1, iedora_zitadel_outcome AS breakdown_1, SUM(value) AS y_axis_1 FROM \"iedora_zitadel_calls_total\" WHERE _timestamp > now() - INTERVAL '15 minute' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
               "customQuery": true,
               "fields": {
-                "stream": "default",
+                "stream": "iedora_zitadel_calls_total",
                 "stream_type": "metrics",
                 "x": [
-                  { "label": "Time", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Time",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -174,9 +260,15 @@
                     "color": null
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         },
@@ -184,13 +276,25 @@
           "id": "p_multi_service_traces",
           "type": "table",
           "title": "Recent multi-service traces (15m)",
-          "description": "Traces that span at least 2 services (menu + zitadel). Cross-product debugging starts here — click any row to see the full trace.",
+          "description": "Traces that span at least 2 services (menu + zitadel). Cross-product debugging starts here \u2014 click any row to see the full trace.",
           "queryType": "sql",
-          "layout": { "x": 0, "y": 6, "w": 12, "h": 8, "i": 2 },
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "w": 12,
+            "h": 8,
+            "i": 2
+          },
           "config": {
             "show_legends": false,
-            "base_map": { "type": "osm" },
-            "map_view": { "zoom": 1, "lat": 0, "lng": 0 }
+            "base_map": {
+              "type": "osm"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            }
           },
           "queries": [
             {
@@ -200,7 +304,12 @@
                 "stream": "traces",
                 "stream_type": "traces",
                 "x": [
-                  { "label": "Trace ID", "alias": "x_axis_1", "column": "x_axis_1", "color": null }
+                  {
+                    "label": "Trace ID",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null
+                  }
                 ],
                 "y": [
                   {
@@ -218,9 +327,15 @@
                     "aggregationFunction": "max"
                   }
                 ],
-                "filter": []
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
               },
-              "config": { "promql_legend": "" }
+              "config": {
+                "promql_legend": ""
+              }
             }
           ]
         }
