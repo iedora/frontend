@@ -138,7 +138,7 @@ provider "registry.opentofu.org/hashicorp/tls" {
 
 provider "registry.opentofu.org/hetznercloud/hcloud" {
   version     = "1.63.0"
-  constraints = "~> 1.55"
+  constraints = "~> 1.63"
   hashes = [
     "h1:/BDH9OdzcieKCmKvrrzoH7zst/STuBo9QY1eYOHf1qk=",
     "h1:1Yxj4ZifWjSYntT/IK08jX71yeO6cwLBJ2r1YdrOP+0=",
