@@ -16,7 +16,7 @@ terraform {
     # auth.iedora.com goes direct, no CF in path for that hostname).
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "~> 1.55"
+      version = "~> 1.63"
     }
     # Derives the operator's SSH public key from the BWS-stored private key
     # via `data "tls_public_key"`. Avoids storing the public key separately
