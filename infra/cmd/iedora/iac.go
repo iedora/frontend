@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/eduvhc/iedora/infra/internal/bws"
 	"github.com/eduvhc/iedora/infra/internal/cloudflare"
@@ -129,7 +128,13 @@ func runIacDestroy(ctx context.Context, argv []string) error {
 	}
 	var toRemove []string
 	for _, r := range resources {
-		if strings.HasPrefix(r, "docker_") {
+		// Top-level (docker_*) and module-nested (module.*.docker_*) are
+		// equally VPS-coupled — the kreuzwerker provider has to talk to
+		// the Docker daemon over SSH, and the daemon is about to die with
+		// the box. Matching on `.docker_` catches the module form
+		// (module.postgres.docker_container.this, etc.) without false
+		// positives — no resource we own uses `_docker_` as a suffix.
+		if strings.HasPrefix(r, "docker_") || strings.Contains(r, ".docker_") {
 			toRemove = append(toRemove, r)
 			continue
 		}
@@ -287,6 +292,3 @@ func bucketsFromState(ctx context.Context) ([]string, error) {
 	return names, nil
 }
 
-// _ keeps the time import alive while we hold off on adding deploy budget
-// flags in the iac stage (a future --tofu-timeout flag will land here).
-var _ = time.Second
