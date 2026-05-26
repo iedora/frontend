@@ -85,11 +85,9 @@ iedora/                                  repo root
         infra-pg-backup/                     Backup container (Go + Dockerfile, arm64 only — CAX SKUs)
         state-bucket-bootstrap/              Stage -1 — R2 bucket + token bootstrap (chicken/egg)
     app-state/                             Stage 3 — configurators (one per concern)
-      menu-db-migrations/                  drizzle-kit migrate runner (SSH + docker run)
+      core-db-migrations/                  drizzle-kit migrate against the `core` DB (better-auth schema)
+      menu-db-migrations/                  drizzle-kit migrate against the `menu` DB
       openobserve-dashboards/              dashboard reconciler (SSH-L tunnel + go:embed JSONs)
-                                           TODO(phase-1-sweep): core (better-auth) DB migrations
-                                           are wired in dev via `bun run --cwd packages/auth
-                                           db:migrate`; prod Stage 3 configurator is pending.
     deploy/                                Stage 3 + Stage 4 router
       cmd/
         iedora/                              Configurator registry + productRuntime registry
@@ -144,7 +142,7 @@ Stage 4: Deploy            bin/iedora-env bin/iedora deploy <product>
 ```
 
 - **Stage 2** — plain Tofu. `init` / `plan` / `apply` / `destroy` against `infra/iac/tofu/`. The Tofu graph renders a docker-compose document (`compose.tf`) + Cloudflare Tunnel config (`tunnel.tf`); cloud-init drops them on first boot, `terraform_data.iedora_sync` pushes day-2 changes via one SSH session. `rclone` is required on the operator's machine — destroy-time hooks (`destroy-hooks.tf`) purge R2 buckets before the API DELETE.
-- **Stage 3** — `bin/iedora app apply` runs every configurator in `configurators.go` sequentially: menu-db-migrations, openobserve-dashboards. (TODO(phase-1-sweep): `core` (better-auth) migrations need a prod configurator; today they run via `bun run --cwd packages/auth db:migrate` in dev.)
+- **Stage 3** — `bin/iedora app apply` runs every configurator in `configurators.go` sequentially: **core-db-migrations** (better-auth schema in the `core` DB) → **menu-db-migrations** → **openobserve-dashboards**. Both migration configurators piggyback on the menu image (which has @iedora/auth as a workspace dep, so `packages/auth/{drizzle,scripts/migrate.mjs}` ship inside the standalone bundle).
 - **Stage 4** — `bin/iedora deploy <product>` (or `destroy <product>`). Dispatches through the productRuntime registry (`products.go`).
 - **Local dev** — `go run ./dev/cmd/local-stack` boots the local-twin stack. `--destroy` wipes it; `--reset-db <service>` drops + recreates one database.
 - **Preflight** — `bin/iedora-env bin/iedora doctor` (PATH, BWS auth, bootstrap secrets).
@@ -193,11 +191,10 @@ One workflow per workspace. Each is self-contained: own `paths:` trigger, own en
 7. `docs/agents/cross-product-rules.md` — the 2 rules every frontend product enforces. (Auto-imported.)
 8. `docs/architecture.md` — monorepo overview + menu's slice inventory + anti-patterns.
 9. `docs/testing.md` — test pyramid (Vitest+PGLite unit, Playwright e2e).
-10. `docs/security-audit.md` — threat register + supply-chain perimeter.
-11. `docs/tenancy.md` — how tenancy works + the queued migrations.
-12. `docs/vendors.md` — every dependency with rationale.
-13. `docs/deploy.md` — **the** infra + app-state + deploy doc. Stages, commands, CI, failure modes, secret rotation, bootstrap, day-2 ops, backups, dev stack. One doc for everything pipeline-shaped.
-14. `docs/terraform-style.md` — LLM-safe HCL conventions.
-15. `docs/ai.md` — Claude Code Action + MCP servers.
+10. `docs/vendors.md` — every dependency with rationale.
+11. `docs/deploy.md` — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, commands, CI, failure modes, secret rotation, backups, dev stack. One doc for everything pipeline-shaped.
+12. `docs/terraform-style.md` — LLM-safe HCL conventions.
+13. `docs/ai.md` — MCP servers loaded by Claude Code locally.
+14. `docs/SECURITY.md` — security policy + vulnerability reporting.
 
 The bundled docs match installed versions — trust them over recall.

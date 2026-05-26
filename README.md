@@ -52,14 +52,13 @@ See [`docs/deploy.md`](docs/deploy.md) for the architecture, the
 ## Docs
 
 - **[`AGENTS.md`](AGENTS.md)** — tech stack, hard rules, file layout, conventions (loaded by AI assistants too).
-- **[`docs/deploy.md`](docs/deploy.md)** — **the** infra + app-state + deploy doc. Architecture, stages, commands, CI, failure modes, secret rotation, bootstrap, day-2 ops.
+- **[`docs/deploy.md`](docs/deploy.md)** — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, CI, failure modes, secret rotation.
 - **[`docs/architecture.md`](docs/architecture.md)** — vertical-slice + hexagonal playbook, how to add a feature.
 - **[`docs/testing.md`](docs/testing.md)** — Vitest + PGLite unit tests, Playwright e2e.
-- **[`docs/tenancy.md`](docs/tenancy.md)** — multi-tenant model (better-auth organizations + the `restaurant.organizationId` link).
 - **[`docs/terraform-style.md`](docs/terraform-style.md)** — LLM-safe HCL conventions.
-- **[`docs/security-audit.md`](docs/security-audit.md)** — threat register + supply-chain perimeter.
 - **[`docs/vendors.md`](docs/vendors.md)** — every dependency with rationale.
-- **[`docs/ai.md`](docs/ai.md)** — Claude Code Action + MCP servers.
+- **[`docs/ai.md`](docs/ai.md)** — MCP servers loaded by Claude Code.
+- **[`docs/SECURITY.md`](docs/SECURITY.md)** — security policy + vulnerability reporting.
 
 ## License
 

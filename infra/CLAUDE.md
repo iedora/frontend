@@ -35,13 +35,11 @@ infra/
                              token the Tofu s3 backend needs (chicken/egg).
 
    app-state/               Stage 3 — configurators (reconcile running services)
-    menu-db-migrations/      drizzle-kit migrate against menu's postgres DB.
+    core-db-migrations/      drizzle-kit migrate against the `core` DB
+                             (better-auth schema; runs first so the menu
+                             container boots against a migrated `core.session`).
+    menu-db-migrations/      drizzle-kit migrate against the `menu` DB.
     openobserve-dashboards/  Push embedded JSON dashboards via SSH `-L` tunnel.
-                             TODO(phase-1-sweep): a `core-db-migrations`
-                             configurator for the better-auth schema in the
-                             `core` DB is still pending — today migrations
-                             apply via `bun run --cwd packages/auth db:migrate`
-                             in dev.
 
   deploy/                  Stage 4 + Stage-3 router
     cmd/

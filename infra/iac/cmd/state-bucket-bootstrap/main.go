@@ -5,7 +5,7 @@
 // state lives in R2 via the native `s3` backend, never in git. This
 // binary is the bootstrap that breaks the chicken-and-egg — the
 // state-bucket cannot be managed by Tofu because Tofu needs it to
-// store its state. See docs/guardrails-implementation.md § Rule 2.
+// store its state. See docs/deploy.md § Environment guardrails Rule 2.
 //
 // Idempotent. Re-runs on warm state are a no-diff fast path: the
 // bucket already exists (CF 409 → treated as success), the named

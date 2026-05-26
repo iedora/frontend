@@ -75,7 +75,7 @@ OSS we run on customer data. Trust based on community maintenance + audit histor
 | **What we use** | In-process auth (email+password, organization plugin, admin plugin) wrapped by the shared `@iedora/auth` workspace package. Owns user / session / account / verification / organization / member / invitation tables in the `core` Postgres database (`core` schema). Cookie `better-auth.session_token` is scoped on `.iedora.com` for cross-product SSO |
 | **License** | MIT |
 | **Maintainer** | Bekacru / better-auth-org |
-| **Known CVEs** | Watched via GitHub Advisory Database. See `docs/security-audit.md` § threat #6 (CVE-2026-45364) for the mitigated history |
+| **Known CVEs** | Watched via GitHub Advisory Database |
 | **Monitoring** | GitHub Advisory Database + better-auth security advisories |
 | **Replacement** | Replacement would require swapping the `@iedora/auth` internals (auth-instance + Drizzle schema) — consumers see only `auth.api.*`, so the swap is contained. Realistic options: Lucia, hand-rolled, or back to an external IdP (Zitadel / Keycloak). Multi-day project either way |
 
@@ -138,8 +138,7 @@ First-party. Same review process as application code. Listed for completeness so
 **Annually** (or sooner on incident):
 
 1. Walk this register top to bottom. For each vendor: confirm SOC 2 (Tier 1), read security advisories since last review, verify no breaking changes affecting our integration.
-2. Cross-reference against `docs/security-audit.md` — any new vendor needs an entry here.
-3. Commit the diff. Git log = audit trail.
+2. Commit the diff. Git log = audit trail.
 
 **On incident** (any vendor breach, even one we don't directly use):
 

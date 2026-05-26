@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	coredbmigrations "github.com/eduvhc/iedora/infra/app-state/core-db-migrations"
 	menudbmigrations "github.com/eduvhc/iedora/infra/app-state/menu-db-migrations"
 	openobservedashboards "github.com/eduvhc/iedora/infra/app-state/openobserve-dashboards"
 )
@@ -12,8 +13,9 @@ import (
 // knows how to talk to one running shared service and bring its
 // app-level configuration to a declared state.
 //
-// One configurator per concern. Today: menu DB migrations, OpenObserve
-// dashboards. Each lives in its own `infra/app-state/<name>/` directory
+// One configurator per concern. Today: core DB migrations, menu DB
+// migrations, OpenObserve dashboards. Each lives in its own
+// `infra/app-state/<name>/` directory
 // as an importable package; this orchestrator calls the package's
 // `Run(ctx)` directly. No subprocess fork, no PATH lookup, no env
 // round-trip: stage-app env is already in os.Environ from `bws run`.
@@ -43,14 +45,18 @@ type appConfigurator struct {
 // loudly in the deploy log without crash-looping the live product.
 var appConfigurators = []appConfigurator{
 	{
+		// drizzle-kit migrate against the `core` Postgres database
+		// (the @iedora/auth schema: user / session / organization /
+		// member / …). Runs FIRST so the menu container — which reads
+		// `core.session` on every request — boots against a migrated
+		// schema. See infra/app-state/core-db-migrations/.
+		name: "core-db-migrations",
+		run:  coredbmigrations.Run,
+	},
+	{
 		// drizzle-kit migrate against menu's postgres database. SSHes
 		// to the box and `docker run`s migrate.mjs from the menu image
 		// at MENU_IMAGE_SHA. See infra/app-state/menu-db-migrations/.
-		// The same docker run also reaches the @iedora/auth migrations
-		// (workspace dep bundled into the menu image) against the
-		// `core` DB — TODO once the migrator script supports it; for
-		// now the dev orchestrator (`go run ./dev/cmd/local-stack`)
-		// runs both via the bun workspace at the operator's machine.
 		name: "menu-db-migrations",
 		run:  menudbmigrations.Run,
 	},

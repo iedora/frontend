@@ -16,15 +16,21 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(here, '..', '..'),
   transpilePackages: ['@iedora/design-system', '@iedora/observability'],
   outputFileTracingIncludes: {
-    // Workaround: Turbopack standalone não rastreia drizzle-orm/postgres
-    // automaticamente porque a app importa-os mas o `scripts/migrate.mjs`
-    // (executado no container start) também precisa deles em disco.
-    // Ref: vercel/next.js#88844
+    // Force-include files the migrate scripts need at runtime —
+    // Turbopack's standalone trace misses them otherwise (vercel/next.js#88844).
+    // Two schemas ship with the menu image:
+    //   - menu's own `./drizzle/` + `./scripts/migrate.mjs` (applied
+    //     against DATABASE_URL),
+    //   - `@iedora/auth`'s `drizzle/` + `scripts/migrate.mjs` (applied
+    //     against CORE_DATABASE_URL — the core product's schema, run
+    //     as a separate Stage 3 configurator).
     '/*': [
       './node_modules/drizzle-orm/**/*',
       './node_modules/postgres/**/*',
       './drizzle/**/*',
       './scripts/migrate.mjs',
+      '../../packages/auth/drizzle/**/*',
+      '../../packages/auth/scripts/migrate.mjs',
     ],
   },
   allowedDevOrigins: [

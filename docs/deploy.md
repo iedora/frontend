@@ -41,10 +41,7 @@ The `kreuzwerker/docker` provider is intentionally NOT used.
 
 ## Environment guardrails
 
-The non-negotiable rules. Everything else flexes around them. Where a
-guardrail is not yet enforced by today's code, the row links to the
-implementation plan in
-[guardrails-implementation.md](./guardrails-implementation.md).
+The non-negotiable rules. Everything else flexes around them.
 
 ### 1. Binary environment — `local` vs `live`, no staging
 
@@ -71,8 +68,7 @@ Reason: race conditions on concurrent applies, lockfile-style state
 locking, and the "encrypted binary in a 3-way git merge" failure mode.
 
 Implementation lives at [§ State backend (R2)](#state-backend-r2)
-below, with the bootstrap details in
-[guardrails-implementation.md § Rule 2](./guardrails-implementation.md#rule-2--tofu-state-in-r2).
+below.
 
 ### 3. Database migrations are expansion-only
 
@@ -122,13 +118,6 @@ opted in by the `Healthcheck` field on the menu product literal in
 [`runtime_docker_swap_test.go`](../infra/deploy/cmd/iedora/runtime_docker_swap_test.go)
 (happy path, probe timeout, probe error, alias-swap failure, naive
 fallback).
-
-<!-- Guardrail 5 (Zitadel reconciler anti-panic lock) removed —
-     Zitadel is gone. Auth now runs in-process via @iedora/auth
-     (better-auth) inside each product. No external IdP reconciler.
-     TODO(phase-1-sweep): if a future Stage-3 configurator manages
-     anything in the `core` DB (e.g. seeding the `iedora-admin`
-     bootstrap user), add a comparable destructive-action guard. -->
 
 
 ## Architecture
@@ -272,8 +261,7 @@ sidecar `.tflock` object in the same bucket prefix).
 
 The R2 bucket + scoped API token are out-of-band; they're minted by
 `bin/state-bucket-bootstrap` (chicken/egg — Tofu can't manage the
-bucket that stores its own state). See
-[guardrails-implementation.md § Rule 2](./guardrails-implementation.md#rule-2--tofu-state-in-r2).
+bucket that stores its own state).
 
 ## Stage 3 — App state (`bin/iedora-env bin/iedora app apply`)
 
@@ -296,6 +284,25 @@ Adding a new configurator = one struct literal in `configurators.go` +
 the binary anywhere under `infra/`.
 
 ### Current configurators (run in order)
+
+#### `core-db-migrations` → [`infra/app-state/core-db-migrations`](../infra/app-state/core-db-migrations/) (in-process)
+
+drizzle-kit migrate against the `core` Postgres database — the
+`@iedora/auth` schema (user / session / account / verification /
+organization / member / invitation / rate_limit). SSHes to the box,
+runs `docker run --rm --network iedora -e CORE_DATABASE_URL=...
+ghcr.io/<owner>/menu:<MENU_IMAGE_SHA> node /app/packages/auth/scripts/migrate.mjs`.
+
+Runs **first** so the menu container — which reads `core.session` rows
+on every request — boots against a migrated schema. The migrate script
+lives in the menu image because `@iedora/auth` is a workspace dep:
+`products/menu/next.config.ts::outputFileTracingIncludes` force-bundles
+`packages/auth/{drizzle,scripts/migrate.mjs}` into Next's standalone
+output, so they're addressable at `/app/packages/auth/...` inside the
+container. Same image, same docker network, same pull dance as
+`menu-db-migrations` — one less artifact to ship.
+
+`pg_advisory_lock(1296515955)` guards against concurrent runs.
 
 #### `menu-db-migrations` → [`infra/app-state/menu-db-migrations`](../infra/app-state/menu-db-migrations/) (in-process)
 
@@ -340,10 +347,8 @@ POST on miss.
 ### Future configurators (worth knowing about)
 
 Add by appending one struct literal to `appConfigurators` + the binary.
-Likely future entries: `core-db-migrations` (the better-auth schema in
-the `core` Postgres database — TODO(phase-1-sweep); today migrations
-apply via `bun run --cwd packages/auth db:migrate` in dev), per-product
-DB role provisioner, S3 bucket policies on a future internal MinIO.
+Likely future entries: per-product DB role provisioner, S3 bucket
+policies on a future internal MinIO.
 
 ## Stage 4 — Deploy (`bin/iedora-env bin/iedora deploy <product>`)
 
@@ -590,12 +595,21 @@ ssh -L 5080:localhost:5080 root@$HOST   # then open http://localhost:5080
 | `IAC_*` (Tofu-minted) | `bin/iedora-env --stage iac -- tofu -chdir=infra/iac/tofu\1apply -replace=random_password.<name>`. The `terraform_data.bws_sync_autogen` write-through pushes the new value to BWS automatically. |
 | `DEPLOY_MENU_IEDORA_CORE_SECRET` | `bws secret delete <id>`, then `bin/iedora-env bin/iedora deploy menu`. `dockerOnHetzner.appSecrets` re-mints. All active better-auth sessions invalidate (users re-authenticate). |
 
-<!-- TODO(phase-1-sweep): document an auth-rebootstrap day-2 procedure
-     (drop+recreate the `core` Postgres DB without affecting `menu`)
-     once the `core-db-migrations` Stage 3 configurator lands. The
-     old Zitadel-rebootstrap section was removed when the external
-     IdP was retired. -->
+### Auth re-bootstrap (drop + rebuild the `core` schema)
 
+If `core` data is unrecoverable (e.g. dev mistake, post-incident
+sanitise) and a clean better-auth schema is wanted without touching
+`menu`:
+
+```bash
+HOST=$(bin/iedora-env tofu -chdir=infra/iac/tofu output -raw hetzner_ipv4)
+ssh -t root@$HOST docker exec -it infra-postgres psql -U postgres -c 'DROP DATABASE core;'
+bin/iedora-env bin/iedora app apply   # core-db-migrations re-creates from drizzle/
+bin/iedora-env bin/iedora deploy menu  # re-mints DEPLOY_MENU_IEDORA_CORE_SECRET on next sign-in
+```
+
+`menu` rows referencing the wiped `core` org-ids become orphan FKs (text
+columns, not enforced) — re-onboard from `/sign-up` to re-seed.
 
 ### Backups
 
@@ -774,21 +788,15 @@ bin/iedora-env bin/state-bucket-bootstrap
 bin/iedora-env tofu -chdir=infra/iac/tofu init -upgrade
 bin/iedora-env tofu -chdir=infra/iac/tofu apply -auto-approve
 
-# 3. Core schema — better-auth tables in the `core` Postgres database.
-#    NOTE: TODO(phase-1-sweep) — Stage 3 will own this; today it's a
-#    one-off via an SSH local-forward tunnel from the operator's
-#    machine.
-HOST=$(bin/iedora-env tofu -chdir=infra/iac/tofu output -raw hetzner_ipv4)
-ssh -fN -L 15432:infra-postgres:5432 root@$HOST
-CORE_PWD=$(bin/iedora-env bash -c 'echo $IAC_POSTGRES_PASSWORD')
-CORE_DATABASE_URL="postgres://postgres:$CORE_PWD@localhost:15432/core" \
-  bun run --cwd packages/auth db:migrate
-pkill -f "ssh -fN -L 15432:" || true
-
-# 4. Stage 3 — menu DB migrations + OpenObserve dashboards.
+# 3. Stage 3 — app-state reconcilers. Runs in order:
+#    - core-db-migrations    drizzle-kit migrate against the `core` DB
+#                            (better-auth schema). FIRST so step 4's
+#                            menu container reads a migrated core.session.
+#    - menu-db-migrations    drizzle-kit migrate against the `menu` DB.
+#    - openobserve-dashboards push embedded JSONs via SSH-L tunnel.
 bin/iedora-env bin/iedora app apply
 
-# 5. Stage 4 — deploy the menu container. Mints DEPLOY_IEDORA_CORE_SECRET
+# 4. Stage 4 — deploy the menu container. Mints DEPLOY_IEDORA_CORE_SECRET
 #    on first run (better-auth session signing key, persisted to BWS).
 bin/iedora-env bin/iedora deploy menu
 
@@ -798,7 +806,7 @@ curl -fsS -o /dev/null -w "%{http_code}\n" https://core.iedora.com/sign-in   # 2
 curl -fsS -o /dev/null -w "%{http_code}\n" https://iedora.com/                # 200 (apex → /house)
 ```
 
-If anything in 2–5 fails, the failing stage is the recovery point —
+If anything in 2–4 fails, the failing stage is the recovery point —
 each stage is independently re-runnable. Common failures live in
 [§ Failure modes / troubleshooting](#failure-modes--troubleshooting).
 
@@ -1016,9 +1024,9 @@ infra/deploy/cmd/iedora/                  Stage 3 + Stage 4 orchestrator
   ssh.go, paths.go, log.go
 
 infra/app-state/                         Stage 3 — each subdir is a self-contained configurator
-  menu-db-migrations/                      drizzle-kit migrate via SSH + docker run
+  core-db-migrations/                      drizzle-kit migrate against the `core` DB (@iedora/auth schema)
+  menu-db-migrations/                      drizzle-kit migrate against the `menu` DB
   openobserve-dashboards/                  SSH-L tunnel + go:embed JSONs + REST upsert
-                                           (TODO(phase-1-sweep): core-db-migrations)
 
 internal/                                Shared Go helpers (repo-root single Go module)
   bws/                                     bws CLI wrapper (ProjectID, ListSecrets, Find, Upsert, Delete)
