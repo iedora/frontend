@@ -58,10 +58,18 @@ resource "terraform_data" "iedora_sync" {
   #   - `|| start` covers the case where the service isn't yet active
   #     (a fresh-box first apply where cloud-init beat us to it leaves
   #     it active, but a crashed/disabled box may not).
+  #   - The Caddyfile is bind-mounted, so a compose-up reconcile does
+  #     NOT recreate caddy when only the file content changes (the
+  #     container spec is unchanged). Caddy keeps serving the old
+  #     config from memory. `caddy reload` tells the running daemon
+  #     to re-read `/etc/caddy/Caddyfile`. Best-effort — if caddy
+  #     isn't running yet, the systemctl start above will boot it
+  #     fresh with the new file.
   provisioner "remote-exec" {
     inline = [
       "systemctl daemon-reload",
       "systemctl reload iedora.service || systemctl start iedora.service",
+      "docker exec infra-caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true",
     ]
   }
 }

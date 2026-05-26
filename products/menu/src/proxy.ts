@@ -30,7 +30,7 @@ const houseHosts = new Set(['iedora.com', 'www.iedora.com'])
  *      to follow.
  */
 export default function proxy(req: NextRequest) {
-  const host = (req.headers.get('host') ?? '').toLowerCase().split(':')[0]
+  const host = (req.headers.get('host') ?? '').toLowerCase().split(':')[0] ?? ''
   const path = req.nextUrl.pathname
 
   // 1. House host → rewrite under /house.
