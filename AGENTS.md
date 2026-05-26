@@ -192,7 +192,7 @@ One workflow per workspace. Each is self-contained: own `paths:` trigger, own en
 8. `docs/architecture.md` — monorepo overview + menu's slice inventory + anti-patterns.
 9. `docs/testing.md` — test pyramid (Vitest+PGLite unit, Playwright e2e).
 10. `docs/vendors.md` — every dependency with rationale.
-11. `docs/deploy.md` — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, commands, CI, failure modes, secret rotation, backups, dev stack. One doc for everything pipeline-shaped.
+11. `docs/deploy/README.md` — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, commands, CI, failure modes, secret rotation, backups, dev stack. One doc for everything pipeline-shaped.
 12. `docs/terraform-style.md` — LLM-safe HCL conventions.
 13. `docs/ai.md` — MCP servers loaded by Claude Code locally.
 14. `docs/SECURITY.md` — security policy + vulnerability reporting.

@@ -69,7 +69,7 @@ Menu also keeps shadcn primitives under `apps/web/src/shared/ui/` — pieces wit
 
 ### `@iedora/observability` — `packages/iedora-observability/`
 
-One-line OTel wiring per product. Wraps `@vercel/otel` — resource attrs + sampler + noise filter + 60s metrics reader. Exports `registerIedoraOtel`, `tracer`, `meter`, `withTenantSpan`, `tenantAttributes`. See `docs/deploy.md` for the integration walkthrough.
+One-line OTel wiring per product. Wraps `@vercel/otel` — resource attrs + sampler + noise filter + 60s metrics reader. Exports `registerIedoraOtel`, `tracer`, `meter`, `withTenantSpan`, `tenantAttributes`. See `docs/deploy/README.md` for the integration walkthrough.
 
 ## When to put code where
 

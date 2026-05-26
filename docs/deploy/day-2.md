@@ -1,6 +1,6 @@
 # Day 2 — Ongoing operations
 
-> Part of [docs/deploy.md](../deploy.md). Sibling guides: [Day 0](day-0.md) · [Day 1](day-1.md) · [Day 2](day-2.md) · [Troubleshooting](troubleshooting.md).
+> Part of [the deploy docs](./README.md). Sibling guides: [Day 0](day-0.md) · [Day 1](day-1.md) · [Day 2](day-2.md) · [Troubleshooting](troubleshooting.md).
 
 
 Most day-2 work is SSH against the box. Resolve the host once and re-use:

@@ -75,7 +75,7 @@ import (
 // Never invoked by `cmd/dev` — dev's openobserve binds directly. If
 // dev ever needs to push dashboards locally, add a `--mode` flag and
 // branch the tunnel-vs-direct path on `runsIn.IsLive()`. See
-// docs/deploy.md § Environment guardrails (Rule 1).
+// docs/deploy/README.md § Environment guardrails (Rule 1).
 const runsIn = mode.Live
 
 // dashboardsFS embeds every JSON in the repo's

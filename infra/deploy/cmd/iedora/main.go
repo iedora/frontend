@@ -29,7 +29,7 @@ import (
 // belt-and-suspenders: if anyone ever imports this main package or
 // flips the constant for local testing, the guard panics on the first
 // destructive call rather than silently shelling into production APIs.
-// See docs/deploy.md § Environment guardrails (Rule 1).
+// See docs/deploy/README.md § Environment guardrails (Rule 1).
 var currentMode = mode.Live
 
 func main() {

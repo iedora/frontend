@@ -2,7 +2,7 @@ terraform {
   required_version = "~> 1.12"
 
   # Remote state on Cloudflare R2 via the S3-compatible backend.
-  # Per docs/deploy.md § Environment guardrails (Rule 2) — the
+  # Per docs/deploy/README.md § Environment guardrails (Rule 2) — the
   # encrypted-in-git state pattern is gone; concurrent apply/lock
   # behaviour is now R2-native (`use_lockfile = true`).
   #

@@ -6,7 +6,7 @@
 # `@iedora/auth` (better-auth) running in-process inside the menu
 # container — no IdP container.
 #
-# See docs/deploy.md § Local stack for the operator surface. See
+# See docs/deploy/README.md § Local stack for the operator surface. See
 # `dev/cmd/local-stack/` for the orchestrator.
 #
 # Selection is via compose profiles, one per service. The orchestrator

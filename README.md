@@ -46,13 +46,13 @@ BWS secret + exports the `TF_VAR_*` / `AWS_*` / `CLOUDFLARE_ACCOUNT_ID`
 aliases everything downstream expects. Same pattern as `op run --` or
 `doppler run --`. Required in your shell: `BWS_ACCESS_TOKEN`.
 
-See [`docs/deploy.md`](docs/deploy.md) for the architecture, the
+See [`docs/deploy/README.md`](docs/deploy/README.md) for the architecture, the
 4-stage pipeline, and every operational runbook.
 
 ## Docs
 
 - **[`AGENTS.md`](AGENTS.md)** — tech stack, hard rules, file layout, conventions (loaded by AI assistants too).
-- **[`docs/deploy.md`](docs/deploy.md)** — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, CI, failure modes, secret rotation.
+- **[`docs/deploy/README.md`](docs/deploy/README.md)** — **the** infra + app-state + deploy doc. Day 0 / Day 1 / Day 2 lifecycle, stages, CI, failure modes, secret rotation.
 - **[`docs/architecture.md`](docs/architecture.md)** — vertical-slice + hexagonal playbook, how to add a feature.
 - **[`docs/testing.md`](docs/testing.md)** — Vitest + PGLite unit tests, Playwright e2e.
 - **[`docs/terraform-style.md`](docs/terraform-style.md)** — LLM-safe HCL conventions.

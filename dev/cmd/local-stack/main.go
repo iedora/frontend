@@ -21,7 +21,7 @@ import (
 )
 
 // currentMode pins this binary to Local. The orchestrator never touches
-// BWS, real cloud APIs, or the live infra — see docs/deploy.md
+// BWS, real cloud APIs, or the live infra — see docs/deploy/README.md
 // § Environment guardrails (Rule 1).
 var currentMode = mode.Local
 

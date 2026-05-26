@@ -17,7 +17,7 @@ resource "random_password" "backup_passphrase" {
   special = false # GPG passphrase, keep ASCII alphanumeric
   # Replacing this orphans every previously-encrypted dump in R2.
   # Pre-launch: fine. Post-launch: handle via the dual-passphrase
-  # window documented in docs/deploy.md, not via plain replace.
+  # window documented in docs/deploy/README.md, not via plain replace.
 }
 
 resource "random_password" "openobserve_password" {

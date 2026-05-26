@@ -27,7 +27,7 @@ in the repo.
 
 ## See also
 
-- [`docs/deploy.md`](deploy.md) — every other credential (BWS /
+- [`docs/deploy/README.md`](deploy/README.md) — every other credential (BWS /
   Tofu-managed). This doc owns only the local MCP wiring.
 - [`AGENTS.md`](../AGENTS.md) — repo conventions Claude follows when
   invoked here.

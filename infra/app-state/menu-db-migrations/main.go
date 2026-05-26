@@ -66,7 +66,7 @@ var remoteSSH = &ssh.Client{Stdout: os.Stderr, Stderr: os.Stderr}
 // live Hetzner box. Never invoked by `cmd/dev`. If `cmd/dev` ever
 // needs to run drizzle migrations against the local postgres, add a
 // `--mode` flag here and gate the SSH path on `runsIn.IsLive()`. See
-// docs/deploy.md § Environment guardrails (Rule 1).
+// docs/deploy/README.md § Environment guardrails (Rule 1).
 const runsIn = mode.Live
 
 // Run is the configurator's entry point. Invoked in-process by iedora's
@@ -85,7 +85,7 @@ func run(ctx context.Context) error {
 	// without a `phase=contract references=...` marker BEFORE any SSH
 	// or docker call. A bad migration here would land in postgres and
 	// the live menu container would still be serving the old schema
-	// for the remaining seconds of Stage 3. See docs/deploy.md
+	// for the remaining seconds of Stage 3. See docs/deploy/README.md
 	// § Environment guardrails (Rule 3).
 	// iacDir() → <repo>/infra/iac ; two parents up → <repo>; then products/...
 	migrationsDir := filepath.Join(filepath.Dir(filepath.Dir(iacDir())), "products", "menu", "drizzle")

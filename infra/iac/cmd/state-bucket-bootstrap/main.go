@@ -1,11 +1,11 @@
 // state-bucket-bootstrap — one-shot creation of the R2 bucket + scoped
 // API token that hold OpenTofu state.
 //
-// Rule 2 of the environment guardrails (docs/deploy.md § 2): Tofu
+// Rule 2 of the environment guardrails (docs/deploy/README.md § 2): Tofu
 // state lives in R2 via the native `s3` backend, never in git. This
 // binary is the bootstrap that breaks the chicken-and-egg — the
 // state-bucket cannot be managed by Tofu because Tofu needs it to
-// store its state. See docs/deploy.md § Environment guardrails Rule 2.
+// store its state. See docs/deploy/README.md § Environment guardrails Rule 2.
 //
 // Idempotent. Re-runs on warm state are a no-diff fast path: the
 // bucket already exists (CF 409 → treated as success), the named
@@ -75,7 +75,7 @@ const (
 )
 
 // BWS keys this binary writes. Stage-of-origin is `iac` per the
-// taxonomy in docs/deploy.md (operator-provided / iac-stage
+// taxonomy in docs/deploy/README.md (operator-provided / iac-stage
 // bootstrap).
 const (
 	bwsKeyAccessKey = "IAC_BOOTSTRAP_TOFU_STATE_ACCESS_KEY"

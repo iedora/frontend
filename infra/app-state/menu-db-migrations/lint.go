@@ -18,7 +18,7 @@ import (
 // the operator explicitly annotates the statement as the contract
 // phase of a three-deploy expand/contract.
 //
-// See docs/deploy.md § Environment guardrails (Rule 3).
+// See docs/deploy/README.md § Environment guardrails (Rule 3).
 
 // destructivePattern names one class of SQL operation that violates
 // "expansion-only" without an opt-in marker. The Pattern field is what
@@ -198,7 +198,7 @@ func FormatViolations(violations []LintViolation) error {
 	}
 	fmt.Fprint(&b, "\n  Recovery: each destructive statement must be preceded (in the same statement block) by:\n")
 	fmt.Fprint(&b, "    -- iedora:expand-contract phase=contract references=<expand-migration-tag>\n")
-	fmt.Fprint(&b, "  See docs/deploy.md § Environment guardrails (Rule 3).")
+	fmt.Fprint(&b, "  See docs/deploy/README.md § Environment guardrails (Rule 3).")
 	return fmt.Errorf("%s", b.String())
 }
 

@@ -83,7 +83,7 @@ Operators always invoke via shims at the repo root (`bin/<name>`); those shims `
 4. **Follow [`docs/terraform-style.md`](../docs/terraform-style.md)** when editing any `.tf` — pessimistic `~>` pins, `for_each` over `count`, `validation` blocks.
 5. **State lives in Cloudflare R2** via the OpenTofu `s3` backend. Bootstrap helper at [`iac/cmd/state-bucket-bootstrap/`](iac/cmd/state-bucket-bootstrap/).
 6. **The box owns its containers — Tofu only renders the compose.** Adding/editing a service = edit `iac/tofu/compose.tf`. Tofu renders the YAML; `terraform_data.iedora_sync` SCPs it to the box and `systemctl restart iedora.service` reconciles. **No `docker_*` Tofu resources** — the kreuzwerker provider is intentionally gone (it forced multi-pass applies, MaxStartups workarounds, and state-rm dances on destroy).
-7. **Run the pre-merge runbook on every deploy-shape change** — see [`docs/deploy.md`](../docs/deploy.md) § Pre-merge runbook.
+7. **Run the pre-merge runbook on every deploy-shape change** — see [`docs/deploy/README.md`](../docs/deploy/README.md) § Pre-merge runbook.
 
 ## Adding things
 
@@ -111,4 +111,4 @@ go run ./dev/cmd/local-stack                                  # Local dev stack
 
 **Required in your shell**: `BWS_ACCESS_TOKEN` (one-time setup, keep in keychain / direnv).
 
-For day-2 raw-SSH ops (logs, psql, backup, restore, rotation), see [`docs/deploy.md` § Day-2 operations](../docs/deploy.md#day-2-operations).
+For day-2 raw-SSH ops (logs, psql, backup, restore, rotation), see [`docs/deploy/README.md` § Day-2 operations](../docs/deploy/README.md#day-2-operations).

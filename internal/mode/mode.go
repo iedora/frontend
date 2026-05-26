@@ -1,5 +1,5 @@
 // Package mode encodes the binary environment guardrail from
-// docs/deploy.md § Environment guardrails (Rule 1): every Iedora
+// docs/deploy/README.md § Environment guardrails (Rule 1): every Iedora
 // binary runs in exactly one of two modes.
 //
 //	mode.Local — operator's machine. Docker daemon on localhost,

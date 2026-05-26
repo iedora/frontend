@@ -79,4 +79,4 @@ Real tests live with the products: `bun run --cwd products/menu test` /
 CI workflow `[apps:web] CI` builds + pushes `ghcr.io/eduvhc/web:<sha>`
 (arm64). Stage 4 (`bin/iedora-env bin/iedora deploy web`) SSHes to the
 Hetzner box, hot-swaps the `infra-web` container. See
-[`../../docs/deploy.md`](../../docs/deploy.md).
+[`../../docs/deploy/README.md`](../../docs/deploy/README.md).

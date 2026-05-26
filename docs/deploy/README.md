@@ -7,13 +7,13 @@
 
 | | What | Runbook |
 |---|---|---|
-| **Day 0** | Wipe everything. Cloud + Tofu state + BWS managed-keys → zero. | [`ops/day-0.md`](ops/day-0.md) |
-| **Day 1** | Cold-start deploy. Empty cloud → working `menu.iedora.com` + `core.iedora.com` + `iedora.com`. | [`ops/day-1.md`](ops/day-1.md) |
-| **Day 2** | Ongoing operations. Logs, psql, backup/restore, secret rotation, auth re-bootstrap. | [`ops/day-2.md`](ops/day-2.md) |
-| Troubleshooting | Failure modes + recovery, indexed by symptom. | [`ops/troubleshooting.md`](ops/troubleshooting.md) |
+| **Day 0** | Wipe everything. Cloud + Tofu state + BWS managed-keys → zero. | [`day-0.md`](day-0.md) |
+| **Day 1** | Cold-start deploy. Empty cloud → working `menu.iedora.com` + `core.iedora.com` + `iedora.com`. | [`day-1.md`](day-1.md) |
+| **Day 2** | Ongoing operations. Logs, psql, backup/restore, secret rotation, auth re-bootstrap. | [`day-2.md`](day-2.md) |
+| Troubleshooting | Failure modes + recovery, indexed by symptom. | [`troubleshooting.md`](troubleshooting.md) |
 
 This document is the **architecture + pipeline reference**. The
-day-by-day runbooks live in [`ops/`](ops/README.md).
+day-by-day runbooks live in [`./`](ops/README.md).
 
 ## The pipeline
 
@@ -570,24 +570,24 @@ openobserve) too via the dep closure in the orchestrator.
 
 ## Day 2 — Ongoing operations
 
-Moved to [`ops/day-2.md`](ops/day-2.md) — logs, psql, backup/restore,
+Moved to [`day-2.md`](day-2.md) — logs, psql, backup/restore,
 secret rotation, auth re-bootstrap.
 
 ## Day 0 — Wipe everything (clean slate)
 
-Moved to [`ops/day-0.md`](ops/day-0.md) — the full destroy procedure
+Moved to [`day-0.md`](day-0.md) — the full destroy procedure
 (tofu destroy with the active-tunnel retry loop, orphan-inventory via
 API, optional Stage -1 deep-wipe).
 
 ## Day 1 — Cold-start deploy
 
-Moved to [`ops/day-1.md`](ops/day-1.md) — prerequisites + the canonical
+Moved to [`day-1.md`](day-1.md) — prerequisites + the canonical
 deploy sequence (state-bucket-bootstrap → tofu apply → core schema →
 app apply → deploy menu → smoke test).
 
 ## Failure modes / troubleshooting
 
-Moved to [`ops/troubleshooting.md`](ops/troubleshooting.md) — symptom →
+Moved to [`troubleshooting.md`](troubleshooting.md) — symptom →
 cause → recovery table.
 
 ## IaC test layers
