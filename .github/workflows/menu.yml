@@ -299,7 +299,6 @@ jobs:
       - name: Log in to GHCR
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-          BWS_PROJECT_ID: ${{ vars.BWS_PROJECT_ID }}
         run: |
           set -euo pipefail
           TOKEN=$(bws secret list "$BWS_PROJECT_ID" -o json \
@@ -395,7 +394,6 @@ jobs:
       - name: Log in to GHCR
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-          BWS_PROJECT_ID: ${{ vars.BWS_PROJECT_ID }}
         run: |
           set -euo pipefail
           TOKEN=$(bws secret list "$BWS_PROJECT_ID" -o json \

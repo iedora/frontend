@@ -1,59 +1,27 @@
-# GitHub repo configuration — Actions secrets + variables, declared.
+# GitHub repo configuration — empty by design.
 #
-# Replaces the imperative `gh secret set` × N + `gh variable set` × N
-# instructions that used to live in docs/deploy.md. The repo's CI/CD
-# inputs are now defined in this file; `just infra::deploy` reconciles
-# them alongside Cloudflare + Tailscale.
+# This file USED to push `github_actions_variable` and
+# `github_actions_secret` resources to reconcile the repo's CI inputs.
+# Both went away because they were chicken-egg:
 #
-# Drift behaviour (mirror of the Tailscale ACL): Tofu OVERWRITES any
-# value that doesn't match what's declared here. Edit values in this
-# file (or the BWS keys feeding the sensitive ones), not in the GitHub
-# UI. The provider does NOT delete secrets/variables it doesn't manage,
-# so legacy entries (e.g. the leftover BETTER_AUTH_SECRET from earlier
-# flows) persist outside Tofu's view until you `gh secret delete` them.
+#  - `BWS_ACCESS_TOKEN` (only true bootstrap credential) and
+#    `IAC_BOOTSTRAP_SSH_PRIVATE_KEY` were Tofu-written secrets that the
+#    CI workflow needed BEFORE Tofu could run. After every `tofu
+#    destroy`, the secrets vanished and CI couldn't authenticate to
+#    apply them back. → `BWS_ACCESS_TOKEN` is now operator-managed via
+#    `gh secret set` (one-time, survives destroy). The SSH key lives
+#    only in BWS; each workflow hydrates it inline.
 #
-# Branch protection: deliberately absent. See docs/deploy.md /
-# memory `project_branch_protection.md` — solo, AI-driven, CI is the
-# signal. Revisit when adding collaborators.
-
-# Non-secret variables. Same source-of-truth shape as variables.tf:
-# values default to production strings; override via TF_VAR_* if needed
-# (e.g. for a fork pointing at a different deployment).
-locals {
-  github_variables = {
-    BWS_PROJECT_ID       = var.bws_project_id
-    MENU_PUBLIC_HOSTNAME = var.menu_public_hostname
-    # Pointer to which CF account owns the rest of the secrets. Local
-    # `bws run` auto-discovers this from the CF /accounts API
-    # (only one account on the token). CI uses this GHA variable
-    # directly instead of doing the API roundtrip per workflow run.
-    CLOUDFLARE_ACCOUNT_ID = var.account_id
-  }
-
-  # Sensitive secrets. Empty today — `BWS_ACCESS_TOKEN` and
-  # `IAC_BOOTSTRAP_SSH_PRIVATE_KEY` USED to live here, written-through
-  # by Tofu from BWS-fed vars. The hole: they're bootstrap credentials
-  # for CI itself (the workflow uses BWS_ACCESS_TOKEN to hydrate the
-  # env that runs Tofu — circular). On `tofu destroy`, the secrets
-  # vanished and the next CI run couldn't bootstrap.
-  #
-  # Both are now operator-managed via `gh secret set` (one-time, like
-  # CLAUDE_CODE_OAUTH_TOKEN). See docs/deploy.md § Bootstrap.
-  github_secrets = {}
-}
-
-resource "github_actions_variable" "vars" {
-  for_each      = local.github_variables
-  repository    = var.github_repo
-  variable_name = each.key
-  value         = each.value
-}
-
-resource "github_actions_secret" "secrets" {
-  for_each    = local.github_secrets
-  repository  = var.github_repo
-  secret_name = each.key
-  # `value` is the v6.12+ argument name; `plaintext_value` is deprecated.
-  # Both flow through GitHub-encrypted-secrets identically.
-  value = each.value
-}
+#  - `BWS_PROJECT_ID`, `CLOUDFLARE_ACCOUNT_ID`, `MENU_PUBLIC_HOSTNAME`
+#    were Tofu-written variables that the CI workflow read as env
+#    vars. All three are auto-derivable by `bin/iedora-env`
+#    (BWS project list, CF /accounts API, Tofu variable default). No
+#    reason to round-trip through GH Actions variables.
+#
+# The `integrations/github` provider stays in `versions.tf` for
+# possible future use — declarative branch protection, codeowners,
+# webhook config — but no resources today.
+#
+# Branch protection: deliberately absent. See docs/deploy.md / memory
+# `project_branch_protection.md` — solo, AI-driven, CI is the signal.
+# Revisit when adding collaborators.
