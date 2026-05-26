@@ -1,4 +1,4 @@
-// iedora-backup — replaces infra/iac/cmd/iedora-backup/{run,backup,restore}.sh with a
+// infra-pg-backup — replaces infra/iac/cmd/infra-pg-backup/{run,backup,restore}.sh with a
 // single Go binary. Lives inside the backup container alongside
 // pg_dump/pg_dumpall/pg_restore/psql/gpg (external binaries the Go
 // process still shells out to). aws-cli is gone — uses the pure-Go
@@ -6,9 +6,9 @@
 //
 // Subcommands:
 //
-//	iedora-backup            (or `run`) — daemon loop: every SCHEDULE seconds, take a backup
-//	iedora-backup backup     — one-shot backup
-//	iedora-backup restore [KEY] — restore latest, or specific key
+//	infra-pg-backup            (or `run`) — daemon loop: every SCHEDULE seconds, take a backup
+//	infra-pg-backup backup     — one-shot backup
+//	infra-pg-backup restore [KEY] — restore latest, or specific key
 //
 // Env (same shape the bash scripts read):
 //
@@ -20,7 +20,7 @@
 //	BACKUP_KEEP_DAYS  optional; prune dumps older than N days after upload
 //
 // All operator-facing logging goes to stderr — same as the bash
-// scripts. The container's CMD is `iedora-backup` (no args) → daemon mode.
+// scripts. The container's CMD is `infra-pg-backup` (no args) → daemon mode.
 package main
 
 import (
@@ -55,22 +55,22 @@ func main() {
 		}
 		err = runRestore(ctx, key)
 	case "-h", "--help", "help":
-		fmt.Println(`iedora-backup — encrypted Postgres backup to S3-compatible storage.
+		fmt.Println(`infra-pg-backup — encrypted Postgres backup to S3-compatible storage.
 
 Subcommands:
-  iedora-backup              (or `+"`run`"+`) — daemon loop, runs `+"`backup`"+` every SCHEDULE
-  iedora-backup backup       one-shot backup
-  iedora-backup restore [KEY]  restore latest dump, or a specific S3 key
+  infra-pg-backup              (or `+"`run`"+`) — daemon loop, runs `+"`backup`"+` every SCHEDULE
+  infra-pg-backup backup       one-shot backup
+  infra-pg-backup restore [KEY]  restore latest dump, or a specific S3 key
 
 Env: POSTGRES_*, S3_*, PASSPHRASE, SCHEDULE, BACKUP_KEEP_DAYS.`)
 		return
 	default:
-		fmt.Fprintf(os.Stderr, "iedora-backup: unknown subcommand %q\n", cmd)
+		fmt.Fprintf(os.Stderr, "infra-pg-backup: unknown subcommand %q\n", cmd)
 		os.Exit(2)
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "iedora-backup %s: %v\n", cmd, err)
+		fmt.Fprintf(os.Stderr, "infra-pg-backup %s: %v\n", cmd, err)
 		os.Exit(1)
 	}
 }

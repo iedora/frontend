@@ -81,7 +81,7 @@ iedora/                                  repo root
       postgres/init.sql                      CREATE DATABASE menu / zitadel (compose volume init)
       cmd/
         bws-upsert/                          Go helper for terraform_data.bws_sync_autogen
-        iedora-backup/                       Backup container (Go + Dockerfile co-located)
+        infra-pg-backup/                       Backup container (Go + Dockerfile co-located)
         state-bucket-bootstrap/              Stage -1 — R2 bucket + token bootstrap (chicken/egg)
     app-state/                             Stage 3 — configurators (one per concern)
       cmd/

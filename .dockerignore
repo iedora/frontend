@@ -10,12 +10,16 @@ node_modules
 # covered by the `infra/` rule below.
 .env*
 
-# Infra & docs não vão para a imagem da app — EXCEPT the iedora-backup
-# Go source under infra/backup/ which IS the build context for that
-# image (built from the repo root). The menu Dockerfile doesn't
-# COPY infra/ so the exception is harmless there.
+# Infra & docs não vão para a imagem da app — EXCEPT the
+# infra-pg-backup Go source which IS the build context for that
+# image (built from the repo root). The menu Dockerfile doesn't COPY
+# infra/ so re-including this path is harmless there.
+#
+# Docker requires every parent dir to be re-included explicitly.
 infra/
-!infra/backup/
+!infra/iac
+!infra/iac/cmd
+!infra/iac/cmd/infra-pg-backup
 docs/
 tests/
 playwright-report/

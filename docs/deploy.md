@@ -233,7 +233,7 @@ Plain `tofu apply` on [`infra/iac/tofu/`](../infra/iac/tofu/). Owns:
   - `infra-zitadel` + `infra-zitadel-login` (IdP)
   - `infra-caddy` (TLS termination, reverse proxy)
   - `infra-openobserve` (observability backend, bound to 127.0.0.1:5080)
-  - `infra-backups` (daily pg_dumpall → R2 GPG-encrypted)
+  - `infra-pg-backup` (daily pg_dumpall → R2 GPG-encrypted)
 - **Day-2 sync** ([sync.tf](../infra/iac/tofu/sync.tf)) — single
   `terraform_data` resource that SCPs `compose.yml` + `Caddyfile` to
   `/etc/iedora/` and restarts `iedora.service` when the compose hash
@@ -641,10 +641,10 @@ ssh root@$HOST docker logs -f --tail=200 infra-zitadel        # or infra-menu-we
 ssh -t root@$HOST docker exec -it infra-postgres psql -U postgres
 
 # Force a pg_dump now
-ssh root@$HOST docker exec infra-backups /iedora-backup backup
+ssh root@$HOST docker exec infra-pg-backup /infra-pg-backup backup
 
 # Restore latest dump
-ssh -t root@$HOST docker exec -it infra-backups /iedora-backup restore
+ssh -t root@$HOST docker exec -it infra-pg-backup /infra-pg-backup restore
 
 # Open the OpenObserve UI via SSH tunnel (OO is internal-only)
 ssh -L 5080:localhost:5080 root@$HOST   # then open http://localhost:5080
@@ -686,15 +686,15 @@ task deploy:menu      # restart menu with the new OIDC client_secret + PAT
 
 ### Backups
 
-`infra-backups` runs the Go binary
-[`infra/backup`](../infra/iac/cmd/iedora-backup/) in daemon
+`infra-pg-backup` runs the Go binary
+[`infra/backup`](../infra/iac/cmd/infra-pg-backup/) in daemon
 mode on `SCHEDULE=@daily`: `pg_dumpall` every database on
 `infra-postgres` → R2 (`iedora-data` bucket, `pg/` prefix),
 GPG-encrypted with `IAC_BACKUP_PASSPHRASE`. The S3 client is
 the pure-Go SigV4 implementation at [`internal/r2`](../internal/r2);
 no `aws` CLI in the image.
 
-Restore: `ssh -t root@$HOST docker exec -it infra-backups /iedora-backup restore`.
+Restore: `ssh -t root@$HOST docker exec -it infra-pg-backup /infra-pg-backup restore`.
 
 Retention: 14 days (`BACKUP_KEEP_DAYS=14`).
 
@@ -812,7 +812,7 @@ target.
 - **House Tofu state** (`products/house/infra/iac/tofu/`): 3 resources (cloudflare_workers_script.house, cloudflare_workers_custom_domain.apex, data.cloudflare_zone.iedora).
 - **BWS**: 6 `APP_ZITADEL_*` outputs from Stage 3 + `DEPLOY_MENU_SESSION_SECRET` minted by Stage 4.
 - **Zitadel**: org `iedora`, project `iedora`, 6 roles, machine user `menu-sa` with 1 PAT + IAM_OWNER, OIDC app `menu`, 2 action targets with executions.
-- **Box** (`ssh root@$HOST docker ps`): `infra-postgres`, `infra-zitadel`, `infra-zitadel-login`, `infra-caddy`, `infra-openobserve`, `infra-backups` (Tofu-owned, Stage 2) + `infra-menu-web` (Stage-4-owned, NOT in Tofu state).
+- **Box** (`ssh root@$HOST docker ps`): `infra-postgres`, `infra-zitadel`, `infra-zitadel-login`, `infra-caddy`, `infra-openobserve`, `infra-pg-backup` (Tofu-owned, Stage 2) + `infra-menu-web` (Stage-4-owned, NOT in Tofu state).
 - **Public endpoints**:
   - `https://menu.iedora.com/up` → 200 `{"ok":true,"db":"ok"}`
   - `https://auth.iedora.com/.well-known/openid-configuration` → 200

@@ -211,7 +211,7 @@ variable "hetzner_location" {
 
 variable "infra_ghcr_token" {
   description = <<-EOT
-    Classic GitHub PAT (write:packages) used to pull `ghcr.io/eduvhc/iedora-backup`
+    Classic GitHub PAT (write:packages) used to pull `ghcr.io/eduvhc/infra-pg-backup`
     from the homelab. TF_VAR_infra_ghcr_token (from BWS IAC_BOOTSTRAP_GHCR_TOKEN).
     Only needed because the self-built backup image is private; everything
     else (postgres, openobserve, zitadel, cloudflared) is on public registries.

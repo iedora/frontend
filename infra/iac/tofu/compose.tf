@@ -45,9 +45,14 @@ locals {
       }
     }
 
+    # Volume map keys MUST match the names referenced in each service's
+    # `volumes` list — yamlencode emits the HCL key verbatim, and compose
+    # looks the service-side reference up in this map. The `name:` field
+    # is the resulting Docker volume name (kept unprefixed for parity
+    # with the old kreuzwerker setup).
     volumes = {
-      zitadel_bootstrap = { name = "zitadel-bootstrap" }
-      caddy_data        = { name = "caddy-data" }
+      "zitadel-bootstrap" = { name = "zitadel-bootstrap" }
+      "caddy-data"        = { name = "caddy-data" }
     }
 
     services = {
@@ -206,10 +211,10 @@ locals {
         logging = { driver = "json-file", options = { max-size = "10m" } }
       }
 
-      # ── backups ─────────────────────────────────────────────────
-      backups = {
-        image          = "ghcr.io/${var.github_owner}/iedora-backup:18"
-        container_name = "infra-backups"
+      # ── infra-pg-backup ─────────────────────────────────────────
+      infra-pg-backup = {
+        image          = "ghcr.io/${var.github_owner}/infra-pg-backup:18"
+        container_name = "infra-pg-backup"
         restart        = "unless-stopped"
         networks       = { iedora = {} }
         environment = {

@@ -25,7 +25,7 @@ infra/
     postgres/init.sql        CREATE DATABASE menu / zitadel on first boot.
     cmd/
       bws-upsert/            Tofu local-exec helper (idempotent BWS upsert).
-      iedora-backup/         Backup container: daily encrypted pg_dumpall → R2.
+      infra-pg-backup/         Backup container: daily encrypted pg_dumpall → R2.
                              Go binary + Dockerfile co-located.
       state-bucket-bootstrap/ Stage -1 — provisions the R2 bucket + scoped CF
                              token the Tofu s3 backend needs (chicken/egg).
@@ -63,7 +63,7 @@ internal/                  Shared Go libs (Go's `internal/` visibility scopes
   bws/                       bws CLI wrapper
   cloudflare/                CF /accounts API + R2 S3 creds derivation
   mode/                      binary-mode enum (local vs live; Guardrail #1)
-  r2/                        pure-Go SigV4 S3 client (used by iedora-backup)
+  r2/                        pure-Go SigV4 S3 client (used by infra-pg-backup)
   ssh/                       Client (shared by iedora + Stage 3 configurators)
   tlsprobe/                  /debug/ready + LE-cert probe for Zitadel readiness
   testfakes/                 HTTP server fakes for unit tests
