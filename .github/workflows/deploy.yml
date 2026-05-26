@@ -1,8 +1,11 @@
 # Stage 4 (Deploy) — reusable workflow that ships one product's artifact
-# to its runtime. Called via workflow_call from per-product workflows
-# (menu.yml, house.yml). Generic over product name: the inner
-# `bin/iedora deploy <product>` dispatches through the productRuntime
-# interface, so adding a 4th product = (1) new struct in
+# to its runtime. Called via workflow_call from `[apps:web] CI` (web.yml).
+# Today the only deployable artifact is `web` (one Next.js image serving
+# menu.iedora.com / core.iedora.com / iedora.com via host-based proxy).
+#
+# Generic over product name: the inner `bin/iedora deploy <product>`
+# dispatches through the productRuntime interface, so adding a future
+# product with its own runtime = (1) new struct in
 # `infra/deploy/cmd/iedora/products.go`, (2) new caller workflow that
 # invokes THIS workflow with `inputs.product=<name>`.
 
@@ -12,7 +15,7 @@ on:
   workflow_call:
     inputs:
       product:
-        description: 'Product name (matches `infra/deploy/cmd/iedora/products.go` registry: menu | house | …).'
+        description: 'Product name (matches `infra/deploy/cmd/iedora/products.go` registry — `web` today).'
         type: string
         required: true
       image_sha:
@@ -24,10 +27,11 @@ on:
       BWS_ACCESS_TOKEN:
         required: true
 
-# Per-product concurrency: house + menu can deploy in parallel, but two
-# menu deploys serialise (the second waits — never cancel mid-flight,
-# `docker stop` on a half-replaced container is the worst-of-both-worlds
-# state).
+# Per-product concurrency: two deploys of the same product serialise
+# (the second waits — never cancel mid-flight, `docker stop` on a
+# half-replaced container is the worst-of-both-worlds state). When a
+# second product lands, both can deploy in parallel under their own
+# concurrency groups.
 concurrency:
   group: deploy-${{ inputs.product }}
   cancel-in-progress: false
@@ -46,22 +50,14 @@ jobs:
     env:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
       # Forwarded to the dockerOnHetzner runtime — it reads MENU_IMAGE_SHA
-      # (or whatever each product's imageSHAEnv is) at deploy time.
+      # (the env-var name kept its historical `MENU_` prefix; the
+      # productRuntime contract exposes it as `imageSHAEnv` on the
+      # `web` product) at deploy time.
       MENU_IMAGE_SHA: ${{ inputs.image_sha }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node (for cloudflareWorker products that build with Astro)
-        if: inputs.product == 'house'
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: '24.0.2'
-
-      - name: Setup workspace (Bun + install)
-        if: inputs.product == 'house'
-        uses: ./.github/actions/setup
 
       - name: Install bws CLI
         env:
@@ -82,9 +78,9 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Install OpenTofu
-        # House uses tofu (per-product Cloudflare Workers root). Menu's
-        # dockerOnHetzner runtime calls `tofu output -raw <name>` to read
-        # Stage-2-minted env values.
+        # The dockerOnHetzner runtime calls `tofu output -raw <name>` to
+        # read Stage-2-minted env values (DB URLs, R2 creds, OTel
+        # endpoint, …) and forwards them into the container.
         uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
         with:
           tofu_version: '1.12.0'
@@ -110,7 +106,9 @@ jobs:
         run: bin/iedora-env bin/iedora deploy ${{ inputs.product }}
 
       - name: Smoke check
-        if: inputs.product == 'menu'
+        # `web` serves three hosts off one Next.js process; menu.iedora.com
+        # is the primary surface and the only one with a `/up` route.
+        if: inputs.product == 'web'
         env:
           URL: https://menu.iedora.com/up
         run: |

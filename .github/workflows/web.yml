@@ -1,26 +1,23 @@
-# Menu CI + image build/push.
+# `apps/web` CI + image build/push.
 #
-# Runs the menu gates (typecheck + lint + Vitest + Trivy/SBOM) on every push +
-# PR. On push to main, after the gates pass, builds the menu image for
-# linux/amd64 + linux/arm64, pushes it to GHCR (`ghcr.io/eduvhc/web:latest`
-# + commit SHA), then dispatches the Stage-4 deploy workflow with the
-# image SHA pinned.
+# Runs the shell's gates (typecheck + lint + Trivy/SBOM) on every push + PR.
+# On push to main, after the gates pass AND every `[product:*] CI` is green,
+# builds the web image for linux/arm64, pushes it to GHCR
+# (`ghcr.io/eduvhc/web:latest` + commit SHA), then invokes the Stage-4
+# deploy workflow with the image SHA pinned.
 #
-# Architecture note: the menu container is owned by Stage 4
+# Architecture note: the web container is owned by Stage 4
 # (`infra/deploy/cmd/iedora/runtime_docker.go`, dockerOnHetzner runtime),
 # NOT by Tofu. The SHARED services (postgres, cloudflared, openobserve,
 # backups) live in the rendered compose stack — see
 # `infra/iac/tofu/compose.tf`. CI's job is build + push; the deploy
-# job SSHes to the box, pulls the pinned image, runs migrations, and
-# replaces the container.
+# job SSHes to the box, pulls the pinned image, and hot-swaps the
+# container.
 #
-# E2E (Playwright) runs against a production build of menu + a Postgres
-# service + adobe/s3mock for S3. Specs live per slice
-# (`src/features/<slice>/e2e/`) plus cross-slice journeys
-# (`tests/e2e/journeys/`) — see menu CLAUDE.md rule 15. Shard matrix is
-# wired but set to 1 today; bump when spec volume justifies.
-#
-# Self-contained on purpose: one file is the entire menu CI surface.
+# Unit + E2E tests live with the products that own the code
+# (`[product:menu] CI` runs Vitest + Playwright; `[product:core] CI`,
+# `[package:*] CI` run their own surfaces). This workflow gates the
+# image build on all of them via the `wait_products` job.
 
 name: '[apps:web] CI'
 
@@ -50,13 +47,13 @@ on:
       - '.github/workflows/web.yml'
       - '.github/actions/setup/**'
   # Re-trigger the real hosted runner without a new commit:
-  #   gh workflow run menu.yml --ref <branch>
+  #   gh workflow run web.yml --ref <branch>
   # Useful for verifying a green local repro against actual CI hardware
   # without polluting git history with "fix(ci): try again" commits.
   workflow_dispatch:
 
 concurrency:
-  group: menu-${{ github.workflow }}-${{ github.ref }}
+  group: web-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # Workflow-level permissions — least privilege. The build job below escalates
@@ -120,13 +117,13 @@ jobs:
           scan-type: fs
           scan-ref: .
           format: spdx-json
-          output: menu-sbom.spdx.json
+          output: web-sbom.spdx.json
           exit-code: '0'
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: menu-sbom
-          path: menu-sbom.spdx.json
+          name: web-sbom
+          path: web-sbom.spdx.json
           retention-days: 90
 
   # Note: E2E (Playwright) moved to `[product:menu] CI` (product-menu.yml)
@@ -283,8 +280,8 @@ jobs:
           outputs: type=image,name=ghcr.io/eduvhc/web,push-by-digest=true,name-canonical=true,push=true
           provenance: true
           sbom: true
-          cache-from: type=gha,scope=menu-${{ steps.slug.outputs.value }}
-          cache-to: type=gha,mode=max,scope=menu-${{ steps.slug.outputs.value }}
+          cache-from: type=gha,scope=web-${{ steps.slug.outputs.value }}
+          cache-to: type=gha,mode=max,scope=web-${{ steps.slug.outputs.value }}
 
       # Stash the digest as a 0-byte file named for the sha256. The
       # merge job globs `*` over the unpacked artifacts and turns them
@@ -299,7 +296,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: digests-menu-${{ steps.slug.outputs.value }}
+          name: digests-web-${{ steps.slug.outputs.value }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -330,7 +327,7 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: /tmp/digests
-          pattern: digests-menu-*
+          pattern: digests-web-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -399,15 +396,15 @@ jobs:
           push-to-registry: true
 
   # ── Gate: wait for Stage 3 (DB migrations) to be green ──────────────────
-  # Stage 4's `dockerOnHetzner.Deploy` starts the menu container, which
+  # Stage 4's `dockerOnHetzner.Deploy` starts the web container, which
   # immediately reads `core.session` on every request. If Stage 3 hasn't
   # applied the `@iedora/auth` migrations yet, the boot 500s. On a fresh
   # Day 1 the chain is: infra-deploy.yml provisions the box → app-state
   # (workflow_run) waits for THIS image to land → applies core +
   # menu schemas → then this gate flips green and `deploy` proceeds.
   #
-  # Day-2 (menu-only push): the latest app-state run is already success
-  # from a prior CI run, this step returns ~immediately.
+  # Day-2 (apps/web-only push): the latest app-state run is already
+  # success from a prior CI run, this step returns ~immediately.
   wait_app_state:
     name: Wait for app-state
     needs: merge

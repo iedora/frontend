@@ -54,9 +54,9 @@ jobs:
 
       - name: Wait for ghcr.io/eduvhc/web:latest
         # Both Stage-3 configurators (`core-db-migrations`,
-        # `menu-db-migrations`) `docker run --rm <menu-image>` on the
-        # box. On a fresh Day 1, the menu image is being built in
-        # parallel by `menu.yml`; if `Infra deploy` finishes first this
+        # `menu-db-migrations`) `docker run --rm <web-image>` on the
+        # box. On a fresh Day 1, the web image is being built in
+        # parallel by `web.yml`; if `[infra] Deploy` finishes first this
         # workflow would crash on `docker pull`. Block here until GHCR
         # exposes a `latest` tag (the manifest list `imagetools create`
         # pushes alongside `:<sha>`).
@@ -78,10 +78,10 @@ jobs:
               break
             fi
             if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "✗ menu:latest still missing after 30 min — abort"
+              echo "✗ ghcr.io/eduvhc/web:latest still missing after 30 min — abort"
               exit 1
             fi
-            echo "menu:latest not yet pushed — waiting 30s"
+            echo "ghcr.io/eduvhc/web:latest not yet pushed — waiting 30s"
             sleep 30
           done
 
