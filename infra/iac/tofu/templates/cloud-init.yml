@@ -29,10 +29,6 @@ write_files:
     content: |
       ${indent(6, compose_yaml)}
 
-  - path: /etc/iedora/Caddyfile
-    content: |
-      ${indent(6, caddyfile)}
-
   - path: /etc/iedora/postgres-init/init.sql
     content: |
       ${indent(6, postgres_init_sql)}

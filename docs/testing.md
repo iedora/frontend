@@ -142,10 +142,9 @@ Only `*/e2e/*.spec.ts` and `tests/e2e/journeys/*.spec.ts` may import `testing/`.
 ### Slice spec template
 
 ```ts
-// src/features/menu-builder/e2e/reorder.spec.ts
+// src/features/<slice>/e2e/<capability>.spec.ts  (template — replace with real slice)
 import { test, expect } from '../../../../tests/e2e/fixtures'
 import { menuBuilderProfile, menuBuilderRoutes, seedMenu, seedCategory } from '../testing'
-import { seedOrg, bindUserToOrg } from '@/features/identity/testing'
 import { seedRestaurant } from '@/features/restaurant-identity/testing'
 
 test.describe('@smoke menu-builder reorder', () => {

@@ -34,7 +34,7 @@ binaries:
   live|local` (default `live`). Mode plumbs through `loadConfig`,
   `buildStore` (live → `bwsStore`, local → `memoryStore`), `ensureSAKey`,
   and `waitForMenuDNS` (local short-circuits).
-- `cmd/menu-db-migrations`, `cmd/openobserve-dashboards` — live-only
+- `menu-db-migrations`, `openobserve-dashboards` — live-only
   by deployment topology; `const runsIn = mode.Live` documents it.
 
 No back-compat surface — fresh ecosystem, no callers needed a
@@ -48,7 +48,6 @@ OpenTofu `s3` backend pointed at the new `iedora-tofu-state` R2 bucket
 (EEUR). Two roots share the bucket with different keys:
 
 - `infra/iac/tofu/` → key `infra/iac/tofu/terraform.tfstate`
-- `products/house/infra/iac/tofu/` → key `products/house/infra/iac/tofu/terraform.tfstate`
 
 Concurrency is R2-native via OpenTofu 1.10+ `use_lockfile = true` (no
 DynamoDB lock table — R2 has no equivalent). The `encryption {}` block
@@ -99,9 +98,9 @@ Smoke-tested green: `menu.iedora.com/up` → 200 `{"ok":true,"db":"ok"}`,
 
 - [`infra/iac/cmd/state-bucket-bootstrap/`](../infra/iac/cmd/state-bucket-bootstrap/) — Go binary (main.go, r2_bucket.go, r2_token.go, main_test.go).
 - [`internal/cloudflare/r2_bucket.go`](../internal/cloudflare/r2_bucket.go) + [`api_token.go`](../internal/cloudflare/api_token.go) — helpers added during the work.
-- [`infra/bin/state-bucket-bootstrap`](../infra/bin/state-bucket-bootstrap) — wrapper shim.
-- [`infra/iac/tofu/versions.tf`](../infra/iac/tofu/versions.tf) + [`products/house/infra/iac/tofu/versions.tf`](../products/house/infra/iac/tofu/versions.tf) — `backend "s3"` blocks.
-- [`infra/deploy/cmd/iedora/env.go`](../infra/deploy/cmd/iedora/env.go) — new BWS keys + AWS_* env aliases.
+- [`bin/state-bucket-bootstrap`](../bin/state-bucket-bootstrap) — wrapper shim.
+- [`infra/iac/tofu/versions.tf`](../infra/iac/tofu/versions.tf) — `backend "s3"` block.
+- [`bin/iedora-env`](../bin/iedora-env) — new BWS keys + AWS_* env aliases (subsumed the former `with-secrets` wrapper).
 - `.github/workflows/infra-deploy.yml` + `deploy.yml` — commit-back steps removed; `permissions: contents: write` → `read`.
 - `.gitignore` — state files excluded; build-artefact binary list extended.
 - State files `git rm --cached`'d.
@@ -120,7 +119,7 @@ Smoke-tested green: `menu.iedora.com/up` → 200 `{"ok":true,"db":"ok"}`,
 
 ### What landed
 
-A regex-based SQL linter in `infra/app-state/cmd/menu-db-migrations/lint.go`
+A regex-based SQL linter in `infra/app-state/menu-db-migrations/lint.go`
 scans every `.sql` file under `products/menu/drizzle/` before the
 `menu-db-migrations` configurator SSHes to the box. The matcher
 catches five destructive patterns:
@@ -178,9 +177,9 @@ to test against) cover the verification surface adequately.
 
 ### Files
 
-- [`infra/app-state/cmd/menu-db-migrations/lint.go`](../infra/app-state/cmd/menu-db-migrations/lint.go) — matcher + classifier + format + mode-aware gate.
-- [`infra/app-state/cmd/menu-db-migrations/lint_test.go`](../infra/app-state/cmd/menu-db-migrations/lint_test.go) — 15 sub-cases (table-driven lintFileBody, dir-scan, mode gate, real-fixture integration).
-- [`infra/app-state/cmd/menu-db-migrations/main.go`](../infra/app-state/cmd/menu-db-migrations/main.go) — wires `gateMigrations` at the top of `run()`, before SSH.
+- [`infra/app-state/menu-db-migrations/lint.go`](../infra/app-state/menu-db-migrations/lint.go) — matcher + classifier + format + mode-aware gate.
+- [`infra/app-state/menu-db-migrations/lint_test.go`](../infra/app-state/menu-db-migrations/lint_test.go) — 15 sub-cases (table-driven lintFileBody, dir-scan, mode gate, real-fixture integration).
+- [`infra/app-state/menu-db-migrations/main.go`](../infra/app-state/menu-db-migrations/main.go) — wires `gateMigrations` at the top of `run()`, before SSH.
 - [`products/menu/drizzle/0001_drop_better_auth_tables.sql`](../products/menu/drizzle/0001_drop_better_auth_tables.sql) — retroactive markers.
 
 ## Rule 4 — hot-swap deploy
@@ -190,8 +189,8 @@ to test against) cover the verification surface adequately.
   does `docker stop && docker rm && docker run` via SSH-shelled
   commands. ~5s 502 window during every deploy (the failure-modes
   table acknowledges it).
-- Caddy routes upstream by Docker network alias `infra-menu-web`.
-  When the container is gone, Caddy returns 502 until the new one
+- CF Tunnel routes upstream by Docker network alias `infra-menu-web`.
+  When the container is gone, the tunnel returns 502 until the new one
   comes up.
 
 ### Target
@@ -213,14 +212,13 @@ to test against) cover the verification surface adequately.
   new one, surface a clear error.
 
 ### Trade-offs to decide
-- **Probe path**: docker-exec'd `wget` is simpler, no Caddy reload
-  needed. SSH-tunneled `curl` from the operator side proves the
-  request travels the same network path Caddy does. Pick docker-exec
+- **Probe path**: docker-exec'd `wget` is simpler, no tunnel config
+  needed.
   for v1; revisit if false-positives appear.
-- **Alias swap vs Caddy reload**: alias swap is faster (no Caddy
-  config change), but Caddy caches upstream DNS within the network.
-  Test: does Caddy honor live alias re-resolution? If not, fallback
-  to Caddy reload via `docker exec infra-caddy caddy reload`.
+- **Alias swap vs tunnel restart**: alias swap is faster (no tunnel
+  restart), but cloudflared may cache upstream DNS within the
+  network. Test: does cloudflared honor live alias re-resolution?
+  If not, fallback to a tunnel reconnect.
 
 ### Migration steps
 1. Add `Healthcheck` field to the `dockerOnHetzner` struct: `Path`
@@ -277,7 +275,7 @@ is one resource at a time.
 
 ### Files
 
-- [`infra/app-state/cmd/zitadel-apply/reconcile.go`](../infra/app-state/cmd/zitadel-apply/reconcile.go) — `Config.AllowRecreate` + `guardRecreate` helper + gates at the PAT and target delete branches.
+- [`infra/app-state/zitadel-apply/reconcile.go`](../infra/app-state/zitadel-apply/reconcile.go) — `Config.AllowRecreate` + `guardRecreate` helper + gates at the PAT and target delete branches.
 - [`infra/app-state/cmd/zitadel-apply/main.go`](../infra/app-state/cmd/zitadel-apply/main.go) — `--allow-recreate` flag + `parseAllowRecreate` (comma-separated → `map[string]bool`).
-- [`infra/app-state/cmd/zitadel-apply/reconcile_test.go`](../infra/app-state/cmd/zitadel-apply/reconcile_test.go) — table-driven tests for `guardRecreate` (7 cases covering local short-circuit, live strict, live with matching/wrong opt-in) + `parseAllowRecreate` (7 cases for split/trim/dedupe/empty).
+- [`infra/app-state/zitadel-apply/reconcile_test.go`](../infra/app-state/zitadel-apply/reconcile_test.go) — table-driven tests for `guardRecreate` (7 cases covering local short-circuit, live strict, live with matching/wrong opt-in) + `parseAllowRecreate` (7 cases for split/trim/dedupe/empty).
 - [`docs/deploy.md` § Environment guardrails — Rule 5](./deploy.md#5-zitadel-reconciler--anti-panic-lock) — operator-facing copy.

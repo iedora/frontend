@@ -11,16 +11,17 @@ infra/
   iac/                     Stage 2 — IaC for the shared estate
     tofu/                    Single encrypted Tofu root: Hetzner + Cloudflare +
                              GitHub config + the rendered docker-compose stack
-                             (postgres, zitadel, zitadel-login, caddy,
+                             (postgres, zitadel, zitadel-login, cloudflared,
                              openobserve, backups). Per-product containers
                              (menu) are NOT here — they're owned by Stage 4.
 
                              Key files:
                                compose.tf         compose document (yamlencode)
-                               sync.tf            day-2 SSH push of compose/Caddyfile
+                               tunnel.tf          CF Tunnel config + ingress rules
+                               sync.tf            day-2 SSH push of compose
                                destroy-hooks.tf   rclone purge R2 buckets on destroy
                                hetzner.tf         VPS + cloud-init (first boot)
-                               templates/         Caddyfile + cloud-init templates
+                               templates/         cloud-init + systemd templates
 
     postgres/init.sql        CREATE DATABASE menu / zitadel on first boot.
     cmd/
@@ -35,12 +36,12 @@ infra/
       state-bucket-bootstrap/ Stage -1 — provisions the R2 bucket + scoped CF
                              token the Tofu s3 backend needs (chicken/egg).
 
-  app-state/               Stage 3 — configurators (reconcile running services)
+   app-state/               Stage 3 — configurators (reconcile running services)
     cmd/
       zitadel-apply/         Zitadel REST reconciler (org / project / OIDC /
                              machine user + PAT / action targets / grants).
-      menu-db-migrations/    drizzle-kit migrate against menu's postgres DB.
-      openobserve-dashboards/ Push embedded JSON dashboards via SSH `-L` tunnel.
+    menu-db-migrations/      drizzle-kit migrate against menu's postgres DB.
+    openobserve-dashboards/  Push embedded JSON dashboards via SSH `-L` tunnel.
 
   deploy/                  Stage 4 + Stage-3 router
     cmd/
@@ -70,7 +71,7 @@ internal/                  Shared Go libs (Go's `internal/` visibility scopes
   mode/                      binary-mode enum (local vs live; Guardrail #1)
   r2/                        pure-Go SigV4 S3 client (used by infra-pg-backup)
   ssh/                       Client (shared by iedora + Stage 3 configurators)
-  tlsprobe/                  /debug/ready + LE-cert probe for Zitadel readiness
+  tlsprobe/                  /debug/ready + CF-edge cert probe for Zitadel readiness
   testfakes/                 HTTP server fakes for unit tests
 ```
 
@@ -89,8 +90,8 @@ Operators always invoke via shims at the repo root (`bin/<name>`); those shims `
 ## Adding things
 
 - **New shared container** → new service entry in `infra/iac/tofu/compose.tf` (under `local.compose.services`). cloud-init drops the new compose on first boot; `terraform_data.iedora_sync` ships it on day-2.
-- **New Stage 3 configurator** → new `infra/app-state/cmd/<name>/` (`package main`) + new shim `bin/<name>` + entry in `infra/deploy/cmd/iedora/configurators.go`.
-- **New product** → new `productRuntime` struct in `infra/deploy/cmd/iedora/products.go` + new GitHub Actions caller workflow that invokes `deploy.yml` with `inputs.product=<name>`.
+- **New Stage 3 configurator** → new library package `infra/app-state/<name>/` exporting `Run(ctx) error` + entry in `infra/deploy/cmd/iedora/configurators.go`. Add a `cmd/` shim + `bin/<name>` wrapper only if standalone invocation is needed (as zitadel-apply does).
+- **New product** → new `product` struct literal in `infra/deploy/cmd/iedora/products.go` (implementing the `productRuntime` interface) + new GitHub Actions caller workflow that invokes `deploy.yml` with `inputs.product=<name>`.
 - **New Tofu helper called from `local-exec`** → new `infra/iac/cmd/<name>/` + shim at `bin/<name>` + `path.module/../../../bin/<name>` from the Tofu file.
 
 ## Commands
@@ -105,7 +106,6 @@ bin/iedora-env tofu -chdir=infra/iac/tofu apply                   # Stage 2 appl
 bin/iedora-env tofu -chdir=infra/iac/tofu destroy                 # Stage 2 teardown
 bin/iedora-env bin/iedora app apply                               # Stage 3
 bin/iedora-env bin/iedora deploy menu                             # Stage 4 (menu)
-bin/iedora-env bin/iedora deploy house                            # Stage 4 (house)
 go run ./dev/cmd/local-stack                                  # Local dev stack
 ```
 

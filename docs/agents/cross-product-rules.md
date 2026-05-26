@@ -1,6 +1,6 @@
 # Cross-product hard rules
 
-These bind every product that ships UI to humans (menu + house, plus any future surface). Imported into [AGENTS.md](../../AGENTS.md) so they load wherever an agent is working — under `products/menu/`, `products/house/`, or the repo root.
+These bind every product that ships UI to humans (menu + house, plus any future surface). Imported into [AGENTS.md](../../AGENTS.md) so they load wherever an agent is working — under `products/menu/`, `products/menu/src/app/house/`, or the repo root.
 
 ## 1. Components carry `data-test-id`
 
@@ -31,7 +31,7 @@ Every string a user reads in the chrome — button labels, headings, placeholder
 - `getTranslations()` in Server Components / route handlers
 - Catalogues at `src/i18n/messages/<locale>.json`
 
-**House** uses Astro's built-in i18n.
+**House** lives inside the menu Next.js app at `src/app/house/` and also uses `next-intl`.
 
 **Hard-coded user-visible strings in components are a regression.**
 

@@ -150,7 +150,7 @@ you want to emit a structured event without going through pino.
 Both wrap a `NoiseFilteringSampler` that drops the high-volume,
 low-value spans before any decision is made:
 
-- `GET /up` — Caddy + uptime health checks (one per second per host).
+- `GET /up` — uptime health checks (one per second per host via CF Tunnel).
 - `GET /api/track/*` — public-menu view beacon (already counted via
   the `iedora.restaurant_views_total` metric).
 - `GET /api/health` / `GET /api/ready` — reserved for future container

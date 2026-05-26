@@ -21,7 +21,7 @@ Ranked by severity for the iedora stack.
 | 27 | Webhook secret encryption at rest | low | deferred | plaintext in DB. Acceptable while DB + app share a trust boundary; revisit on first external customer or once Zitadel-driven webhooks land |
 | 31 | Zitadel masterkey leak | high | mitigated | `IAC_ZITADEL_MASTERKEY` Tofu-minted (32 chars), `lifecycle.prevent_destroy = true` blocks casual rotation. Re-key flow only |
 | 32 | Zitadel admin user takeover via bootstrap password | medium | mitigated | `IAC_ZITADEL_FIRST_ADMIN_PASSWORD` honored only on first boot; rotate the live password via Zitadel UI |
-| 33 | `auth.iedora.com` cert / TLS misconfig | mitigated | done | Caddy on the VPS terminates TLS via Let's Encrypt; `obs.iedora.com`, `menu.iedora.com` follow the same path |
+| 33 | `auth.iedora.com` cert / TLS misconfig | mitigated | done | CF Tunnel terminates TLS at the Cloudflare edge; `obs.iedora.com`, `menu.iedora.com` follow the same path |
 
 ## Supply-chain perimeter
 

@@ -1,7 +1,7 @@
 # Renders the full Docker Compose file that the Hetzner box runs.
 #
 # Every shared container (postgres, openobserve, zitadel, zitadel-login,
-# caddy, backups) is declared here as a service in the compose document.
+# cloudflared, backups) is declared here as a service in the compose document.
 # Tofu renders the YAML; cloud-init drops it on the box at first boot
 # and a single `terraform_data.iedora_sync` resource (see sync.tf) pushes
 # updates on day-2 changes.
@@ -19,15 +19,6 @@ locals {
   iedora_etc_dir   = "/etc/iedora"
   postgres_data    = "/root/infra-postgres/data"
   openobserve_data = "/root/infra-openobserve/openobserve-data"
-
-  # Caddyfile lives at /etc/iedora/Caddyfile, bind-mounted into the
-  # caddy container at /etc/caddy/Caddyfile.
-  caddyfile = templatefile("${path.module}/templates/Caddyfile", {
-    acme_email       = var.infra_openobserve_root_user_email
-    zitadel_hostname = var.zitadel_hostname
-    menu_hostname    = var.menu_public_hostname
-    zone_name        = var.zone_name
-  })
 
   # init.sql lives at /etc/iedora/postgres-init/init.sql, bind-mounted
   # into the postgres container at /docker-entrypoint-initdb.d/init.sql.
@@ -58,7 +49,6 @@ locals {
     # with the old kreuzwerker setup).
     volumes = {
       "zitadel-bootstrap" = { name = "zitadel-bootstrap" }
-      "caddy-data"        = { name = "caddy-data" }
     }
 
     services = {
@@ -199,21 +189,24 @@ locals {
         logging     = { driver = "json-file", options = { max-size = "10m" } }
       }
 
-      # ── caddy ───────────────────────────────────────────────────
-      caddy = {
-        image          = "caddy:2.11-alpine"
-        container_name = "infra-caddy"
+      # ── cloudflared (Zero Trust Tunnel connector) ───────────────
+      # Outbound persistent connection to CF edge. Routes for the 4
+      # public hostnames are declared in tunnel.tf — this container
+      # just consumes the connector token and runs the daemon.
+      # No exposed ports, no on-box TLS, no LE.
+      cloudflared = {
+        image          = "cloudflare/cloudflared:latest"
+        container_name = "infra-cloudflared"
         restart        = "unless-stopped"
+        command        = ["tunnel", "--no-autoupdate", "run"]
         depends_on = {
           zitadel       = { condition = "service_started" }
           zitadel-login = { condition = "service_started" }
         }
-        networks = { iedora = { aliases = ["infra-caddy"] } }
-        ports    = ["80:80", "443:443"]
-        volumes = [
-          "caddy-data:/data",
-          "${local.iedora_etc_dir}/Caddyfile:/etc/caddy/Caddyfile:ro",
-        ]
+        networks = { iedora = { aliases = ["infra-cloudflared"] } }
+        environment = {
+          TUNNEL_TOKEN = data.cloudflare_zero_trust_tunnel_cloudflared_token.iedora.token
+        }
         logging = { driver = "json-file", options = { max-size = "10m" } }
       }
 

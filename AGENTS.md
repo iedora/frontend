@@ -71,16 +71,16 @@ iedora/                                  repo root
     bws-sync                                Batched Tofu BWS write/delete (single sequential pass)
     bws-upsert                              Single-key BWS upsert/delete (ad-hoc, operator scripts)
     zitadel-apply                           Stage 3 — Zitadel app config (org / project / OIDC / PAT)
-    menu-db-migrations                      Stage 3 — drizzle-kit migrate on menu's postgres DB
-    openobserve-dashboards                  Stage 3 — push dashboard JSONs via SSH-L tunnel
+                                            (menu-db-migrations + openobserve-dashboards run
+                                             in-process via bin/iedora app apply)
 
   infra/                                 Pipeline stages — one folder per stage, nothing else.
                                          See infra/CLAUDE.md for the deep dive.
     iac/                                   Stage 2 — IaC for the shared estate
       tofu/                                  Encrypted Tofu root (VPS + CF + GH config + rendered
                                              docker-compose stack). Plain `tofu apply` — no wrappers.
-                                             Files: compose.tf, sync.tf, destroy-hooks.tf,
-                                             hetzner.tf, templates/{Caddyfile,cloud-init.yml}.
+                                              Files: compose.tf, sync.tf, destroy-hooks.tf, tunnel.tf,
+                                              hetzner.tf, templates/{cloud-init.yml,iedora.service}.
                                              Menu container = Stage 4, NOT here.
       postgres/init.sql                      CREATE DATABASE menu / zitadel (compose volume init)
       cmd/
@@ -91,8 +91,8 @@ iedora/                                  repo root
     app-state/                             Stage 3 — configurators (one per concern)
       cmd/
         zitadel-apply/                       Zitadel REST reconciler
-        menu-db-migrations/                  drizzle-kit migrate runner (SSH + docker run)
-        openobserve-dashboards/              dashboard reconciler (SSH-L tunnel + go:embed JSONs)
+      menu-db-migrations/                  drizzle-kit migrate runner (SSH + docker run)
+      openobserve-dashboards/              dashboard reconciler (SSH-L tunnel + go:embed JSONs)
     deploy/                                Stage 3 + Stage 4 router
       cmd/
         iedora/                              Configurator registry + productRuntime registry
@@ -121,7 +121,7 @@ iedora/                                  repo root
       src/app/house/                       Brand landing for iedora.com
 ```
 
-Menu's container is NOT in the compose stack rendered by `infra/iac/tofu/compose.tf` — only the shared services (postgres, zitadel, caddy, openobserve, backups) live there. Menu's lifecycle (pull/run on every deploy) is owned by Stage 4 via [`infra/deploy/cmd/iedora/runtime_docker.go`](infra/deploy/cmd/iedora/runtime_docker.go); Caddy routes both `menu.iedora.com` and `iedora.com` (apex + www) to the same network alias so one container serves both sites.
+Menu's container is NOT in the compose stack rendered by `infra/iac/tofu/compose.tf` — only the shared services (postgres, zitadel, cloudflared, openobserve, backups) live there. Menu's lifecycle (pull/run on every deploy) is owned by Stage 4 via [`infra/deploy/cmd/iedora/runtime_docker.go`](infra/deploy/cmd/iedora/runtime_docker.go); a Cloudflare Tunnel routes both `menu.iedora.com` and `iedora.com` (apex + www) to the same docker network alias so one container serves both sites.
 
 ## Commands
 
@@ -146,7 +146,7 @@ Stage 3: AppState          bin/iedora-env bin/iedora app apply
 Stage 4: Deploy            bin/iedora-env bin/iedora deploy <product>
 ```
 
-- **Stage 2** — plain Tofu. `init` / `plan` / `apply` / `destroy` against `infra/iac/tofu/`. The Tofu graph renders a docker-compose document (`compose.tf`) + Caddyfile; cloud-init drops them on first boot, `terraform_data.iedora_sync` pushes day-2 changes via one SSH session. `rclone` is required on the operator's machine — destroy-time hooks (`destroy-hooks.tf`) purge R2 buckets before the API DELETE.
+- **Stage 2** — plain Tofu. `init` / `plan` / `apply` / `destroy` against `infra/iac/tofu/`. The Tofu graph renders a docker-compose document (`compose.tf`) + Cloudflare Tunnel config (`tunnel.tf`); cloud-init drops them on first boot, `terraform_data.iedora_sync` pushes day-2 changes via one SSH session. `rclone` is required on the operator's machine — destroy-time hooks (`destroy-hooks.tf`) purge R2 buckets before the API DELETE.
 - **Stage 3** — `bin/iedora app apply` runs every configurator in `configurators.go` sequentially: zitadel-apply, menu-db-migrations, openobserve-dashboards.
 - **Stage 4** — `bin/iedora deploy <product>` (or `destroy <product>`). Dispatches through the productRuntime registry (`products.go`).
 - **Local dev** — `go run ./dev/cmd/local-stack` boots the local-twin stack. `--destroy` wipes it; `--reset-db <service>` drops + recreates one database.

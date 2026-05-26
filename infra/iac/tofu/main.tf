@@ -103,55 +103,52 @@ resource "cloudflare_api_token" "assets_r2" {
   }]
 }
 
-# ── Public DNS — grey-cloud A records straight to the VPS ───────────────────
-# Caddy on the box terminates TLS for menu.iedora.com + auth.iedora.com.
-# obs.iedora.com is gone (OpenObserve is local-mode + private; reach it
-# via `ssh root@<vps> -L 5080:localhost:5080` when needed).
+# ── Public DNS — CNAMEs through the Cloudflare Tunnel ──────────────────────
+# Every public hostname is a CNAME to `<tunnel-id>.cfargotunnel.com`,
+# proxied=true (REQUIRED by CF Tunnel — CF needs to intercept the
+# request to route it through the tunnel). TLS terminates at the CF
+# edge with the universal cert; no on-box ACME, no LE rate limits.
+
+locals {
+  tunnel_cname = "${cloudflare_zero_trust_tunnel_cloudflared.iedora.id}.cfargotunnel.com"
+}
 
 resource "cloudflare_dns_record" "menu_iedora" {
   zone_id = data.cloudflare_zone.iedora.zone_id
   name    = var.menu_public_hostname
-  type    = "A"
-  content = hcloud_server.iedora.ipv4_address
-  ttl     = 60
-  proxied = false
-  comment = "Direct to Hetzner — Caddy terminates TLS, no CF on path"
+  type    = "CNAME"
+  content = local.tunnel_cname
+  ttl     = 1 # ttl=1 = automatic when proxied=true
+  proxied = true
+  comment = "CF Tunnel → infra-menu-web on the Hetzner box"
 }
 
-# auth.iedora.com — direct DNS to the Hetzner box, NO Cloudflare in path.
-# Cloudflare Free blocks `application/grpc` at the edge, which would break
-# the Zitadel TF provider. Grey-cloud sidesteps CF entirely.
 resource "cloudflare_dns_record" "auth_iedora" {
   zone_id = data.cloudflare_zone.iedora.zone_id
   name    = var.zitadel_hostname
-  type    = "A"
-  content = hcloud_server.iedora.ipv4_address
-  ttl     = 60
-  proxied = false
-  comment = "Direct to Hetzner — grey cloud bypasses CF Free gRPC block (#19)"
+  type    = "CNAME"
+  content = local.tunnel_cname
+  ttl     = 1
+  proxied = true
+  comment = "CF Tunnel → infra-zitadel{,-login} (path-routed in tunnel config)"
 }
 
-# iedora.com (apex) — brand landing page. Same Hetzner box as menu;
-# the menu Next.js app's proxy.ts rewrites apex requests under
-# /house/* internally, so one container serves both hosts.
 resource "cloudflare_dns_record" "iedora_apex" {
   zone_id = data.cloudflare_zone.iedora.zone_id
   name    = var.zone_name
-  type    = "A"
-  content = hcloud_server.iedora.ipv4_address
-  ttl     = 60
-  proxied = false
-  comment = "Apex iedora.com — brand landing served by menu's Next.js (proxy.ts host rewrite)"
+  type    = "CNAME" # CF supports CNAME flattening at apex
+  content = local.tunnel_cname
+  ttl     = 1
+  proxied = true
+  comment = "CF Tunnel → menu container (proxy.ts rewrites apex → /house/*)"
 }
 
-# www.iedora.com → redirect target. Caddy handles both apex + www at
-# the same upstream; this record just makes the alias resolvable.
 resource "cloudflare_dns_record" "iedora_www" {
   zone_id = data.cloudflare_zone.iedora.zone_id
   name    = "www.${var.zone_name}"
-  type    = "A"
-  content = hcloud_server.iedora.ipv4_address
-  ttl     = 60
-  proxied = false
-  comment = "www.iedora.com → same upstream as the apex"
+  type    = "CNAME"
+  content = local.tunnel_cname
+  ttl     = 1
+  proxied = true
+  comment = "www.iedora.com → same tunnel route as the apex"
 }

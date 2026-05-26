@@ -81,7 +81,7 @@ One-line OTel wiring per product. Wraps `@vercel/otel` — resource attrs + samp
 - **Next.js route file?**
   → `src/app/`. Routes compose slice exports; not where business logic lives.
 - **Next 16 long-running background job (cron, queue consumer)?**
-  → A slice use-case + a `start*()` driver in the slice, wired from `src/instrumentation.ts`. Gated on `NEXT_RUNTIME === 'nodejs'`.
+  → A slice use-case + a `start*()` driver in the slice, wired from the Next.js instrumentation hook (`instrumentation.ts`). Gated on `NEXT_RUNTIME === 'nodejs'`.
 
 ## What goes in `src/shared/`
 

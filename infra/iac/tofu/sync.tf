@@ -1,9 +1,13 @@
-# Day-2 compose / Caddyfile delivery.
+# Day-2 compose delivery.
 #
-# Hash-triggered single SSH session. When `local.compose_yaml` or
-# `local.caddyfile` change, this resource fires once: scp the new files
-# to /etc/iedora/, then `systemctl restart iedora.service` which re-runs
+# Hash-triggered single SSH session. When `local.compose_yaml` changes,
+# this resource fires once: scp the new compose file to /etc/iedora/,
+# then `systemctl reload iedora.service` which re-runs
 # `docker compose up -d --remove-orphans` (idempotent, reconciles drift).
+#
+# The CF Tunnel config is managed via the Cloudflare API (tunnel.tf), not
+# a file on the box — no scp needed. cloud-init + systemd templates are
+# also pushed here.
 #
 # This is the ONLY SSH on Tofu's apply graph. Default parallelism is
 # safe — there's no fan-out, no MaxStartups concern, no host-key dance.
@@ -12,7 +16,6 @@ resource "terraform_data" "iedora_sync" {
   triggers_replace = {
     server_id    = hcloud_server.iedora.id
     compose      = sha256(local.compose_yaml)
-    caddyfile    = sha256(local.caddyfile)
     systemd_unit = sha256(local.systemd_unit)
   }
 
@@ -39,11 +42,6 @@ resource "terraform_data" "iedora_sync" {
   }
 
   provisioner "file" {
-    content     = local.caddyfile
-    destination = "/etc/iedora/Caddyfile"
-  }
-
-  provisioner "file" {
     content     = local.systemd_unit
     destination = "/etc/systemd/system/iedora.service"
   }
@@ -58,18 +56,10 @@ resource "terraform_data" "iedora_sync" {
   #   - `|| start` covers the case where the service isn't yet active
   #     (a fresh-box first apply where cloud-init beat us to it leaves
   #     it active, but a crashed/disabled box may not).
-  #   - The Caddyfile is bind-mounted, so a compose-up reconcile does
-  #     NOT recreate caddy when only the file content changes (the
-  #     container spec is unchanged). Caddy keeps serving the old
-  #     config from memory. `caddy reload` tells the running daemon
-  #     to re-read `/etc/caddy/Caddyfile`. Best-effort — if caddy
-  #     isn't running yet, the systemctl start above will boot it
-  #     fresh with the new file.
   provisioner "remote-exec" {
     inline = [
       "systemctl daemon-reload",
       "systemctl reload iedora.service || systemctl start iedora.service",
-      "docker exec infra-caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true",
     ]
   }
 }

@@ -16,7 +16,7 @@ Vendors that process customer data or hold the keys. Each must have a current SO
 
 | | |
 |---|---|
-| **Service** | DNS + R2 object storage (3 buckets: backups, observability, menu assets) + Workers Static Assets (iedora.com). TLS is terminated by Caddy on the VPS — Cloudflare proxies are NOT in front of `menu.iedora.com`, `auth.iedora.com`, or `obs.iedora.com` (grey-cloud A records direct to the VPS IPv4). |
+| **Service** | DNS + R2 object storage (3 buckets: backups, observability, menu assets) + Workers Static Assets (iedora.com). TLS is terminated at the Cloudflare edge via a Zero Trust Tunnel connector (`cloudflared`) on the VPS — Cloudflare proxies are now orange-cloud for all hostnames, with traffic flowing through the outbound tunnel connection. |
 | **Data they touch** | DNS records and R2 contents. Backup data at rest is GPG-encrypted with `IAC_BACKUP_PASSPHRASE` (CF sees ciphertext only). |
 | **SOC 2 status** | Type II — current. https://www.cloudflare.com/trust-hub/compliance-resources/ |
 | **Other compliance** | ISO 27001, ISO 27018, PCI DSS, FedRAMP Moderate |
@@ -58,7 +58,7 @@ Vendors that process customer data or hold the keys. Each must have a current SO
 |---|---|
 | **Service** | Single CPX22 VPS (Falkenstein, public IPv4) running Docker + every iedora container |
 | **Data they touch** | All production data at rest (Postgres data dir on the box). Backup tarballs encrypted before R2 upload |
-| **SOC 2 status** | n/a — ISO 27001 certified, no public SOC 2. Compensating controls: SSH key-only auth, `ufw` allowlist (22 + 443 only), Caddy auto-TLS |
+| **SOC 2 status** | n/a — ISO 27001 certified, no public SOC 2. Compensating controls: SSH key-only auth, `ufw` allowlist (22 only — CF Tunnel is the sole public ingress), Cloudflare-managed TLS |
 | **Compromise impact** | Plaintext DB access. Mitigated by SSH key-only login, port allowlist, daily encrypted backups to R2 (RPO ≤ 24h), `ssh root@$HOST docker exec -it infra-pg-backup /infra-pg-backup restore` to a fresh box |
 | **Rotation / exit plan** | Restore on different host: stand up new VPS, install Docker, paste BWS token, the full deploy pipeline then SSH into the new box and run `docker exec -it infra-pg-backup /infra-pg-backup restore`. Switching cloud (DigitalOcean / OVH) is the same runbook — `IAC_BOOTSTRAP_HCLOUD_TOKEN` swaps with the provider's |
 

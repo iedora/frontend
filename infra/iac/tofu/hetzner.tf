@@ -34,21 +34,10 @@ resource "hcloud_firewall" "iedora" {
     description = "SSH (key-only auth enforced by sshd_config)"
   }
 
-  rule {
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "80"
-    source_ips  = ["0.0.0.0/0", "::/0"]
-    description = "HTTP (Caddy + Let's Encrypt ACME challenges)"
-  }
-
-  rule {
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "443"
-    source_ips  = ["0.0.0.0/0", "::/0"]
-    description = "HTTPS (Caddy fronts auth.iedora.com + menu.iedora.com)"
-  }
+  # No 80/443 ingress — CF Tunnel is the only public entry. The
+  # cloudflared container on the box opens an outbound persistent
+  # connection to the CF edge; all hostname traffic flows back through
+  # that tunnel. Egress is unrestricted by default in Hetzner.
 
   rule {
     direction   = "in"
@@ -83,7 +72,6 @@ resource "hcloud_server" "iedora" {
   # on an existing server (Hetzner doesn't re-execute user_data).
   user_data = templatefile("${path.module}/templates/cloud-init.yml", {
     compose_yaml      = local.compose_yaml
-    caddyfile         = local.caddyfile
     postgres_init_sql = local.postgres_init_sql
     systemd_unit      = local.systemd_unit
     ghcr_auth_b64     = base64encode("${var.github_owner}:${var.infra_ghcr_token}")
