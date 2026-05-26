@@ -32,7 +32,7 @@ on:
       - 'infra/iac/**'
       - 'infra/deploy/cmd/iedora/**'
       - 'infra/deploy/cmd/with-secrets/**'
-      - 'infra/internal/**'
+      - 'internal/**'
       - 'bin/iedora'
       - 'bin/with-secrets'
       - 'bin/bws-upsert'

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // waitForMenuDNS polls until `menu.iedora.com` resolves from inside the

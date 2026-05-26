@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/bws"
-	"github.com/eduvhc/iedora/infra/internal/mode"
-	"github.com/eduvhc/iedora/infra/internal/ssh"
-	"github.com/eduvhc/iedora/infra/internal/tlsprobe"
+	"github.com/eduvhc/iedora/internal/bws"
+	"github.com/eduvhc/iedora/internal/mode"
+	"github.com/eduvhc/iedora/internal/ssh"
+	"github.com/eduvhc/iedora/internal/tlsprobe"
 )
 
 // remoteSSH is the package-level SSH executor. Stdout AND stderr route

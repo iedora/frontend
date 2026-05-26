@@ -51,8 +51,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
-	"github.com/eduvhc/iedora/infra/internal/ssh"
+	"github.com/eduvhc/iedora/internal/mode"
+	"github.com/eduvhc/iedora/internal/ssh"
 )
 
 // remoteSSH is the configurator's SSH executor. Stdout AND stderr both

@@ -25,7 +25,7 @@ on:
       - 'bin/zitadel-apply'
       - 'bin/menu-db-migrations'
       - 'bin/openobserve-dashboards'
-      - 'infra/internal/**'
+      - 'internal/**'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/app-state.yml'

@@ -576,19 +576,19 @@ side of `deploy.yml` commit the encrypted `terraform.tfstate` back to
 
 ## Local stack (`task local`)
 
-[`infra/dev/docker-compose.yml`](../infra/dev/docker-compose.yml)
+[`dev/docker-compose.yml`](../dev/docker-compose.yml)
 is the source of truth for the local stack shape: postgres,
 localstack (S3 mock), openobserve, zitadel + login UI, house, menu.
 Each service is gated by a compose profile matching its name.
 
-[`infra/dev/cmd/local-stack/`](../infra/dev/cmd/local-stack/) is a thin Go shim that:
+[`dev/cmd/local-stack/`](../dev/cmd/local-stack/) is a thin Go shim that:
 
 1. Translates `--only`/`--except` into compose profile flags.
 2. `docker compose up -d --wait` for everything except menu.
 3. Waits for Zitadel `/debug/ready` (no docker healthcheck — the
    image is distroless, no shell to run one).
 4. Runs `bin/zitadel-apply --mode local --output-file
-   infra/dev/.zitadel-bootstrap/outputs.json` against
+   dev/.zitadel-bootstrap/outputs.json` against
    `localhost:8080`. The SA key is `docker cp`'d out of the
    `zitadel_bootstrap` named volume.
 5. Composes `products/menu/.env` from local-stack statics +

@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // runAppApply is Stage 3 of the pipeline. Walks the configurator registry

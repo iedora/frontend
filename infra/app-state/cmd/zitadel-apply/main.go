@@ -52,8 +52,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/bws"
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/bws"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 func main() {

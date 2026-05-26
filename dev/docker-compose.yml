@@ -7,7 +7,7 @@
 # around `docker compose` for the env-compose + zitadel-apply hooks.
 #
 # See docs/deploy.md § Local stack for the operator surface. See
-# `infra/dev/cmd/local-stack/` for the orchestrator.
+# `dev/cmd/local-stack/` for the orchestrator.
 #
 # Selection is via compose profiles, one per service. The orchestrator
 # passes `--profile X` per selected service. Default (no flags) starts

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/eduvhc/iedora/infra/internal/r2"
+	"github.com/eduvhc/iedora/internal/r2"
 )
 
 // config bundles every env-derived setting both backup and restore

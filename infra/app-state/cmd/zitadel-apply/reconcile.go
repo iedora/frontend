@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // Reconcile runs the full app-state reconcile against the live Zitadel.

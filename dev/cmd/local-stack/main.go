@@ -3,7 +3,7 @@
 // up, runs the Stage-3-equivalent `bin/zitadel-apply --mode local`,
 // composes products/menu/.env, then starts the menu container.
 //
-// Replaces the previous Tofu-for-local design (infra/dev/tofu/) per
+// Replaces the previous Tofu-for-local design (dev/tofu/) per
 // docs/deploy.md § Local stack — compose handles every dev concern
 // Tofu was bolted onto (network, volumes, profiles for selection,
 // depends_on for ordering, healthchecks). Go is only on the path
@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // currentMode pins this binary to Local. The orchestrator never touches
@@ -41,11 +41,11 @@ func main() {
 	cli := parseFlags()
 
 	repoRoot := findRepoRoot()
-	composeDir := filepath.Join(repoRoot, "infra/dev")
+	composeDir := filepath.Join(repoRoot, "dev")
 	menuDir := filepath.Join(repoRoot, "products/menu")
 	envPath := filepath.Join(menuDir, ".env")
 	envLocalPath := filepath.Join(menuDir, ".env.local")
-	bootstrapDir := filepath.Join(repoRoot, "infra/dev/.zitadel-bootstrap")
+	bootstrapDir := filepath.Join(repoRoot, "dev/.zitadel-bootstrap")
 	outputsPath := filepath.Join(bootstrapDir, "outputs.json")
 	zitadelApplyBin := filepath.Join(repoRoot, "bin/zitadel-apply")
 

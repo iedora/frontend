@@ -41,20 +41,30 @@ infra/
                              per-product). Defense-in-depth — each stage sees
                              only its classified keys.
 
-  dev/                     Local stack — mirror of all 4 stages, against local Docker
-    docker-compose.yml       Postgres + Zitadel + OpenObserve + LocalStack.
-    localstack-init.sh       Seeds LocalStack's R2 buckets on first boot.
-    cmd/
-      local-stack/           Driver: compose up → zitadel-apply --mode local →
-                             compose menu .env → start menu container.
+```
 
-  internal/                Shared Go libs (Go visibility scopes to infra/)
-    bws/                     bws CLI wrapper
-    cloudflare/              CF /accounts API + R2 S3 creds derivation
-    mode/                    binary-mode enum (local vs live; Guardrail #1)
-    r2/                      pure-Go SigV4 S3 client (no aws CLI)
-    tlsprobe/                /debug/ready + LE-cert probe for Zitadel readiness
-    testfakes/               HTTP server fakes for unit tests
+`infra/` holds ONLY the three pipeline-stage folders (iac, app-state, deploy). The local-stack mirror (`dev/`) and shared Go libs (`internal/`) live at the repo root — they aren't stages and shouldn't pretend to be.
+
+Repo-root siblings of `infra/`:
+
+```
+dev/                       Local stack — mirror of all 4 stages, against local Docker
+  docker-compose.yml         Postgres + Zitadel + OpenObserve + LocalStack
+  localstack-init.sh         Seeds LocalStack's R2 buckets on first boot
+  cmd/local-stack/           Driver: compose up → zitadel-apply --mode local
+                             → compose menu .env → start menu container.
+
+internal/                  Shared Go libs (Go's `internal/` visibility scopes
+                           them to the whole module — every stage's cmd imports
+                           freely).
+  bws/                       bws CLI wrapper
+  cloudflare/                CF /accounts API + R2 S3 creds derivation
+  mode/                      binary-mode enum (local vs live; Guardrail #1)
+  r2/                        pure-Go SigV4 S3 client (no aws CLI)
+  ssh/                       Client + RotateKnownHosts (shared by iedora +
+                             zitadel-apply + menu-db-migrations)
+  tlsprobe/                  /debug/ready + LE-cert probe for Zitadel readiness
+  testfakes/                 HTTP server fakes for unit tests
 ```
 
 Operators always invoke via shims at the repo root (`bin/<name>`); those shims `go run` the Go cmd packages under `infra/<stage>/cmd/<name>/`. Operators never `cd` into `infra/`.

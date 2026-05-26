@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // Rule 3 — expansion-only migrations. The menu's drizzle output runs

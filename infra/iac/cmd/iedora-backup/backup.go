@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/r2"
+	"github.com/eduvhc/iedora/internal/r2"
 )
 
 // runBackup is the one-shot path: pg_dump → gpg → upload + optional

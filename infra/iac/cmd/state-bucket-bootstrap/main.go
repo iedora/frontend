@@ -46,9 +46,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/eduvhc/iedora/infra/internal/bws"
-	"github.com/eduvhc/iedora/infra/internal/cloudflare"
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/bws"
+	"github.com/eduvhc/iedora/internal/cloudflare"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // sha256Hex returns hex(sha256(s)). Pulled into main.go because

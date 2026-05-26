@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // runDeployProduct is Stage 4 of the pipeline. Dispatches to the

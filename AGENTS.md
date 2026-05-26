@@ -72,7 +72,8 @@ iedora/                                  repo root
     menu-db-migrations                      Stage 3 — drizzle-kit migrate on menu's postgres DB
     openobserve-dashboards                  Stage 3 — push dashboard JSONs via SSH-L tunnel
 
-  infra/                                 Every pipeline concern. See infra/CLAUDE.md for the deep dive.
+  infra/                                 Pipeline stages — one folder per stage, nothing else.
+                                         See infra/CLAUDE.md for the deep dive.
     iac/                                   Stage 2 — IaC for the shared estate
       tofu/                                  Encrypted Tofu root (VPS + CF + GH config + shared
                                              containers: postgres, zitadel, zitadel-login, caddy,
@@ -82,24 +83,29 @@ iedora/                                  repo root
       cmd/
         bws-upsert/                          Go helper for terraform_data.bws_sync_autogen
         iedora-backup/                       Backup container (Go + Dockerfile co-located)
+        state-bucket-bootstrap/              Stage -1 — R2 bucket + token bootstrap (chicken/egg)
     app-state/                             Stage 3 — configurators (one per concern)
       cmd/
         zitadel-apply/                       Zitadel REST reconciler
         menu-db-migrations/                  drizzle-kit migrate runner (SSH + docker run)
         openobserve-dashboards/              dashboard reconciler (SSH-L tunnel + go:embed JSONs)
-    deploy/                                Stage -1 + Stage 4 + cross-stage orchestrator
+    deploy/                                Stage 4 + cross-stage orchestrator
       cmd/
         iedora/                              Orchestrator + configurator registry + productRuntime registry
         with-secrets/                        Stage-filtered BWS env wrapper
-        state-bucket-bootstrap/              Stage -1 — R2 bucket + token bootstrap (chicken/egg)
-    dev/                                   Local stack (mirror of all 4 stages, local Docker)
-      docker-compose.yml                     Postgres + Zitadel + OpenObserve + LocalStack
-      localstack-init.sh                     Seeds LocalStack's R2 buckets on first boot
-      cmd/
-        local-stack/                         Driver: compose up → zitadel-apply --mode local → menu .env
-      .zitadel-bootstrap/                    (gitignored) local Zitadel FirstInstance outputs
-    internal/                              Shared Go libs (bws, cloudflare, mode, r2, tlsprobe, testfakes)
-                                           Go's `internal/` visibility scopes these to infra/<stage>/cmd/.
+
+  dev/                                   Local stack (mirror of all 4 stages, local Docker).
+                                         Top-level peer of infra/ because it's not a stage —
+                                         it's the offline twin used by `task local`.
+    docker-compose.yml                     Postgres + Zitadel + OpenObserve + LocalStack
+    localstack-init.sh                     Seeds LocalStack's R2 buckets on first boot
+    cmd/local-stack/                       Driver: compose up → zitadel-apply --mode local → menu .env
+    .zitadel-bootstrap/                    (gitignored) local Zitadel FirstInstance outputs
+
+  internal/                              Shared Go libs (bws, cloudflare, mode, r2, ssh,
+                                         testfakes, tlsprobe). Top-level so Go's `internal/`
+                                         visibility scopes them to the whole module — every
+                                         stage's cmd can import.
 
   packages/
     eslint-config/                       flat-config factories shared by every workspace

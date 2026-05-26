@@ -10,7 +10,7 @@
 #
 # OpenObserve does NOT have a cold tier here — `ZO_LOCAL_MODE=true` in
 # `containers.tf` keeps everything on the VPS disk, mirroring the
-# `infra/dev/docker-compose.yml` setup so dev ↔ prod are identical.
+# `dev/docker-compose.yml` setup so dev ↔ prod are identical.
 # When span volume grows past the VPS disk, declare a fresh `o2/`
 # prefix in `iedora-data` and wire ZO_S3_* back on — 5 min of TF.
 

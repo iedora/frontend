@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/bws"
+	"github.com/eduvhc/iedora/internal/bws"
 )
 
 // dockerOnHetzner is the productRuntime for products that run as a single

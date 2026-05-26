@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // TestGuardRecreate covers Rule 5's anti-panic lock: a missing BWS key

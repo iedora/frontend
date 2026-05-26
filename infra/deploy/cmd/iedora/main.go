@@ -28,7 +28,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // currentMode pins this binary to Live. `iedora` is the live-side

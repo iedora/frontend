@@ -64,7 +64,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/eduvhc/iedora/infra/internal/mode"
+	"github.com/eduvhc/iedora/internal/mode"
 )
 
 // runsIn pins this binary's deployment topology: Stage 3 against the

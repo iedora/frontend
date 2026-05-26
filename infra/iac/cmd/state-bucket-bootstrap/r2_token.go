@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/eduvhc/iedora/infra/internal/cloudflare"
+	"github.com/eduvhc/iedora/internal/cloudflare"
 )
 
 // ensureToken returns the canonical token for tokenName with a

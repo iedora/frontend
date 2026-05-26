@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	sshlib "github.com/eduvhc/iedora/infra/internal/ssh"
+	sshlib "github.com/eduvhc/iedora/internal/ssh"
 )
 
 // rotateKnownHosts is the iedora-local alias for the shared helper so
@@ -14,7 +14,7 @@ func rotateKnownHosts(ctx context.Context, ips ...string) {
 }
 
 // sshExecutor is the narrow seam dockerOnHetzner uses to talk to the
-// remote Docker daemon. *sshlib.Client (from infra/internal/ssh)
+// remote Docker daemon. *sshlib.Client (from internal/ssh)
 // implements it directly; tests inject a fake that records the command
 // sequence and returns scripted responses.
 type sshExecutor interface {

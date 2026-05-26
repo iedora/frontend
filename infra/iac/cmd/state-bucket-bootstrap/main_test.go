@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/eduvhc/iedora/infra/internal/cloudflare"
+	"github.com/eduvhc/iedora/internal/cloudflare"
 )
 
 // fakeCF is a programmable cfAPI used to drive the idempotency state
