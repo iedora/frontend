@@ -1,0 +1,38 @@
+{
+  "name": "@iedora/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Iedora auth surface — better-auth instance, Drizzle schema, and the role/scope access-control taxonomy shared by every iedora product.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./client": "./src/client.ts",
+    "./permissions": "./src/permissions.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "better-auth": "^1.5.0",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@iedora/eslint-config": "workspace:*",
+    "@types/node": "^22.19.19",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9.39.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^4.1.7"
+  }
+}
