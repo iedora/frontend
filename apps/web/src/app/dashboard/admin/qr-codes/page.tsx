@@ -1,11 +1,9 @@
 import { headers } from 'next/headers'
-import { asc } from 'drizzle-orm'
 import { requireScope, SCOPES } from '@/features/auth'
 import { listQrCodesForAdmin } from '@/features/qr-codes'
 import { computeQrStats } from '@/features/qr-codes/stats'
 import { QrCodesAdmin } from '@/features/qr-codes/ui/qr-codes-admin'
-import { db } from '@/shared/db/client'
-import { restaurant } from '@/shared/db/schema'
+import { listRestaurantsCrossTenant } from '@/features/restaurant-identity'
 import { DashboardPage } from '@/shared/ui/dashboard-page'
 
 /**
@@ -26,14 +24,7 @@ export default async function QrCodesAdminPage() {
 
   const [rows, restaurants] = await Promise.all([
     listQrCodesForAdmin(),
-    db
-      .select({
-        id: restaurant.id,
-        name: restaurant.name,
-        slug: restaurant.slug,
-      })
-      .from(restaurant)
-      .orderBy(asc(restaurant.name)),
+    listRestaurantsCrossTenant(),
   ])
 
   const h = await headers()

@@ -27,14 +27,19 @@ output "hetzner_ipv6" {
   value       = hcloud_server.iedora.ipv6_address
 }
 
-# ── Menu env (Stage 4 consumes via `tofu output -raw <name>`) ───────────────
-# Each output corresponds to one entry in the menu product's
-# `envFromTofu` map in `infra/deploy/cmd/iedora/products.go`. Adding a new menu
-# env key:
-#   1. Add it here (output "menu_<key>" { value = ... }).
+# ── App env (Stage 4 consumes via `tofu output -raw <name>`) ────────────────
+# Each output corresponds to one entry in the web artifact's
+# `envFromTofu` map in `infra/deploy/cmd/iedora/products.go`. Adding a
+# new env key:
+#   1. Add it here (output "<key>" { value = ... }).
 #   2. Add a line to products.go's envFromTofu mapping.
 # Keep the two in lockstep — drift surfaces as a missing-env panic at
-# `iedora deploy menu`.
+# `iedora deploy web`.
+#
+# Naming: outputs that describe a specific named postgres database or
+# host stay `menu_*` / `core_*` (they describe THAT resource). Outputs
+# that serve the web container as a whole are neutral (`assets_s3_*`,
+# `otel_*`, `host_name`).
 #
 # Values that come from sensitive sources are marked `sensitive = true`;
 # Stage 4 still reads them via `tofu output -raw` (raw bypasses the

@@ -6,3 +6,9 @@
  * at `@/features/restaurant-identity/ui/*` and is imported directly.
  */
 export type { IdentityWritePort } from './ports'
+export { listRestaurantsCrossTenant } from './use-cases/list-restaurants-cross-tenant'
+export { getLanguageConfig } from './use-cases/get-language-config'
+export {
+  getThemeEditorData,
+  type ThemeEditorRestaurantRow,
+} from './use-cases/get-theme-editor-data'

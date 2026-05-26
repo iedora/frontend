@@ -11,10 +11,7 @@ import { UpdateMenuDialog } from '@/features/menu-import/ui/update-menu-dialog'
 import type { PatchCurrentMenu } from '@/features/menu-import/ports'
 import { loadMenuTree } from '@/features/menu-publishing/use-cases/load-tree'
 import { AiTranslationDialog } from '@/features/menu-translation/ui/ai-translation-dialog'
-import { eq } from 'drizzle-orm'
-import { db } from '@/shared/db/client'
-import { restaurant as restaurantTable } from '@/shared/db/schema'
-import type { LanguageCode } from '@/features/i18n'
+import { getLanguageConfig } from '@/features/restaurant-identity'
 
 /**
  * Restaurant home — single column, mobile-canonical.
@@ -55,20 +52,7 @@ export default async function RestaurantPage({
   const primaryMenu = menus[0] ?? null
 
   // Language config drives the AI Translation card visibility.
-  const [langConfig] = await db
-    .select({
-      defaultLanguage: restaurantTable.defaultLanguage,
-      supportedLanguages: restaurantTable.supportedLanguages,
-    })
-    .from(restaurantTable)
-    .where(eq(restaurantTable.id, r.id))
-    .limit(1)
-  const defaultLanguage =
-    (langConfig?.defaultLanguage as LanguageCode | undefined) ?? 'en'
-  const supportedLanguages =
-    (langConfig?.supportedLanguages as LanguageCode[] | null) ?? [
-      defaultLanguage,
-    ]
+  const { defaultLanguage, supportedLanguages } = await getLanguageConfig(r.id)
   const canTranslate = supportedLanguages.length > 1
 
   // Compact menu snapshot for the PATCH-update wizard — only id + name

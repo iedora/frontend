@@ -3,17 +3,21 @@ package main
 // product here means a DEPLOY ARTIFACT — one image-and-runtime pair the
 // orchestrator can ship. NOT a logical product surface.
 //
-// The codebase has three logical products as workspace packages:
-//   - @iedora/product-menu  (slices, drizzle, e2e)
-//   - @iedora/product-core  (auth + admin surface)
-//   - @iedora/product-house (apex brand landing)
+// The codebase has two workspace packages that supply surfaces to the
+// web container:
+//   - @iedora/product-menu  (slices, drizzle, e2e — menu.iedora.com)
+//   - @iedora/product-core  (auth + admin guards — core.iedora.com)
 //
-// All three ship inside the same Next.js shell (`apps/web`), built into
-// ONE Docker image (`ghcr.io/eduvhc/web`), running in ONE container
-// (`infra-web`). Host-based rewrites in `apps/web/src/proxy.ts` fan
-// the three subdomains (menu., core., apex iedora.com) onto the same
-// node process. So at the deploy layer there is exactly ONE entry —
-// the `web` artifact below.
+// And the apex brand landing for iedora.com lives directly under
+// `apps/web/src/app/house/` — it was small enough that the workspace
+// abstraction wasn't worth it (Opt-B refactor, May 2026).
+//
+// All three surfaces ship inside the same Next.js shell (`apps/web`),
+// built into ONE Docker image (`ghcr.io/eduvhc/web`), running in ONE
+// container (`infra-web`). Host-based rewrites in
+// `apps/web/src/proxy.ts` fan the three subdomains (menu., core.,
+// apex iedora.com) onto the same node process. So at the deploy
+// layer there is exactly ONE entry — the `web` artifact below.
 //
 // A future product that needs a DIFFERENT runtime (Cloudflare Workers,
 // Vercel, static S3, …) would add a second entry here with its own

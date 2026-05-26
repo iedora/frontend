@@ -1,14 +1,17 @@
-import { eq } from 'drizzle-orm'
 import { getTranslations } from 'next-intl/server'
 import { requireRestaurantBySlug } from '@/features/auth'
-import { db } from '@/shared/db/client'
-import { restaurant, type RestaurantTheme } from '@/shared/db/schema'
 import { resolveTheme } from '@/features/menu-publishing/rsc/theme'
-import type { LanguageCode, LocalizedText } from '@/features/i18n'
 import { loadMenuTree, localizeTree } from '@/features/menu-publishing'
 import type { PublicMenu, PublicMenuData } from '@/features/menu-publishing/rsc/types'
+import {
+  getThemeEditorData,
+  type ThemeEditorRestaurantRow,
+} from '@/features/restaurant-identity'
 import { ThemeEditor } from '@/features/restaurant-identity/ui/theme-editor'
 import { DashboardPage } from '@/shared/ui/dashboard-page'
+import { notFound } from 'next/navigation'
+import type { RestaurantTheme } from '@/shared/db/schema'
+import type { LanguageCode, LocalizedText } from '@/features/i18n'
 
 type EditorData = PublicMenuData & {
   rawTheme: RestaurantTheme | null
@@ -18,47 +21,29 @@ type EditorData = PublicMenuData & {
 }
 
 async function loadEditorData(restaurantId: string): Promise<EditorData> {
-  const rows = await db
-    .select({
-      id: restaurant.id,
-      name: restaurant.name,
-      slug: restaurant.slug,
-      description: restaurant.description,
-      logoUrl: restaurant.logoUrl,
-      bannerUrl: restaurant.bannerUrl,
-      theme: restaurant.theme,
-      defaultLanguage: restaurant.defaultLanguage,
-      supportedLanguages: restaurant.supportedLanguages,
-      descriptionI18n: restaurant.descriptionI18n,
-    })
-    .from(restaurant)
-    .where(eq(restaurant.id, restaurantId))
-    .limit(1)
-
-  const r = rows[0]!
-  const defaultLanguage = r.defaultLanguage as LanguageCode
+  const row: ThemeEditorRestaurantRow | null = await getThemeEditorData(restaurantId)
+  if (!row) notFound()
 
   // Editor preview shows the default-language strings — the renderer doesn't
   // know about i18n maps. Localize-to-default reuses the same helper as the
   // public page so any future field change lives in one place.
-  const tree = await loadMenuTree({ restaurantId: r.id, activeOnly: true })
-  const menus: PublicMenu[] = localizeTree(tree, defaultLanguage, defaultLanguage)
+  const tree = await loadMenuTree({ restaurantId: row.id, activeOnly: true })
+  const menus: PublicMenu[] = localizeTree(tree, row.defaultLanguage, row.defaultLanguage)
 
   return {
     restaurant: {
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      description: r.description,
-      logoUrl: r.logoUrl,
-      bannerUrl: r.bannerUrl,
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      description: row.description,
+      logoUrl: row.logoUrl,
+      bannerUrl: row.bannerUrl,
     },
     menus,
-    rawTheme: r.theme as RestaurantTheme | null,
-    defaultLanguage,
-    supportedLanguages: r.supportedLanguages as LanguageCode[],
-    restaurantDescriptionI18n:
-      (r.descriptionI18n as LocalizedText | null) ?? {},
+    rawTheme: row.theme,
+    defaultLanguage: row.defaultLanguage,
+    supportedLanguages: row.supportedLanguages,
+    restaurantDescriptionI18n: row.descriptionI18n,
   }
 }
 
