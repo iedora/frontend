@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# iedora-env — hydrate the env every iedora command expects, then exec $@.
+#
+# Same pattern as `op run --` (1Password), `doppler run --`, `sops exec-env`.
+# Not a wrapper around tofu/iedora — it's plumbing that maps BWS secret
+# keys to the env shape Tofu + Stage 3 + Stage 4 already use.
+#
+# Why this exists, given everything else is "no wrappers":
+#
+#  1. Tofu reads variables from TF_VAR_*, but BWS stores them as
+#     IAC_BOOTSTRAP_*. Aliasing has to happen somewhere — here, once,
+#     so every consumer (tofu, bin/iedora, bin/bws-upsert) sees the
+#     same env.
+#  2. `bws run` strips BWS_ACCESS_TOKEN from the child env (security
+#     feature). Nested bws calls inside Tofu's local-exec provisioners
+#     and bin/iedora's BWS lookups need it back. We hydrate manually
+#     instead of using `bws run`.
+#  3. CLOUDFLARE_ACCOUNT_ID is derived (one CF API call), not stored
+#     in BWS. We compute it once + cache via env.
+#
+# Required in the parent env:
+#   BWS_ACCESS_TOKEN     machine-account token (your one-time setup)
+#   BWS_PROJECT_ID       (optional — auto-discovered from `bws project list`)
+#
+# Operator entrypoint:
+#   bin/iedora-env tofu -chdir=infra/iac/tofu apply
+#   bin/iedora-env bin/iedora app apply
+#   bin/iedora-env bin/iedora deploy menu
+#   bin/iedora-env bin/state-bucket-bootstrap
+
+set -euo pipefail
+
+: "${BWS_ACCESS_TOKEN:?BWS_ACCESS_TOKEN must be set in your shell — see docs/deploy.md § Bootstrap}"
+
+# Discover BWS_PROJECT_ID if not pinned (single-project tokens are the
+# common case; takes the first one).
+if [[ -z "${BWS_PROJECT_ID:-}" ]]; then
+  BWS_PROJECT_ID="$(bws project list -o json | jq -r '.[0].id')"
+  [[ -n "$BWS_PROJECT_ID" && "$BWS_PROJECT_ID" != "null" ]] || {
+    echo "iedora-env: bws project list returned no projects" >&2
+    exit 1
+  }
+  export BWS_PROJECT_ID
+fi
+
+# Hydrate every BWS secret as an env var. The `-o env` output is
+# `KEY=value` lines suitable for `export`.
+#
+# We read into a tempfile rather than piping into `while read` to keep
+# the loop's exports in THIS shell (a pipe forks a subshell whose
+# exports vanish on exit).
+_secrets=$(mktemp)
+trap 'rm -f "$_secrets"' EXIT
+bws secret list "$BWS_PROJECT_ID" -o env > "$_secrets"
+set -o allexport
+# shellcheck disable=SC1090
+. "$_secrets"
+set +o allexport
+
+# CF account ID — not a secret, but every downstream caller needs it.
+# Derived once from the CF API on a cold shell; cached via env on warm.
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+  CLOUDFLARE_ACCOUNT_ID="$(
+    curl -sf -H "Authorization: Bearer $IAC_BOOTSTRAP_CLOUDFLARE_API_TOKEN" \
+      'https://api.cloudflare.com/client/v4/accounts' \
+      | jq -r '.result[0].id'
+  )"
+  [[ -n "$CLOUDFLARE_ACCOUNT_ID" && "$CLOUDFLARE_ACCOUNT_ID" != "null" ]] || {
+    echo "iedora-env: CLOUDFLARE_ACCOUNT_ID derivation failed (CF token lacks /accounts scope?)" >&2
+    exit 1
+  }
+  export CLOUDFLARE_ACCOUNT_ID
+fi
+
+# TF_VAR_* aliases — Tofu reads these directly. Mirrors what
+# `variable "X"` in infra/iac/tofu/variables.tf expects.
+export TF_VAR_cloudflare_api_token="$IAC_BOOTSTRAP_CLOUDFLARE_API_TOKEN"
+export TF_VAR_state_passphrase="$IAC_BOOTSTRAP_STATE_PASSPHRASE"
+export TF_VAR_account_id="$CLOUDFLARE_ACCOUNT_ID"
+export TF_VAR_github_token="$IAC_BOOTSTRAP_GITHUB_API_TOKEN"
+export TF_VAR_bws_access_token="$BWS_ACCESS_TOKEN"
+export TF_VAR_bws_project_id="$BWS_PROJECT_ID"
+export TF_VAR_infra_ssh_private_key="$IAC_BOOTSTRAP_SSH_PRIVATE_KEY"
+export TF_VAR_claude_code_oauth_token="${IAC_BOOTSTRAP_CLAUDE_CODE_OAUTH_TOKEN:-}"
+export TF_VAR_infra_hcloud_token="$IAC_BOOTSTRAP_HCLOUD_TOKEN"
+export TF_VAR_infra_ghcr_token="$IAC_BOOTSTRAP_GHCR_TOKEN"
+export TF_VAR_infra_openobserve_root_user_email="$IAC_BOOTSTRAP_OPENOBSERVE_ROOT_USER_EMAIL"
+
+# AWS_* aliases for Tofu's s3 backend (R2). The backend block in
+# versions.tf reads these from env — Tofu doesn't expose backend
+# inputs as variables.
+export AWS_ACCESS_KEY_ID="$IAC_BOOTSTRAP_TOFU_STATE_ACCESS_KEY"
+export AWS_SECRET_ACCESS_KEY="$IAC_BOOTSTRAP_TOFU_STATE_SECRET_KEY"
+
+exec "$@"

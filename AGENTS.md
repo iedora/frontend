@@ -135,16 +135,16 @@ The deploy pipeline is 4 stages. No task runner — operators invoke `tofu` and 
 
 ```
 Stage 1: Build & Test      per-product (bun, docker build, tests)
-Stage 2: IaC               bws run -- tofu -chdir=infra/iac/tofu apply
-Stage 3: AppState          bws run -- bin/iedora app apply
-Stage 4: Deploy            bws run -- bin/iedora deploy <product>
+Stage 2: IaC               bin/iedora-env tofu -chdir=infra/iac/tofu apply
+Stage 3: AppState          bin/iedora-env bin/iedora app apply
+Stage 4: Deploy            bin/iedora-env bin/iedora deploy <product>
 ```
 
 - **Stage 2** — plain Tofu. `init` / `plan` / `apply` / `destroy` against `infra/iac/tofu/`. The Tofu graph renders a docker-compose document (`compose.tf`) + Caddyfile; cloud-init drops them on first boot, `terraform_data.iedora_sync` pushes day-2 changes via one SSH session. `rclone` is required on the operator's machine — destroy-time hooks (`destroy-hooks.tf`) purge R2 buckets before the API DELETE.
 - **Stage 3** — `bin/iedora app apply` runs every configurator in `configurators.go` sequentially: zitadel-apply, menu-db-migrations, openobserve-dashboards.
 - **Stage 4** — `bin/iedora deploy <product>` (or `destroy <product>`). Dispatches through the productRuntime registry (`products.go`).
 - **Local dev** — `go run ./dev/cmd/local-stack` boots the local-twin stack. `--destroy` wipes it; `--reset-db <service>` drops + recreates one database.
-- **Preflight** — `bws run -- bin/iedora doctor` (PATH, BWS auth, bootstrap secrets).
+- **Preflight** — `bin/iedora-env bin/iedora doctor` (PATH, BWS auth, bootstrap secrets).
 - Day-2 ops (logs / psql / backup / restore / rotate / wipe / zitadel-rebootstrap) are raw SSH against the Hetzner box.
 
 Menu image builds happen in CI (`.github/workflows/menu.yml`) on every push to main: buildx for `linux/amd64`, pushed to `ghcr.io/$GHCR_USER/menu:<sha>`. The menu workflow then dispatches `deploy.yml` with `product: menu` + `image_sha: <sha>`; the `dockerOnHetzner` runtime SSHs to the box, pulls the image, runs migrations, and replaces the container. Rollback: `gh workflow run deploy.yml --field product=menu --field image_sha=<older-sha>`.
@@ -160,8 +160,8 @@ One workflow per workspace. Each is self-contained: own `paths:` trigger, own en
     menu.yml                     Stage 1+4: build + push menu image → dispatch deploy.yml
     house.yml                    Stage 1+4: dispatch deploy.yml for house (Astro → CF Workers)
     deploy.yml                   Stage 4 reusable workflow_call (product, image_sha)
-    app-state.yml                Stage 3: bws run -- bin/iedora app apply (configurator registry)
-    infra-deploy.yml             Stage 2: bws run -- tofu -chdir=infra/iac/tofu apply
+    app-state.yml                Stage 3: bin/iedora-env bin/iedora app apply (configurator registry)
+    infra-deploy.yml             Stage 2: bin/iedora-env tofu -chdir=infra/iac/tofu apply
     design-system.yml            unit (jsdom)
     observability.yml            unit (no-op-in-tests + tenant attrs)
     codeql.yml                   SAST (push + PR + weekly)

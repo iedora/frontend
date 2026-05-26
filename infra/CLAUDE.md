@@ -90,20 +90,22 @@ Operators always invoke via shims at the repo root (`bin/<name>`); those shims `
 
 ## Commands
 
-No task runner. Operators invoke `tofu` and `bin/iedora` directly under `bws run`:
+No task runner. Operators invoke `tofu` and `bin/iedora` through `bin/iedora-env`, which hydrates BWS secrets + the TF_VAR/AWS_*/CLOUDFLARE_ACCOUNT_ID env every consumer expects:
 
 ```
-bws run -- bin/iedora doctor                                  # preflight
-bws run -- tofu -chdir=infra/iac/tofu init                    # Stage 2 prereq
-bws run -- tofu -chdir=infra/iac/tofu plan                    # Stage 2 dry-run
-bws run -- tofu -chdir=infra/iac/tofu apply                   # Stage 2 apply
-bws run -- tofu -chdir=infra/iac/tofu destroy                 # Stage 2 teardown
-bws run -- bin/iedora app apply                               # Stage 3
-bws run -- bin/iedora deploy menu                             # Stage 4 (menu)
-bws run -- bin/iedora deploy house                            # Stage 4 (house)
+bin/iedora-env bin/iedora doctor                                  # preflight
+bin/iedora-env tofu -chdir=infra/iac/tofu init                    # Stage 2 prereq
+bin/iedora-env tofu -chdir=infra/iac/tofu plan                    # Stage 2 dry-run
+bin/iedora-env tofu -chdir=infra/iac/tofu apply                   # Stage 2 apply
+bin/iedora-env tofu -chdir=infra/iac/tofu destroy                 # Stage 2 teardown
+bin/iedora-env bin/iedora app apply                               # Stage 3
+bin/iedora-env bin/iedora deploy menu                             # Stage 4 (menu)
+bin/iedora-env bin/iedora deploy house                            # Stage 4 (house)
 go run ./dev/cmd/local-stack                                  # Local dev stack
 ```
 
-`bws` is the only env-injection layer — it hydrates every BWS secret into the child process's env. Stage filtering was dropped (the old `with-secrets` wrapper); BWS leakage between stages is an accepted trade for simplicity.
+`bin/iedora-env` is the env-injection layer — a ~50-line shell helper that runs `bws secret list -o env`, derives `CLOUDFLARE_ACCOUNT_ID` via the CF API, and exports the `TF_VAR_*`/`AWS_*` aliases Tofu's backend + variables expect. Same shape as `op run --` (1Password) or `doppler run --`. Stage filtering was dropped (the old `with-secrets` wrapper); every consumer sees every BWS key.
+
+**Required in your shell**: `BWS_ACCESS_TOKEN` (one-time setup, keep in keychain / direnv).
 
 For day-2 raw-SSH ops (logs, psql, backup, restore, rotation, Zitadel rebootstrap), see [`docs/deploy.md` § Day-2 operations](../docs/deploy.md#day-2-operations).

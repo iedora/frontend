@@ -111,7 +111,7 @@ jobs:
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
       - name: bin/iedora deploy ${{ inputs.product }}
-        run: bws run -- bin/iedora deploy ${{ inputs.product }}
+        run: bin/iedora-env bin/iedora deploy ${{ inputs.product }}
 
       - name: Smoke check
         if: inputs.product == 'menu'

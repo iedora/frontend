@@ -97,4 +97,4 @@ jobs:
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
       - name: bin/iedora app apply
-        run: bws run -- bin/iedora app apply
+        run: bin/iedora-env bin/iedora app apply

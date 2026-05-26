@@ -11,9 +11,9 @@ CI: per-stage workflows under [.github/workflows/](../.github/workflows/).
 
 ```
 Stage 1: Build & Test      per-product (bun, docker build, tests)
-Stage 2: IaC               bws run -- tofu -chdir=infra/iac/tofu apply
-Stage 3: App state         bws run -- bin/iedora app apply
-Stage 4: Deploy            bws run -- bin/iedora deploy <product>
+Stage 2: IaC               bin/iedora-env tofu -chdir=infra/iac/tofu apply
+Stage 3: App state         bin/iedora-env bin/iedora app apply
+Stage 4: Deploy            bin/iedora-env bin/iedora deploy <product>
 ```
 
 **Hard split**: Tofu owns infrastructure ONLY — VPS, Cloudflare, GitHub
@@ -218,7 +218,7 @@ Local: `bun run typecheck`, `bun run test`, `bun run build` per
 product. The Taskfile doesn't have a `build` stage because each product
 already has its own conventions.
 
-## Stage 2 — IaC (`bws run -- tofu -chdir=infra/iac/tofu apply`)
+## Stage 2 — IaC (`bin/iedora-env tofu -chdir=infra/iac/tofu apply`)
 
 Plain `tofu apply` on [`infra/iac/tofu/`](../infra/iac/tofu/). Owns:
 
@@ -286,7 +286,7 @@ The R2 bucket + scoped API token are out-of-band; they're minted by
 bucket that stores its own state). See
 [guardrails-implementation.md § Rule 2](./guardrails-implementation.md#rule-2--tofu-state-in-r2).
 
-## Stage 3 — App state (`bws run -- bin/iedora app apply`)
+## Stage 3 — App state (`bin/iedora-env bin/iedora app apply`)
 
 Walks the configurator registry in
 [`infra/deploy/cmd/iedora/configurators.go`](../infra/deploy/cmd/iedora/configurators.go).
@@ -405,7 +405,7 @@ Likely future entries: per-product DB role provisioner, S3 bucket
 policies on a future internal MinIO, additional Zitadel action targets
 when new products land.
 
-## Stage 4 — Deploy (`bws run -- bin/iedora deploy <product>`)
+## Stage 4 — Deploy (`bin/iedora-env bin/iedora deploy <product>`)
 
 Per-product. Fans out across the registry in
 [`infra/deploy/cmd/iedora/products.go`](../infra/deploy/cmd/iedora/products.go). Each
@@ -536,23 +536,23 @@ cover every stage path.
 ## Local commands
 
 ```bash
-bws run -- bin/iedora doctor                            # Preflight: PATH, BWS auth, bootstrap secrets.
+bin/iedora-env bin/iedora doctor                            # Preflight: PATH, BWS auth, bootstrap secrets.
 
 # Stage 2 — IaC
-bws run -- tofu -chdir=infra/iac/tofu init -upgrade     # First-time / after provider bumps.
-bws run -- tofu -chdir=infra/iac/tofu plan              # Dry-run.
-bws run -- tofu -chdir=infra/iac/tofu apply             # Apply.
-bws run -- tofu -chdir=infra/iac/tofu destroy           # Teardown.
-bws run -- tofu -chdir=infra/iac/tofu fmt -recursive    # Format .tf files.
+bin/iedora-env tofu -chdir=infra/iac/tofu init -upgrade     # First-time / after provider bumps.
+bin/iedora-env tofu -chdir=infra/iac/tofu plan              # Dry-run.
+bin/iedora-env tofu -chdir=infra/iac/tofu apply             # Apply.
+bin/iedora-env tofu -chdir=infra/iac/tofu destroy           # Teardown.
+bin/iedora-env tofu -chdir=infra/iac/tofu fmt -recursive    # Format .tf files.
 
 # Stage 3 — App state
-bws run -- bin/iedora app apply                         # Every configurator.
-bws run -- bin/zitadel-apply --grants-only              # Just the iedora-admin grants.
+bin/iedora-env bin/iedora app apply                         # Every configurator.
+bin/iedora-env bin/zitadel-apply --grants-only              # Just the iedora-admin grants.
 
 # Stage 4 — Deploy
-bws run -- bin/iedora deploy menu                       # Menu.
-bws run -- bin/iedora deploy house                      # House.
-bws run -- bin/iedora destroy menu                      # Tear down menu's stage-4 artifacts.
+bin/iedora-env bin/iedora deploy menu                       # Menu.
+bin/iedora-env bin/iedora deploy house                      # House.
+bin/iedora-env bin/iedora destroy menu                      # Tear down menu's stage-4 artifacts.
 
 # Local dev stack
 go run ./dev/cmd/local-stack                            # Boot.
@@ -560,12 +560,12 @@ go run ./dev/cmd/local-stack --destroy                  # Wipe.
 go run ./dev/cmd/local-stack --reset-db menu            # Drop+recreate one DB.
 
 # Pre-merge runbook — manual chain, ~45-60 min on live.
-bws run -- tofu -chdir=infra/iac/tofu destroy           # 1: tear down
-bws run -- tofu -chdir=infra/iac/tofu apply             # 2: cold deploy
-bws run -- tofu -chdir=infra/iac/tofu apply             # 3: warm (no-diff)
-bws run -- tofu -chdir=infra/iac/tofu destroy           # 4: tear down again
-bws run -- tofu -chdir=infra/iac/tofu apply             # 5: cold deploy AGAIN
-bws run -- tofu -chdir=infra/iac/tofu apply             # 6: warm (no-diff)
+bin/iedora-env tofu -chdir=infra/iac/tofu destroy           # 1: tear down
+bin/iedora-env tofu -chdir=infra/iac/tofu apply             # 2: cold deploy
+bin/iedora-env tofu -chdir=infra/iac/tofu apply             # 3: warm (no-diff)
+bin/iedora-env tofu -chdir=infra/iac/tofu destroy           # 4: tear down again
+bin/iedora-env tofu -chdir=infra/iac/tofu apply             # 5: cold deploy AGAIN
+bin/iedora-env tofu -chdir=infra/iac/tofu apply             # 6: warm (no-diff)
 ```
 
 `bws run` hydrates every BWS secret into the child process's env (no
@@ -886,7 +886,7 @@ Three load-bearing properties:
 2. **BWS as the single source of truth for secrets.** Every machine /
    agent / CI runner authenticates with a `BWS_ACCESS_TOKEN`; one env
    var unlocks the same secret set everywhere. New agent comes online →
-   set the token once → every `bws run -- …` command works. The
+   set the token once → every `bin/iedora-env …` command works. The
    `IAC_BOOTSTRAP_*` keys are pasted **once per environment, not once
    per agent**; subsequent agents inherit the already-bootstrapped state.
 
@@ -894,7 +894,7 @@ Three load-bearing properties:
    agent on a new machine does NOT run it — the bucket already exists,
    so day-1 for that agent looks identical to day-2 for everyone else:
    ```bash
-   bws run -- tofu -chdir=infra/iac/tofu apply
+   bin/iedora-env tofu -chdir=infra/iac/tofu apply
    ```
 
 ### Multi-agent operating conventions
@@ -905,8 +905,8 @@ two agents on different branches applying conflicting state (the lock
 keeps it correct, but you'd still waste apply time fighting over state
 versions). The convention:
 
-- **Local** — `bws run -- tofu -chdir=infra/iac/tofu plan` (read-only).
-- **CI** — `bws run -- tofu -chdir=infra/iac/tofu apply` (mutating),
+- **Local** — `bin/iedora-env tofu -chdir=infra/iac/tofu plan` (read-only).
+- **CI** — `bin/iedora-env tofu -chdir=infra/iac/tofu apply` (mutating),
   triggered by push to `main` via `infra-deploy.yml`.
 
 `workflow_dispatch` on `infra-deploy.yml` is a manual escape hatch —

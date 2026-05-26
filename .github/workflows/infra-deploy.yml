@@ -105,14 +105,12 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: tofu init
-        env:
-          TF_VAR_state_passphrase: ${{ secrets.IAC_BOOTSTRAP_STATE_PASSPHRASE }}
-        run: bws run -- tofu -chdir=infra/iac/tofu init -input=false -upgrade
+        run: bin/iedora-env tofu -chdir=infra/iac/tofu init -input=false -upgrade
 
       - name: tofu apply
         env:
           TF_CLI_ARGS_apply: "-json-into=${{ runner.temp }}/tf-apply.json"
-        run: bws run -- tofu -chdir=infra/iac/tofu apply -input=false -auto-approve
+        run: bin/iedora-env tofu -chdir=infra/iac/tofu apply -input=false -auto-approve
 
       - name: Upload tofu apply JSON
         if: always()
