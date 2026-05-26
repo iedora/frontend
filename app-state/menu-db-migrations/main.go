@@ -167,7 +167,8 @@ func envOr(key, fallback string) string {
 // with-secrets wrapper has the passphrase.
 func tofuOutput(ctx context.Context, name string) (string, error) {
 	infra := infraDir()
-	withSecrets := filepath.Join(infra, "bin", "with-secrets")
+	// `bin/` is at the repo root (sibling of `infra/`), not under it.
+	withSecrets := filepath.Join(filepath.Dir(infra), "bin", "with-secrets")
 	cmd := exec.CommandContext(ctx, withSecrets, "--stage", "iac", "--",
 		"tofu", "-chdir="+filepath.Join(infra, "tofu"), "output", "-raw", name)
 	cmd.Env = os.Environ()
