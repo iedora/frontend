@@ -27,11 +27,6 @@ output "hetzner_ipv6" {
   value       = hcloud_server.iedora.ipv6_address
 }
 
-output "zitadel_hostname" {
-  description = "Hostname of the Zitadel IdP (var.zitadel_hostname). Stage 3 reads this to know which Zitadel to reconcile against."
-  value       = var.zitadel_hostname
-}
-
 # ── Menu env (Stage 4 consumes via `tofu output -raw <name>`) ───────────────
 # Each output corresponds to one entry in the menu product's
 # `envFromTofu` map in `infra/deploy/cmd/iedora/products.go`. Adding a new menu
@@ -51,19 +46,25 @@ output "menu_database_url" {
   sensitive   = true
 }
 
+output "core_database_url" {
+  description = "Connection string for the `core` database (better-auth tables)."
+  value       = "postgres://postgres:${random_password.postgres.result}@infra-postgres:5432/core"
+  sensitive   = true
+}
+
 output "menu_public_url" {
   description = "Public base URL of the menu app."
   value       = "https://${var.menu_public_hostname}"
 }
 
-output "zitadel_issuer_url" {
-  description = "OIDC issuer URL for the Zitadel IdP."
-  value       = "https://${var.zitadel_hostname}"
+output "iedora_auth_base_url" {
+  description = "Canonical URL of the auth API (menu's own origin today; core.iedora.com in Phase 2)."
+  value       = "https://${var.menu_public_hostname}"
 }
 
-output "menu_iedora_admin_emails" {
-  description = "Comma-separated admin emails. Read by menu's auth slice for the self-healing iedora-admin grant on first sign-in."
-  value       = join(",", var.iedora_admin_emails)
+output "iedora_auth_trusted_origins" {
+  description = "Comma-separated trusted origins for CSRF (menu + apex + www today)."
+  value       = "https://${var.menu_public_hostname},https://${var.zone_name},https://www.${var.zone_name}"
 }
 
 output "menu_s3_endpoint" {

@@ -63,24 +63,6 @@ variable "assets_hostname" {
   default     = "assets.iedora.com"
 }
 
-variable "zitadel_hostname" {
-  description = <<-EOT
-    Public FQDN for the self-hosted ZITADEL IdP. Direct A record into the
-    Hetzner VPS (grey-cloud, no Cloudflare in path); Caddy terminates TLS
-    on the box and proxies into `http://infra-zitadel:8080`. End users
-    hit `https://auth.iedora.com/ui/v2/login`; OIDC clients use it as the
-    issuer. The official `zitadel/zitadel` Tofu provider works against
-    this because gRPC isn't gated by CF — see `infra/tofu/zitadel.tf`.
-  EOT
-  type        = string
-  default     = "auth.iedora.com"
-
-  validation {
-    condition     = can(regex("^[a-z0-9.-]+\\.[a-z]{2,}$", var.zitadel_hostname))
-    error_message = "zitadel_hostname must be a valid FQDN."
-  }
-}
-
 # ── GitHub repo config ───────────────────────────────────────────────────────
 
 variable "github_owner" {
@@ -121,7 +103,7 @@ variable "infra_ssh_private_key" {
 }
 
 variable "menu_public_hostname" {
-  description = "Public FQDN for the menu app — used as MENU_PUBLIC_URL, the A record name, the Caddyfile site label, and the Zitadel OIDC redirect URI base."
+  description = "Public FQDN for the menu app — used as MENU_PUBLIC_URL, the DNS record name, and the CF Tunnel ingress hostname."
   type        = string
   default     = "menu.iedora.com"
 }
@@ -214,50 +196,10 @@ variable "infra_openobserve_root_user_email" {
   sensitive   = true
 }
 
-variable "allow_masterkey_rotation" {
-  description = <<-EOT
-    One-time override for the lifecycle.prevent_destroy guard on
-    `random_password.zitadel_masterkey`. Default false → prevent_destroy=true,
-    blocking accidental `-replace` (rotating the masterkey makes the encrypted
-    Zitadel projection table unreadable).
-
-    To actually rotate, pass `TF_VAR_allow_masterkey_rotation=true` for that
-    single apply, run `tofu apply -replace=random_password.zitadel_masterkey`,
-    then unset the var. The full re-key flow (recovering session state, etc.)
-    is documented in docs/deploy.md.
-  EOT
-  type        = bool
-  default     = false
-}
-
 # ── Menu app runtime env ─────────────────────────────────────────────────────
 # Every runtime env var the menu container needs is composed by Stage 4
 # (`iedora deploy menu`) from:
-#   - BWS values (zitadel app-state outputs from Stage 3, AUTOGEN_* secrets
-#     Tofu mints via secrets.tf), and
+#   - BWS values (AUTOGEN_* secrets Tofu mints via secrets.tf), and
 #   - Tofu outputs (menu_*, see outputs.tf).
-# No more module.menu_env shared with Tofu — Stage 4 owns the recipe.
-
-variable "iedora_admin_emails" {
-  description = <<-EOT
-    Emails that should be granted the cross-product `iedora-admin` Zitadel
-    project role on every `iedora app apply`. Each entry is resolved to a
-    Zitadel user ID by `bin/zitadel-apply` (subsumes the legacy
-    `zitadel-grant` binary); addresses that haven't signed in yet are
-    silently skipped and land on the next apply after they self-provision
-    via OIDC.
-
-    Read by Stage 3 (zitadel-apply, via env) AND by the menu app at runtime
-    (via menu_iedora_admin_emails output → MENU env IEDORA_ADMIN_EMAILS).
-
-    Add a teammate: append their email here, commit, deploy.
-  EOT
-  type        = list(string)
-  default     = ["eduardoferdcarvalho@gmail.com"]
-}
-
-# NOTE: var.infra_zitadel_sa_key_json was removed. The Zitadel TF provider
-# is gone (Stage 3 talks to Zitadel directly via REST). The SA key still
-# lives in BWS under IAC_BOOTSTRAP_ZITADEL_SA_KEY_JSON — `bin/zitadel-apply` reads
-# it from env, not from Tofu.
+# No module.menu_env shared with Tofu — Stage 4 owns the recipe.
 

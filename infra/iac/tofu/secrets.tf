@@ -1,16 +1,11 @@
 # Auto-generated container secrets — Tofu mints them on first apply,
 # stores them in encrypted state, and syncs them to BWS for human
-# lookup (think: psql into the live DB, log in to Zitadel UI).
+# lookup (e.g. psql into the live DB).
 #
-# Why AUTOGEN_ prefix in BWS: the operator's keychain shows two groups
-# at a glance — `INFRA_*` (must populate before first deploy) and
-# `IAC_*` (Tofu writes these; don't touch). Less cognitive
-# load when bootstrapping a fresh environment.
-#
-# Rotation policy per secret — read the justfile `rotate-secret`
-# recipe for the constraints. The big one: don't replace
-# random_password.zitadel_masterkey casually — it encrypts every
-# Zitadel internal secret, rotating it would brick the projection table.
+# Why IAC_ prefix in BWS: the operator's keychain shows two groups
+# at a glance — `IAC_BOOTSTRAP_*` (must populate before first deploy)
+# and `IAC_*` (Tofu writes these; don't touch). Less cognitive load
+# when bootstrapping a fresh environment.
 
 resource "random_password" "postgres" {
   length  = 48
@@ -25,52 +20,19 @@ resource "random_password" "backup_passphrase" {
   # window documented in docs/deploy.md, not via plain replace.
 }
 
-resource "random_password" "zitadel_masterkey" {
-  length  = 32 # Zitadel rejects anything other than exactly 32 chars
-  special = false
-  # See docs/deploy.md "Do NOT rotate casually" — rotating this
-  # makes the encrypted projection table unreadable. The gate inverts
-  # the explicit `allow_masterkey_rotation` knob: false (default) →
-  # prevent_destroy = true, blocking any -replace. To actually rotate,
-  # pass `TF_VAR_allow_masterkey_rotation=true` for that single apply.
-  # Dynamic prevent_destroy is OpenTofu 1.12+ — it lets us gate this
-  # behind a variable instead of code-editing the lifecycle block.
-  lifecycle {
-    prevent_destroy = !var.allow_masterkey_rotation
-  }
-}
-
-resource "random_password" "zitadel_first_admin" {
-  length      = 24
-  special     = true
-  min_lower   = 4
-  min_upper   = 4
-  min_numeric = 4
-  min_special = 2
-  # Pinned minimums guarantee Zitadel's default PasswordComplexityPolicy
-  # (HasLower + HasUpper + HasNumber + HasSymbol). Without them
-  # random_password can return a 24-char string missing a digit
-  # entirely — observed in a cax11 cold-deploy where Zitadel's setup
-  # migration 03_default_instance looped indefinitely with
-  # `Errors.User.PasswordComplexityPolicy.HasNumber`.
-  #
-  # Only used on FirstInstance. Real admin password is changed via the
-  # Zitadel UI on first login. Operator looks this up in BWS under
-  # IAC_ZITADEL_FIRST_ADMIN_PASSWORD.
-}
-
 resource "random_password" "openobserve_password" {
   length  = 32
   special = false # carries through to HTTP Basic-auth, keep ASCII safe
 }
 
-# NOTE: menu's session JWE key (DEPLOY_MENU_SESSION_SECRET) is NOT
-# minted here. It's an app secret — consumed only by the menu container,
-# never by an IaC-managed resource — so Stage 4 (`iedora deploy menu`)
-# mints + upserts it to BWS via the productRuntime's appSecrets mechanism
-# (`infra/deploy/cmd/iedora/runtime_docker.go`). Tofu's secrets.tf is reserved
-# for secrets that govern how IaC containers boot (postgres password,
-# backup passphrase, Zitadel masterkey, etc.).
+# NOTE: better-auth's session signing secret (`IEDORA_AUTH_SECRET`) is
+# NOT minted here. It's an app secret — consumed only by the product
+# containers, never by an IaC-managed service — so Stage 4
+# (`iedora deploy <product>`) mints + upserts it to BWS via the
+# productRuntime's appSecrets mechanism (`infra/deploy/cmd/iedora/
+# runtime_docker.go`). Tofu's secrets.tf is reserved for secrets that
+# govern how IaC containers boot (postgres password, backup passphrase,
+# openobserve admin password).
 
 # Sync the Tofu-managed secrets to BWS under stable IAC_* keys.
 #
@@ -94,8 +56,6 @@ locals {
   bws_managed = {
     IAC_POSTGRES_PASSWORD              = random_password.postgres.result
     IAC_BACKUP_PASSPHRASE              = random_password.backup_passphrase.result
-    IAC_ZITADEL_MASTERKEY              = random_password.zitadel_masterkey.result
-    IAC_ZITADEL_FIRST_ADMIN_PASSWORD   = random_password.zitadel_first_admin.result
     IAC_OPENOBSERVE_ROOT_USER_PASSWORD = random_password.openobserve_password.result
     IAC_BOOTSTRAP_HOST_IP              = hcloud_server.iedora.ipv4_address
   }

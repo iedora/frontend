@@ -123,16 +123,6 @@ resource "cloudflare_dns_record" "menu_iedora" {
   comment = "CF Tunnel → infra-menu-web on the Hetzner box"
 }
 
-resource "cloudflare_dns_record" "auth_iedora" {
-  zone_id = data.cloudflare_zone.iedora.zone_id
-  name    = var.zitadel_hostname
-  type    = "CNAME"
-  content = local.tunnel_cname
-  ttl     = 1
-  proxied = true
-  comment = "CF Tunnel → infra-zitadel{,-login} (path-routed in tunnel config)"
-}
-
 resource "cloudflare_dns_record" "iedora_apex" {
   zone_id = data.cloudflare_zone.iedora.zone_id
   name    = var.zone_name

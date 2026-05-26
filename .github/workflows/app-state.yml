@@ -19,7 +19,6 @@ on:
     paths:
       - 'infra/app-state/**'
       - 'infra/deploy/cmd/iedora/configurators.go'
-      - 'bin/zitadel-apply'
       - 'internal/**'
       - 'go.mod'
       - 'go.sum'
@@ -71,8 +70,8 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Install OpenTofu
-        # Stage 3 reads `hetzner_ipv4` via `tofu output -raw` (zitadel-apply
-        # and menu-db-migrations both SSH to the box).
+        # Stage 3 reads `hetzner_ipv4` via `tofu output -raw` so it can
+        # SSH to the box (menu-db-migrations + openobserve-dashboards).
         uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
         with:
           tofu_version: '1.12.0'

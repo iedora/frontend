@@ -62,40 +62,29 @@ var products = []product{
 				"NEXT_TELEMETRY_DISABLED": "1",
 				"S3_REGION":               "auto",
 			},
-			// Zitadel app-state outputs (Stage 3 writes these) + the
-			// shared AUTOGEN_* secrets (Tofu mints + writes via
-			// terraform_data.bws_sync_autogen). Stage 4 reads BWS at
-			// deploy time and injects via `docker run -e`.
-			// App secrets the runtime mints on first deploy. Tofu does
-			// not manage these — they have no IaC consumer.
+			// App secrets the runtime mints on first deploy + writes
+			// to BWS. Tofu doesn't manage these — they have no IaC
+			// consumer.
 			appSecrets: []appSecret{
-				{bwsKey: "DEPLOY_MENU_SESSION_SECRET", length: 32}, // 256-bit JWE key
+				{bwsKey: "DEPLOY_IEDORA_AUTH_SECRET", length: 48},
 			},
 			envFromBWS: map[string]string{
-				"APP_ZITADEL_MENU_OIDC_CLIENT_ID":     "ZITADEL_OAUTH_CLIENT_ID",
-				"APP_ZITADEL_MENU_OIDC_CLIENT_SECRET": "ZITADEL_OAUTH_CLIENT_SECRET",
-				"APP_ZITADEL_MENU_SA_TOKEN":           "ZITADEL_MANAGEMENT_TOKEN",
-				"APP_ZITADEL_PERMISSIONS_SIGNING_KEY": "ZITADEL_ACTION_SIGNING_KEY",
-				"APP_ZITADEL_GRANTS_SIGNING_KEY":      "ZITADEL_GRANTS_SIGNING_KEY",
-				"APP_ZITADEL_IEDORA_PROJECT_ID":       "IEDORA_PROJECT_ID",
-				"DEPLOY_MENU_SESSION_SECRET":     "MENU_SESSION_SECRET",
+				"DEPLOY_IEDORA_AUTH_SECRET": "IEDORA_AUTH_SECRET",
 			},
-			// Central-root Tofu outputs that aren't in BWS — composed
-			// values from random_password + variables. Added to
-			// outputs.tf when this lands.
 			envFromTofu: map[string]string{
-				"menu_database_url":          "DATABASE_URL",
-				"menu_public_url":            "MENU_PUBLIC_URL",
-				"zitadel_issuer_url":         "ZITADEL_ISSUER_URL",
-				"menu_iedora_admin_emails":   "IEDORA_ADMIN_EMAILS",
-				"menu_s3_endpoint":           "S3_ENDPOINT",
-				"menu_s3_public_url":         "S3_PUBLIC_URL",
-				"menu_s3_bucket":             "S3_BUCKET",
-				"menu_s3_access_key":         "S3_ACCESS_KEY",
-				"menu_s3_secret_key":         "S3_SECRET_KEY",
-				"menu_otel_endpoint":         "OTEL_EXPORTER_OTLP_ENDPOINT",
-				"menu_otel_headers":          "OTEL_EXPORTER_OTLP_HEADERS",
-				"menu_host_name":             "HOST_NAME",
+				"menu_database_url":           "DATABASE_URL",
+				"core_database_url":           "CORE_DATABASE_URL",
+				"menu_public_url":             "MENU_PUBLIC_URL",
+				"iedora_auth_base_url":        "IEDORA_AUTH_BASE_URL",
+				"iedora_auth_trusted_origins": "IEDORA_AUTH_TRUSTED_ORIGINS",
+				"menu_s3_endpoint":            "S3_ENDPOINT",
+				"menu_s3_public_url":          "S3_PUBLIC_URL",
+				"menu_s3_bucket":              "S3_BUCKET",
+				"menu_s3_access_key":          "S3_ACCESS_KEY",
+				"menu_s3_secret_key":          "S3_SECRET_KEY",
+				"menu_otel_endpoint":          "OTEL_EXPORTER_OTLP_ENDPOINT",
+				"menu_otel_headers":           "OTEL_EXPORTER_OTLP_HEADERS",
+				"menu_host_name":              "HOST_NAME",
 			},
 		},
 	},

@@ -47,17 +47,6 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "iedora" {
   tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.iedora.id
   config = {
     ingress = [
-      # ── auth.iedora.com ────────────────────────────────────────
-      # /ui/v2/* → Zitadel-Login (Next.js); everything else → main binary.
-      {
-        hostname = var.zitadel_hostname
-        path     = "/ui/v2/*"
-        service  = "http://infra-zitadel-login:3000"
-      },
-      {
-        hostname = var.zitadel_hostname
-        service  = "http://infra-zitadel:8080"
-      },
       # ── menu.iedora.com ───────────────────────────────────────
       {
         hostname = var.menu_public_hostname

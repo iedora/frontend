@@ -1,10 +1,13 @@
 # Renders the full Docker Compose file that the Hetzner box runs.
 #
-# Every shared container (postgres, openobserve, zitadel, zitadel-login,
-# cloudflared, backups) is declared here as a service in the compose document.
-# Tofu renders the YAML; cloud-init drops it on the box at first boot
-# and a single `terraform_data.iedora_sync` resource (see sync.tf) pushes
-# updates on day-2 changes.
+# Every shared container (postgres, openobserve, cloudflared, backups) is
+# declared here as a service in the compose document. Tofu renders the
+# YAML; cloud-init drops it on the box at first boot and a single
+# `terraform_data.iedora_sync` resource (see sync.tf) pushes updates on
+# day-2 changes.
+#
+# Identity lives in `@iedora/auth` (better-auth) running inside each
+# product container — no IdP container on the box, no auth.iedora.com.
 #
 # The kreuzwerker/docker provider is intentionally NOT used — putting it
 # on the apply graph forced multi-pass applies (SSH MaxStartups),
@@ -42,14 +45,10 @@ locals {
       }
     }
 
-    # Volume map keys MUST match the names referenced in each service's
-    # `volumes` list — yamlencode emits the HCL key verbatim, and compose
-    # looks the service-side reference up in this map. The `name:` field
-    # is the resulting Docker volume name (kept unprefixed for parity
-    # with the old kreuzwerker setup).
-    volumes = {
-      "zitadel-bootstrap" = { name = "zitadel-bootstrap" }
-    }
+    # No named volumes today. Postgres + OpenObserve data live on bind
+    # mounts (see local.postgres_data + openobserve_data). Add a volume
+    # here only if a new service truly needs Docker-managed storage.
+    volumes = {}
 
     services = {
       # ── postgres ────────────────────────────────────────────────
@@ -74,18 +73,6 @@ locals {
           retries  = 5
         }
         logging = { driver = "json-file", options = { max-size = "10m" } }
-      }
-
-      # ── zitadel bootstrap chmod (one-shot) ──────────────────────
-      # Named volumes default to root:root 755; Zitadel runs as UID
-      # 1000 and the login UI as 1001. chmod 777 once, exit. Other
-      # services depend on `service_completed_successfully`.
-      zitadel-bootstrap = {
-        image          = "busybox:1.37"
-        container_name = "infra-zitadel-bootstrap"
-        command        = ["chmod", "777", "/x"]
-        volumes        = ["zitadel-bootstrap:/x"]
-        restart        = "no"
       }
 
       # ── openobserve ─────────────────────────────────────────────
@@ -114,84 +101,9 @@ locals {
         logging = { driver = "json-file", options = { max-size = "10m" } }
       }
 
-      # ── zitadel ─────────────────────────────────────────────────
-      zitadel = {
-        image          = "ghcr.io/zitadel/zitadel:v4.15.0"
-        container_name = "infra-zitadel"
-        restart        = "unless-stopped"
-        command = [
-          "start-from-init",
-          "--masterkeyFromEnv",
-          "--tlsMode", "external",
-        ]
-        depends_on = {
-          postgres          = { condition = "service_healthy" }
-          zitadel-bootstrap = { condition = "service_completed_successfully" }
-        }
-        networks = { iedora = { aliases = ["zitadel", "infra-zitadel"] } }
-        environment = {
-          ZITADEL_EXTERNALDOMAIN                                      = var.zitadel_hostname
-          ZITADEL_EXTERNALPORT                                        = "443"
-          ZITADEL_EXTERNALSECURE                                      = "true"
-          ZITADEL_TLS_ENABLED                                         = "false"
-          ZITADEL_DATABASE_POSTGRES_HOST                              = "infra-postgres"
-          ZITADEL_DATABASE_POSTGRES_PORT                              = "5432"
-          ZITADEL_DATABASE_POSTGRES_DATABASE                          = "zitadel"
-          ZITADEL_DATABASE_POSTGRES_AWAITINITIALCONN                  = "5m"
-          ZITADEL_DATABASE_POSTGRES_USER_USERNAME                     = "postgres"
-          ZITADEL_DATABASE_POSTGRES_USER_PASSWORD                     = random_password.postgres.result
-          ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE                     = "disable"
-          ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME                    = "postgres"
-          ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD                    = random_password.postgres.result
-          ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE                    = "disable"
-          ZITADEL_DATABASE_POSTGRES_ADMIN_EXISTINGDATABASE            = "postgres"
-          ZITADEL_FIRSTINSTANCE_ORG_NAME                              = "iedora"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME                    = "eduvhc"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_FIRSTNAME                   = "iedora"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_LASTNAME                    = "Admin"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS               = "eduardoferdcarvalho@gmail.com"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_VERIFIED              = "true"
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD                    = random_password.zitadel_first_admin.result
-          ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED      = "true"
-          ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME      = "login-client"
-          ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME          = "Login Client"
-          ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE    = "2099-01-01T00:00:00Z"
-          ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH                    = "/zitadel-bootstrap/login-client.pat"
-          ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME          = "zitadel-admin-sa"
-          ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME              = "Terraform"
-          ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE           = "1"
-          ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE = "2099-01-01T00:00:00Z"
-          ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH                        = "/zitadel-bootstrap/zitadel-admin-sa.json"
-          ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED           = "true"
-          ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI            = "https://${var.zitadel_hostname}/ui/v2/login"
-          ZITADEL_MASTERKEY                                           = random_password.zitadel_masterkey.result
-        }
-        volumes = ["zitadel-bootstrap:/zitadel-bootstrap"]
-        logging = { driver = "json-file", options = { max-size = "10m" } }
-      }
-
-      # ── zitadel-login ───────────────────────────────────────────
-      zitadel-login = {
-        image          = "ghcr.io/zitadel/zitadel-login:v4.15.0"
-        container_name = "infra-zitadel-login"
-        restart        = "unless-stopped"
-        depends_on     = { zitadel = { condition = "service_started" } }
-        networks       = { iedora = { aliases = ["zitadel-login", "infra-zitadel-login"] } }
-        environment = {
-          ZITADEL_API_URL                 = "https://${var.zitadel_hostname}"
-          NEXT_PUBLIC_BASE_PATH           = "/ui/v2/login"
-          ZITADEL_SERVICE_USER_TOKEN_FILE = "/zitadel-bootstrap/login-client.pat"
-          ZITADEL_TLS_ENABLED             = "false"
-          EMAIL_VERIFICATION              = "false"
-        }
-        extra_hosts = ["${var.zitadel_hostname}:host-gateway"]
-        volumes     = ["zitadel-bootstrap:/zitadel-bootstrap:ro"]
-        logging     = { driver = "json-file", options = { max-size = "10m" } }
-      }
-
       # ── cloudflared (Zero Trust Tunnel connector) ───────────────
-      # Outbound persistent connection to CF edge. Routes for the 4
-      # public hostnames are declared in tunnel.tf — this container
+      # Outbound persistent connection to CF edge. Routes for every
+      # public hostname are declared in tunnel.tf — this container
       # just consumes the connector token and runs the daemon.
       # No exposed ports, no on-box TLS, no LE.
       cloudflared = {
@@ -199,11 +111,7 @@ locals {
         container_name = "infra-cloudflared"
         restart        = "unless-stopped"
         command        = ["tunnel", "--no-autoupdate", "run"]
-        depends_on = {
-          zitadel       = { condition = "service_started" }
-          zitadel-login = { condition = "service_started" }
-        }
-        networks = { iedora = { aliases = ["infra-cloudflared"] } }
+        networks       = { iedora = { aliases = ["infra-cloudflared"] } }
         environment = {
           TUNNEL_TOKEN = data.cloudflare_zero_trust_tunnel_cloudflared_token.iedora.token
         }

@@ -6,19 +6,17 @@ import (
 
 	menudbmigrations "github.com/eduvhc/iedora/infra/app-state/menu-db-migrations"
 	openobservedashboards "github.com/eduvhc/iedora/infra/app-state/openobserve-dashboards"
-	zitadelapply "github.com/eduvhc/iedora/infra/app-state/zitadel-apply"
 )
 
 // appConfigurator describes one Stage-3 reconciler — a Go package that
 // knows how to talk to one running shared service and bring its
 // app-level configuration to a declared state.
 //
-// One configurator per concern. Today: Zitadel, menu DB migrations,
-// OpenObserve dashboards. Each lives in its own
-// `infra/app-state/<name>/` directory as an importable package; this
-// orchestrator calls the package's `Run(ctx)` (or `Run(ctx, argv)`)
-// directly. No subprocess fork, no PATH lookup, no env round-trip:
-// stage-app env is already in os.Environ from `bws run`.
+// One configurator per concern. Today: menu DB migrations, OpenObserve
+// dashboards. Each lives in its own `infra/app-state/<name>/` directory
+// as an importable package; this orchestrator calls the package's
+// `Run(ctx)` directly. No subprocess fork, no PATH lookup, no env
+// round-trip: stage-app env is already in os.Environ from `bws run`.
 //
 // Adding a configurator:
 //   1. New package under `infra/app-state/<name>/` exporting `Run(ctx) error`.
@@ -34,33 +32,25 @@ type appConfigurator struct {
 	name string
 
 	// run — the configurator's entry point. Closure form keeps the
-	// registry honest about both nullary configurators and ones that
-	// might one day need argv (zitadel-apply already accepts flags
-	// for `--grants-only`; the binary wrapper at
-	// infra/app-state/cmd/zitadel-apply parses them — here we default
-	// to nil for the full-reconcile path).
+	// registry honest about both nullary configurators and any future
+	// ones that might need argv.
 	run func(ctx context.Context) error
 }
 
 // appConfigurators — the registry. Order matters (sequential exec).
-// Stage-3 reconcilers run BEFORE Stage 4 (deploy). The menu container
-// boots against an already-migrated DB; a bad migration / dashboard /
-// Zitadel config fails loudly in the deploy log without crash-looping
-// the live menu.
+// Stage-3 reconcilers run BEFORE Stage 4 (deploy). Containers boot
+// against an already-migrated DB; a bad migration / dashboard fails
+// loudly in the deploy log without crash-looping the live product.
 var appConfigurators = []appConfigurator{
-	{
-		// Org, project, roles, OIDC app, machine user + PAT, action
-		// targets, admin grants — see infra/app-state/zitadel-apply/.
-		name: "zitadel-app-config",
-		run: func(ctx context.Context) error {
-			// nil argv → defaults (full reconcile, mode=live).
-			return zitadelapply.Run(ctx, nil)
-		},
-	},
 	{
 		// drizzle-kit migrate against menu's postgres database. SSHes
 		// to the box and `docker run`s migrate.mjs from the menu image
 		// at MENU_IMAGE_SHA. See infra/app-state/menu-db-migrations/.
+		// The same docker run also reaches the @iedora/auth migrations
+		// (workspace dep bundled into the menu image) against the
+		// `core` DB — TODO once the migrator script supports it; for
+		// now the dev orchestrator (`go run ./dev/cmd/local-stack`)
+		// runs both via the bun workspace at the operator's machine.
 		name: "menu-db-migrations",
 		run:  menudbmigrations.Run,
 	},
