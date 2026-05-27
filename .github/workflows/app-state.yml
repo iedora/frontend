@@ -3,12 +3,20 @@
 #
 # Triggers:
 #
-#   workflow_dispatch                manual button (also called by infra-deploy
-#                                    on its successful run)
-#   push (paths-filtered)            push to main touching the reconciler code
-#                                    OR a configurator's source tree
-#   workflow_run                     re-reconcile after every successful infra
-#                                    apply
+#   workflow_dispatch                — primary trigger. Dispatched
+#                                      explicitly by web.yml's
+#                                      `run_app_state` job before
+#                                      Stage 4 deploys, or by
+#                                      operators when reconciling
+#                                      app state out-of-band.
+#   push (paths-filtered)            — push to main touching the
+#                                      reconciler code or a
+#                                      configurator's source tree.
+#
+# Previously this also had a `workflow_run` trigger on `[infra] Deploy`
+# completion. Removed: the cascade was unreliable (fired ~half the
+# time in practice), and the dispatch-and-follow pattern in web.yml
+# is deterministic — we know which specific run gates the deploy.
 
 name: '[infra] App state'
 
@@ -23,10 +31,6 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/app-state.yml'
-  workflow_run:
-    workflows: ['[infra] Deploy']
-    types: [completed]
-    branches: [main]
 
 concurrency:
   group: app-state
@@ -40,10 +44,6 @@ jobs:
     name: Apply
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    # When fired by workflow_run, only proceed if the upstream Infra deploy
-    # succeeded. Skips the cascade when an infra failure left state
-    # half-applied — operator fixes infra first.
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
 
     env:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}

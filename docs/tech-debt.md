@@ -39,18 +39,25 @@ inline. Extract to `.github/scripts/wait-app-state.sh` or composite
 actions. `app-state.yml`, `deploy.yml`, `infra-deploy.yml` have
 similar but smaller blocks (30-40 each).
 
-### CI-4: cross-workflow gating via `gh run list` polling
-**size:** L · **risk:** med
+### CI-4: ~~cross-workflow gating via `gh run list` polling~~ → resolved
+**size:** ~~L~~ · **risk:** ~~med~~
 
-`web.yml::wait_app_state` polls `gh run list --workflow=app-state.yml`
-because GHA doesn't support cross-workflow `needs:` when each
-workflow has independent triggers. Workaround works but is fragile
-(timeout window, race conditions on retries).
+Original problem: `web.yml::wait_app_state` polled the LATEST
+`app-state.yml` run on main — which could be a totally different
+commit's run (often cancelled or stale). Caused Day-1 to fail with
+"app-state.yml cancelled — refusing to deploy" even when infra was
+fine.
 
-True fix: re-architect so the whole pipeline is ONE workflow_call
-chain from a single entrypoint (e.g. a `release.yml`
-workflow_dispatch). Bigger refactor; defer until pipeline complexity
-justifies it.
+Resolved by switching `web.yml::run_app_state` to a **dispatch +
+follow-by-run-id** pattern: snapshot the latest app-state run, run
+`gh workflow run app-state.yml`, poll until a new run appears, then
+poll THAT specific run-id for completion. Deterministic — no
+ambiguity about which run gates the deploy.
+
+Side change: dropped the `workflow_run` cascade trigger on
+`app-state.yml` (it was unreliable in practice — fired ~half the
+time, possibly due to GHA's "workflow file must be on default
+branch" race during rapid commits).
 
 ---
 

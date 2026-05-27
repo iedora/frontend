@@ -228,60 +228,96 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
-  # ── Gate: wait for Stage 3 (DB migrations) to be green ──────────────────
+  # ── Gate: run Stage 3 (DB migrations) ──────────────────────────────────
   # Stage 4's `dockerOnHetzner.Deploy` starts the web container, which
   # immediately reads `core.session` on every request. If Stage 3 hasn't
-  # applied the `@iedora/auth` migrations yet, the boot 500s. On a fresh
-  # Day 1 the chain is: infra-deploy.yml provisions the box → app-state
-  # (workflow_run) waits for THIS image to land → applies core +
-  # menu schemas → then this gate flips green and `deploy` proceeds.
+  # applied the `@iedora/auth` migrations yet, the boot 500s. So we
+  # MUST gate the deploy on a successful app-state.yml run.
   #
-  # Day-2 (apps/web-only push): the latest app-state run is already
-  # success from a prior CI run, this step returns ~immediately.
-  wait_app_state:
-    name: Wait for app-state
+  # Previous design polled the latest app-state run on main + relied on
+  # a `workflow_run` cascade from `[infra] Deploy`. Two failure modes
+  # hit Day-1: the cascade silently doesn't fire (known GHA quirk),
+  # and "latest run" can refer to a run for a totally different commit
+  # SHA. This step replaces that polling with explicit dispatch + run
+  # tracking by the dispatched run-id.
+  run_app_state:
+    name: Run app-state (Stage 3 migrations)
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
-      actions: read
+      actions: write   # dispatch app-state.yml
+      contents: read
     steps:
-      - name: Poll app-state.yml status
+      - name: Dispatch app-state.yml + follow the dispatched run
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+
+          # Snapshot the most recent app-state run ID BEFORE dispatch,
+          # so we can identify the new one we just kicked off
+          # (gh workflow run doesn't return the run-id directly).
+          before=$(gh run list \
+                     --repo "${{ github.repository }}" \
+                     --workflow=app-state.yml \
+                     --branch=main \
+                     --limit 1 \
+                     --json databaseId -q '.[0].databaseId // "0"')
+
+          echo "→ dispatching app-state.yml on main"
+          gh workflow run app-state.yml --ref main
+
+          # Poll for a new run created AFTER our snapshot. GHA can take
+          # a few seconds to register a workflow_dispatch run.
+          run_id=""
+          for i in $(seq 1 20); do
+            sleep 3
+            latest=$(gh run list \
+                       --repo "${{ github.repository }}" \
+                       --workflow=app-state.yml \
+                       --branch=main \
+                       --limit 1 \
+                       --json databaseId,event -q '.[0]')
+            id=$(echo "$latest" | jq -r '.databaseId // "0"')
+            event=$(echo "$latest" | jq -r '.event // ""')
+            if [ "$id" != "$before" ] && [ "$event" = "workflow_dispatch" ]; then
+              run_id="$id"
+              break
+            fi
+          done
+
+          if [ -z "$run_id" ]; then
+            echo "✗ app-state.yml didn't register a new run after dispatch"
+            exit 1
+          fi
+
+          echo "→ following run #$run_id"
+
+          # Poll the SPECIFIC run for completion. Deterministic — no
+          # ambiguity about which run we're tracking.
           deadline=$(( $(date +%s) + 1700 ))   # ~28 min, below job timeout
           while true; do
-            run=$(gh run list \
-                    --repo "${{ github.repository }}" \
-                    --workflow=app-state.yml \
-                    --branch=main \
-                    --limit 1 \
-                    --json status,conclusion,databaseId,createdAt -q '.[0]' || echo '{}')
-            status=$(echo "$run" | jq -r '.status // "absent"')
-            conclusion=$(echo "$run" | jq -r '.conclusion // ""')
-            case "$status" in
-              completed)
-                if [ "$conclusion" = "success" ]; then
-                  echo "✓ app-state.yml green (run #$(echo "$run" | jq -r .databaseId))"
-                  exit 0
-                fi
-                echo "✗ app-state.yml ${conclusion} — refusing to deploy"
-                exit 1
-                ;;
-              absent)
-                echo "no app-state.yml run yet — waiting 30s"
-                ;;
-              *)
-                echo "app-state.yml status=${status} — waiting 30s"
-                ;;
-            esac
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "✗ app-state.yml didn't finish within budget — abort"
+            view=$(gh run view "$run_id" --json status,conclusion 2>/dev/null || echo '{}')
+            status=$(echo "$view" | jq -r '.status // "absent"')
+            conclusion=$(echo "$view" | jq -r '.conclusion // ""')
+
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                echo "✓ app-state run #$run_id succeeded"
+                exit 0
+              fi
+              echo "✗ app-state run #$run_id $conclusion — refusing to deploy"
               exit 1
             fi
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "✗ app-state run #$run_id didn't finish within budget — abort"
+              exit 1
+            fi
+
+            echo "  $status — waiting 30s"
             sleep 30
           done
 
@@ -292,7 +328,7 @@ jobs:
   # round-trip. Rollback path: `gh workflow run deploy.yml --field
   # product=web --field image_sha=<older-sha>`.
   deploy:
-    needs: wait_app_state
+    needs: run_app_state
     uses: ./.github/workflows/deploy.yml
     with:
       product: web
