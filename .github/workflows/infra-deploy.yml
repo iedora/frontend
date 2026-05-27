@@ -133,7 +133,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: go.mod
 
       - name: Install OpenTofu
         # Pin to the laptop's current major.minor (1.12.x). Bumping

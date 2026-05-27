@@ -69,7 +69,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: go.sum
+          cache-dependency-path: go.mod
 
       - name: Install OpenTofu
         # Stage 3 reads `hetzner_ipv4` via `tofu output -raw` so it can
