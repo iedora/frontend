@@ -5,36 +5,52 @@ import {
   DashboardPage,
   Button,
   Badge,
-  StatusChip,
+  Card,
+  CardTitle,
+  CardDesc,
   ConfirmDialog,
+  MetaStrip,
   PhotoLightbox,
+  SectionHeader,
+  Separator,
+  StatusChip,
 } from '@iedora/design-system'
-import { Home, Maximize, Bath, MapPin, Trash2, Building2, ExternalLink } from 'lucide-react'
-import { formatPrice, formatTypePT, formatOperationPT } from '@/shared/data/properties'
-import type { Property, IntegratorStatus } from '@/shared/data/properties'
+import {
+  Bath,
+  Building2,
+  ExternalLink,
+  Home,
+  MapPin,
+  Maximize,
+  Trash2,
+} from 'lucide-react'
+import {
+  formatOperationPT,
+  formatPrice,
+  formatTypePT,
+} from '@/shared/data/properties'
+import type { IntegratorStatus, Property } from '@/shared/data/properties'
 import { PublishIdealistaButton } from '@/features/idealista-publish/ui/publish-idealista-button'
 import { EnergyBadge } from '@/shared/ui/energy-badge'
 
-const INTEGRATORS = ['idealista'] as const
-
-const INTEGRATOR_CONFIG: Record<string, { label: string; Icon: typeof Building2 }> = {
+const INTEGRATOR_CONFIG = {
   idealista: { label: 'Idealista', Icon: Building2 },
-}
+} as const
 
-type IntegratorConfig = { label: string; Icon: typeof Building2 }
+type IntegratorKey = keyof typeof INTEGRATOR_CONFIG
+const INTEGRATORS = Object.keys(INTEGRATOR_CONFIG) as IntegratorKey[]
 
 function IntegratorRow({
   reference,
   integratorKey,
-  cfg,
   status,
 }: {
   reference: string
-  integratorKey: string
-  cfg: IntegratorConfig
+  integratorKey: IntegratorKey
   status: IntegratorStatus | undefined
 }) {
   const t = useTranslations('Property')
+  const cfg = INTEGRATOR_CONFIG[integratorKey]
   const state = status?.status ?? 'idle'
 
   const chipLabel =
@@ -51,17 +67,17 @@ function IntegratorRow({
 
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] items-start sm:items-center gap-1 sm:gap-3 px-3 py-2 text-[12px]"
+      className="grid grid-cols-1 items-start gap-2 px-4 py-3 text-[13px] sm:grid-cols-[auto_1fr_auto] sm:items-center"
       data-test-id={`property-integrator-row-${integratorKey}-${reference}`}
     >
       <div className="flex items-center gap-2">
-        <cfg.Icon size={14} className="text-muted-foreground shrink-0" />
-        <span className="text-foreground font-medium">{cfg.label}</span>
+        <cfg.Icon size={14} className="shrink-0 text-[var(--ink-40)]" aria-hidden="true" />
+        <span className="font-medium text-foreground">{cfg.label}</span>
       </div>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
         <StatusChip label={chipLabel} variant={chipVariant} />
         {status?.publishedAt && (
-          <span className="text-muted-foreground">
+          <span className="text-[var(--ink-60)]">
             {new Date(status.publishedAt).toLocaleDateString('pt-PT', {
               day: 'numeric',
               month: 'short',
@@ -72,7 +88,7 @@ function IntegratorRow({
           </span>
         )}
         {state === 'failed' && status?.lastError && (
-          <span className="text-[11px] text-[var(--cinnabar)]">{status.lastError}</span>
+          <span className="text-[12px] text-[var(--cinnabar)]">{status.lastError}</span>
         )}
       </div>
       <div className="flex items-center gap-2 justify-self-start sm:justify-self-end">
@@ -81,17 +97,26 @@ function IntegratorRow({
             href={status.publishedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground no-underline"
+            className="inline-flex items-center gap-1 text-[var(--ink-60)] no-underline hover:text-foreground"
             data-test-id={`property-integrator-link-${integratorKey}-${reference}`}
           >
             {t('viewListing')}
-            <ExternalLink size={11} />
+            <ExternalLink size={12} aria-hidden="true" />
           </a>
         )}
         {(state === 'idle' || state === 'failed') && (
           <PublishIdealistaButton reference={reference} retry={state === 'failed'} />
         )}
       </div>
+    </div>
+  )
+}
+
+function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-[var(--ink-08)] py-2 text-[13px]">
+      <span className="text-[var(--ink-60)]">{label}</span>
+      <span className="font-medium text-foreground tabular-nums">{children}</span>
     </div>
   )
 }
@@ -105,6 +130,7 @@ export function PropertyDetailView({
 }) {
   const t = useTranslations('Property')
   const tCommon = useTranslations('Common')
+  const tList = useTranslations('PropertyList')
   const tPhotos = useTranslations('PropertyPhotos')
 
   const f = prop.features ?? {}
@@ -128,145 +154,154 @@ export function PropertyDetailView({
     f.hasLift && t('feature.lift'),
   ].filter(Boolean) as string[]
 
+  const metaLeft = (
+    <span className="inline-flex items-baseline gap-3">
+      <span className="text-[24px] font-medium leading-none tracking-tight text-foreground">
+        {price}
+      </span>
+      {pricePerSqm && (
+        <span className="text-[12px] text-[var(--ink-60)]">
+          {pricePerSqm.replace('€', '').trim()} €/m²
+        </span>
+      )}
+      <span className="text-[12px] text-[var(--ink-60)]">{formatOperationPT(prop.operation)}</span>
+    </span>
+  )
+
+  const metaCenter = (
+    <span className="inline-flex flex-wrap items-center gap-3 text-[12.5px] text-[var(--ink-60)]">
+      {prop.rooms && (
+        <span className="inline-flex items-center gap-1">
+          <Home size={12} aria-hidden="true" />
+          {t('rooms', { count: prop.rooms })}
+        </span>
+      )}
+      {area && (
+        <span className="inline-flex items-center gap-1">
+          <Maximize size={12} aria-hidden="true" />
+          {area} m²
+        </span>
+      )}
+      {prop.bathrooms && (
+        <span className="inline-flex items-center gap-1">
+          <Bath size={12} aria-hidden="true" />
+          {prop.bathrooms}
+        </span>
+      )}
+      <span>{formatTypePT(prop.type)}</span>
+      {f.yearBuilt && <span>· {f.yearBuilt}</span>}
+    </span>
+  )
+
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <Button variant="accent" data-test-id="property-edit-button">
+        {tCommon('edit')}
+      </Button>
+      <ConfirmDialog
+        title={t('deleteTitle')}
+        description={t('deleteDescription')}
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
+        variant="danger"
+        onConfirm={async () => {
+          // TODO: implement actual delete
+        }}
+      >
+        <Button
+          variant="default"
+          data-test-id="property-delete-button"
+          aria-label={t('delete')}
+        >
+          <Trash2 size={14} aria-hidden="true" />
+        </Button>
+      </ConfirmDialog>
+    </div>
+  )
+
   return (
     <DashboardPage
       title={prop.reference}
-      crumbs={[{ label: t('back'), href: '/dashboard' }]}
+      crumbs={[{ label: tList('title'), href: '/dashboard' }]}
       data-test-id="property-detail"
     >
-      {/* ── Info strip + image card ────────────────────────────── */}
-      <div className="py-3 border-b border-[var(--border)]">
-        <div className="flex gap-4 items-start">
-          <div className="hidden sm:block w-[200px] h-[150px] shrink-0">
-            <PhotoLightbox
-              urls={prop.photoUrls ?? []}
-              testId={`property-detail-image-${reference}`}
-              size="large"
-              labels={{
-                empty: tPhotos('noPhoto'),
-                expand: tPhotos('expandPhoto'),
-                previous: tPhotos('previousPhoto'),
-                next: tPhotos('nextPhoto'),
-                close: tPhotos('closeLightbox'),
-              }}
-            />
-          </div>
-          <div className="flex-1 min-w-0 space-y-1.5">
-            {/* Price + operation */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-[22px] font-medium leading-none tracking-tight text-foreground">
-                {price}
-              </span>
-              {pricePerSqm && (
-                <span className="text-[12px] text-muted-foreground">
-                  {pricePerSqm.replace('€', '').trim()} €/m²
-                </span>
-              )}
-              <span className="text-[12px] text-muted-foreground">
-                {formatOperationPT(prop.operation)}
-              </span>
-            </div>
-
-            {/* Key stats */}
-            <div className="flex items-center gap-2 text-[12px] text-muted-foreground flex-wrap">
-              {prop.rooms && (
-                <span className="inline-flex items-center gap-0.5">
-                  <Home size={12} aria-hidden="true" />
-                  T{prop.rooms}
-                </span>
-              )}
-              {area && (
-                <span className="inline-flex items-center gap-0.5">
-                  <Maximize size={12} aria-hidden="true" />
-                  {area} m²
-                </span>
-              )}
-              {prop.bathrooms && (
-                <span className="inline-flex items-center gap-0.5">
-                  <Bath size={12} aria-hidden="true" />
-                  {prop.bathrooms}
-                </span>
-              )}
-              <span>{formatTypePT(prop.type)}</span>
-              {f.yearBuilt && <span>· {f.yearBuilt}</span>}
-            </div>
-
-            {/* Address */}
-            <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
-              <MapPin size={11} aria-hidden="true" />
-              <span>
-                {prop.address.street ? `${prop.address.street}, ` : ''}
-                {[prop.address.locality, prop.address.municipality, prop.address.district]
-                  .filter(Boolean)
-                  .join(', ')}
-                {prop.address.postalCode && ` · ${prop.address.postalCode}`}
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 pt-1">
-              <Button variant="accent" data-test-id="property-edit-button">
-                {tCommon('edit')}
-              </Button>
-              <ConfirmDialog
-                title={t('deleteTitle')}
-                description={t('deleteDescription')}
-                confirmLabel={tCommon('delete')}
-                cancelLabel={tCommon('cancel')}
-                variant="danger"
-                onConfirm={async () => {
-                  // TODO: implement actual delete
-                }}
-              >
-                <Button variant="default" data-test-id="property-delete-button" aria-label={t('delete')}>
-                  <Trash2 size={14} />
-                </Button>
-              </ConfirmDialog>
-            </div>
-          </div>
+      {/* Hero: photo + price/stats/address + actions */}
+      <section className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="hidden h-[170px] w-[220px] shrink-0 sm:block">
+          <PhotoLightbox
+            urls={prop.photoUrls ?? []}
+            testId={`property-detail-image-${reference}`}
+            size="large"
+            labels={{
+              empty: tPhotos('noPhoto'),
+              expand: tPhotos('expandPhoto'),
+              previous: tPhotos('previousPhoto'),
+              next: tPhotos('nextPhoto'),
+              close: tPhotos('closeLightbox'),
+            }}
+          />
         </div>
-      </div>
+        <div className="min-w-0 flex-1 space-y-3">
+          <MetaStrip left={metaLeft} center={metaCenter} />
+          <div className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--ink-60)]">
+            <MapPin size={12} aria-hidden="true" />
+            <span>
+              {prop.address.street ? `${prop.address.street}, ` : ''}
+              {[prop.address.locality, prop.address.municipality, prop.address.district]
+                .filter(Boolean)
+                .join(', ')}
+              {prop.address.postalCode && ` · ${prop.address.postalCode}`}
+            </span>
+          </div>
+          {headerActions}
+        </div>
+      </section>
 
-      {/* ── Integradores ───────────────────────────────────────── */}
-      <div className="py-3 border-b border-[var(--border)]">
-        <h2 className="eyebrow mb-2">{t('platforms')}</h2>
-        <div className="border border-[var(--ink-14)]">
-          {INTEGRATORS.map((key) => {
-            const cfg = INTEGRATOR_CONFIG[key]
-            const int = (prop.integrators ?? []).find((i) => i.key === key)
+      <Separator />
+
+      {/* Integradores */}
+      <section className="space-y-3">
+        <SectionHeader title={t('platforms')} />
+        <Card className="p-0">
+          {INTEGRATORS.map((key, i) => {
+            const int = (prop.integrators ?? []).find((x) => x.key === key)
             return (
-              <IntegratorRow
+              <div
                 key={key}
-                integratorKey={key}
-                reference={reference}
-                cfg={cfg}
-                status={int}
-              />
+                className={
+                  i > 0 ? 'border-t border-[var(--ink-08)]' : undefined
+                }
+              >
+                <IntegratorRow
+                  integratorKey={key}
+                  reference={reference}
+                  status={int}
+                />
+              </div>
             )
           })}
-        </div>
-      </div>
+        </Card>
+      </section>
 
-      {/* ── Details grid ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.2fr_1fr] pt-6">
-        {/* Description */}
+      {/* Description + Data/Location */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.2fr_1fr]">
         {prop.description && (
-          <section className="space-y-2">
-            <h2 className="eyebrow">{t('description')}</h2>
-            <p className="text-[13px] leading-relaxed text-[var(--ink-70)] whitespace-pre-line">
+          <section className="space-y-3">
+            <SectionHeader title={t('description')} />
+            <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-[var(--ink-70)]">
               {prop.description}
             </p>
           </section>
         )}
 
-        {/* Details: data + location combined */}
-        <section className="space-y-4">
-          {/* Location */}
-          <div>
-            <h2 className="eyebrow mb-2">{t('location')}</h2>
-            <div className="text-[13px] space-y-0.5">
-              {prop.address.street && <div className="text-foreground">{prop.address.street}</div>}
-              <div className="text-muted-foreground">
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <SectionHeader title={t('location')} />
+            <div className="space-y-0.5 text-[13px]">
+              {prop.address.street && (
+                <div className="text-foreground">{prop.address.street}</div>
+              )}
+              <div className="text-[var(--ink-60)]">
                 {[prop.address.locality, prop.address.municipality, prop.address.district]
                   .filter(Boolean)
                   .join(', ')}
@@ -279,85 +314,62 @@ export function PropertyDetailView({
             </div>
           </div>
 
-          {/* Data table */}
-          <div>
-            <h2 className="eyebrow mb-2">{t('data')}</h2>
-            <div className="space-y-1 text-[13px]">
+          <div className="space-y-2">
+            <SectionHeader title={t('data')} />
+            <div>
               {prop.rooms != null && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('rooms_label')}</span>
-                  <span className="font-medium text-foreground">T{prop.rooms}</span>
-                </div>
+                <DataRow label={t('rooms_label')}>T{prop.rooms}</DataRow>
               )}
               {prop.bathrooms != null && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('bathrooms_label')}</span>
-                  <span className="font-medium text-foreground">{prop.bathrooms}</span>
-                </div>
+                <DataRow label={t('bathrooms_label')}>{prop.bathrooms}</DataRow>
               )}
               {(f.constructedAreaSqm ?? prop.sizeSqm) && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('areaLabel')}</span>
-                  <span className="font-medium text-foreground">{f.constructedAreaSqm ?? prop.sizeSqm} m²</span>
-                </div>
+                <DataRow label={t('areaLabel')}>
+                  {f.constructedAreaSqm ?? prop.sizeSqm} m²
+                </DataRow>
               )}
               {f.usableAreaSqm && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('usableArea')}</span>
-                  <span className="font-medium text-foreground">{f.usableAreaSqm} m²</span>
-                </div>
+                <DataRow label={t('usableArea')}>{f.usableAreaSqm} m²</DataRow>
               )}
               {f.lotSizeSqm && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('lotSize')}</span>
-                  <span className="font-medium text-foreground">{f.lotSizeSqm.toLocaleString('pt-PT')} m²</span>
-                </div>
+                <DataRow label={t('lotSize')}>
+                  {f.lotSizeSqm.toLocaleString('pt-PT')} m²
+                </DataRow>
               )}
-              {f.floors && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('floors')}</span>
-                  <span className="font-medium text-foreground">{f.floors}</span>
-                </div>
-              )}
+              {f.floors && <DataRow label={t('floors')}>{f.floors}</DataRow>}
               {f.yearBuilt && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('yearBuilt')}</span>
-                  <span className="font-medium text-foreground">{f.yearBuilt}</span>
-                </div>
+                <DataRow label={t('yearBuilt')}>{f.yearBuilt}</DataRow>
               )}
               {f.energyCertificate && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('energyCertificate')}</span>
+                <DataRow label={t('energyCertificate')}>
                   <EnergyBadge
                     value={f.energyCertificate}
                     data-test-id={`property-energy-${reference}`}
                   />
-                </div>
+                </DataRow>
               )}
               {f.heatingType && (
-                <div className="flex justify-between py-1.5 border-b border-[var(--ink-08)]">
-                  <span className="text-muted-foreground">{t('heating')}</span>
-                  <span className="font-medium text-foreground">
-                    {f.heatingType === 'individual'
-                      ? t('heatingIndividual')
-                      : f.heatingType === 'central'
-                        ? t('heatingCentral')
-                        : t('heatingNone')}
-                  </span>
-                </div>
+                <DataRow label={t('heating')}>
+                  {f.heatingType === 'individual'
+                    ? t('heatingIndividual')
+                    : f.heatingType === 'central'
+                      ? t('heatingCentral')
+                      : t('heatingNone')}
+                </DataRow>
               )}
             </div>
           </div>
         </section>
       </div>
 
-      {/* ── Features ──────────────────────────────────────────── */}
       {positiveFeatures.length > 0 && (
-        <section className="pt-6 space-y-2">
-          <h2 className="eyebrow">{t('features')}</h2>
+        <section className="space-y-3">
+          <SectionHeader title={t('features')} />
           <div className="flex flex-wrap gap-1.5">
             {positiveFeatures.map((feat) => (
-              <Badge key={feat} variant="ghost">{feat}</Badge>
+              <Badge key={feat} variant="ghost">
+                {feat}
+              </Badge>
             ))}
           </div>
         </section>

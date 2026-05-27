@@ -11,6 +11,7 @@ import {
   Wordmark,
 } from '@iedora/design-system'
 import { ActiveSidebarLinks, type ActiveSidebarItem } from '@/shared/ui/active-sidebar-links'
+import { ToastsProvider } from '@/shared/ui/toasts'
 
 const navItems: ReadonlyArray<ActiveSidebarItem> = [
   { href: '/dashboard', label: 'Propriedades', testId: 'nav-properties', matchPrefix: false },
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SidebarProvider>
+      <ToastsProvider>
       <div className="flex min-h-screen flex-col bg-[var(--paper)] lg:flex-row">
         <SidebarTrigger aria-label="Abrir navegação" data-test-id="dashboard-sidebar-trigger" />
         <Sidebar aria-label="Navegação principal" data-test-id="dashboard-chrome">
@@ -47,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Suspense>
         </main>
       </div>
+      </ToastsProvider>
     </SidebarProvider>
   )
 }

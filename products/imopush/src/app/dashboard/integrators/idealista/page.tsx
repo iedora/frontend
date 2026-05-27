@@ -1,4 +1,4 @@
-import { DashboardPage } from '@iedora/design-system'
+import { DashboardPage, Card, CardTitle, CardDesc, StatusChip } from '@iedora/design-system'
 import { getTranslations } from 'next-intl/server'
 
 export default async function IdealistaIntegrator() {
@@ -12,17 +12,19 @@ export default async function IdealistaIntegrator() {
       data-test-id="integrator-idealista"
       description={t('description')}
     >
-      <div className="rounded border border-border p-6 text-[14px] text-muted-foreground space-y-2">
-        <p>
-          {t('accountLabel')}{' '}
-          <span className="font-medium text-foreground">eduardoferdcarvalho+agency@gmail.com</span>
-        </p>
-        <p>
-          {t('stateLabel')}{' '}
-          <span className="font-medium text-foreground">{t('stateActive')}</span>
-        </p>
-        <p className="text-[12.5px]">{t('note')}</p>
-      </div>
+      <Card data-test-id="integrator-idealista-card">
+        <CardTitle>{t('accountLabel')}</CardTitle>
+        <CardDesc>
+          <span className="font-medium text-foreground">
+            eduardoferdcarvalho+agency@gmail.com
+          </span>
+        </CardDesc>
+        <div className="mt-3 flex items-center gap-2 text-[13px]">
+          <span className="text-[var(--ink-60)]">{t('stateLabel')}</span>
+          <StatusChip label={t('stateActive')} variant="success" />
+        </div>
+        <p className="mt-3 text-[12.5px] text-[var(--ink-60)]">{t('note')}</p>
+      </Card>
     </DashboardPage>
   )
 }
