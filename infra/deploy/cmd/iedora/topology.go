@@ -8,6 +8,12 @@ import "strings"
 // global derivation, not a property of a single surface.
 const trustedOriginsEnv = "CORE_TRUSTED_ORIGINS"
 
+// rootSurface — the name of the surface that owns the URL root in
+// the Next.js app (no rewrite applied). Today `menu` mounts at /
+// and every other surface lives under /<name>/*. Encoded here so
+// proxy.ts and the TS generator don't have to special-case it.
+const rootSurface = "menu"
+
 // surface is a logical product surface — a hostname-keyed fachada
 // served by the web container. Distinct from `product` (a deploy
 // artifact, see products.go): three surfaces (menu, core, house)
@@ -39,7 +45,7 @@ type surface struct {
 	serves string
 
 	// publicURLEnv — the env var the container reads to learn its
-	// own public URL (e.g. MENU_PUBLIC_URL). Empty when the surface
+	// own public URL (e.g. NEXT_PUBLIC_MENU_URL). Empty when the surface
 	// has no dedicated URL env (the apex `house` surface doesn't
 	// expose itself via env — it's the implicit fallback).
 	publicURLEnv string
@@ -74,17 +80,21 @@ type surface struct {
 //     (see apps/web/CLAUDE.md § Hard rules #5).
 var surfaces = []surface{
 	{
-		name:           "house",
-		subdomain:      "",
-		serves:         "web",
+		name:      "house",
+		subdomain: "",
+		serves:    "web",
+		// No localHostnames — in dev the apex landing has no
+		// dedicated host. `localhost:3000` belongs to the root
+		// surface (menu); the apex routes are reachable via the
+		// /house path-based fallback when needed.
 		trustedOrigin:  true,
-		localHostnames: []string{"localhost"},
+		localHostnames: nil,
 	},
 	{
 		name:           "menu",
 		subdomain:      "menu",
 		serves:         "web",
-		publicURLEnv:   "MENU_PUBLIC_URL",
+		publicURLEnv:   "NEXT_PUBLIC_MENU_URL",
 		trustedOrigin:  true,
 		localHostnames: []string{"menu.localhost"},
 	},
@@ -97,6 +107,27 @@ var surfaces = []surface{
 		trustedOrigin:  true,
 		localHostnames: []string{"core.localhost"},
 	},
+	{
+		name:           "imopush",
+		subdomain:      "imopush",
+		serves:         "web",
+		publicURLEnv:   "NEXT_PUBLIC_IMOPUSH_URL",
+		trustedOrigin:  true,
+		localHostnames: []string{"imopush.localhost"},
+	},
+}
+
+// productSurfaces is the set of surface names that correspond to
+// an entry in @iedora/brand's PRODUCTS registry (and therefore have
+// a Go workspace under products/<name>/ and a TS const PRODUCTS.<name>).
+// `house` is not here — it's the apex landing, not a product.
+//
+// Used by surfaceTS to decide whether a surface name is emitted as
+// PRODUCTS.<name> (typed) or as a bare string literal.
+var productSurfaces = map[string]bool{
+	"menu":    true,
+	"core":    true,
+	"imopush": true,
 }
 
 // prodHostname returns the FQDN this surface answers to in
@@ -112,17 +143,6 @@ func (s surface) prodHostname(zone string) string {
 // production.
 func (s surface) prodURL(zone string) string {
 	return "https://" + s.prodHostname(zone)
-}
-
-// localURL returns the local-dev http URL for this surface, using
-// the surface's primary local hostname. Panics if the surface has no
-// localHostnames declared — that's a programming error, every
-// surface needs at least one local host.
-func (s surface) localURL(port int) string {
-	if len(s.localHostnames) == 0 {
-		panic("surface " + s.name + " has no localHostnames")
-	}
-	return "http://" + s.localHostnames[0] + ":" + itoa(port)
 }
 
 // trustedOriginsProd returns the production CSRF allowlist —
@@ -173,6 +193,16 @@ func trustedOriginsLocal(port int) string {
 		}
 	}
 	return string(b)
+}
+
+// rewritePath returns the URL prefix proxy.ts rewrites this
+// surface's traffic under. "" means no rewrite (the root surface
+// owns the URL root directly).
+func (s surface) rewritePath() string {
+	if s.name == rootSurface {
+		return ""
+	}
+	return "/" + s.name
 }
 
 // surfaceTofuEnv returns the surface-derived portion of the

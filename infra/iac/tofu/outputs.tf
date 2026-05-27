@@ -77,6 +77,11 @@ output "core_trusted_origins" {
   value       = join(",", local.trusted_origins)
 }
 
+output "next_public_imopush_url" {
+  description = "Public base URL of the imopush app — inlined into the client bundle (NEXT_PUBLIC_* prefix)."
+  value       = local.surface_urls["imopush"]
+}
+
 output "assets_s3_endpoint" {
   description = "R2 S3 endpoint for the public assets bucket."
   value       = "https://${var.account_id}.r2.cloudflarestorage.com"
