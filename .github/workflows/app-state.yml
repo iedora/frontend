@@ -52,39 +52,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Wait for ghcr.io/eduvhc/web:latest
-        # Both Stage-3 configurators (`core-db-migrations`,
-        # `menu-db-migrations`) `docker run --rm <web-image>` on the
-        # box. On a fresh Day 1, the web image is being built in
-        # parallel by `web.yml`; if `[infra] Deploy` finishes first this
-        # workflow would crash on `docker pull`. Block here until GHCR
-        # exposes a `latest` tag (the manifest list `imagetools create`
-        # pushes alongside `:<sha>`).
-        #
-        # Day-2 paths (push to infra/app-state/** or manual dispatch on
-        # a warm cluster) skip the wait immediately — `:latest` already
-        # exists from a prior CI run.
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          deadline=$(( $(date +%s) + 1800 ))   # 30 min budget
-          while true; do
-            if gh api -H "Accept: application/vnd.github+json" \
-                 /users/eduvhc/packages/container/web/versions \
-                 --jq '.[].metadata.container.tags[]' 2>/dev/null \
-                 | grep -qx 'latest'; then
-              echo "✓ ghcr.io/eduvhc/web:latest is available"
-              break
-            fi
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "✗ ghcr.io/eduvhc/web:latest still missing after 30 min — abort"
-              exit 1
-            fi
-            echo "ghcr.io/eduvhc/web:latest not yet pushed — waiting 30s"
-            sleep 30
-          done
-
       - name: Install bws CLI
         env:
           BWS_VERSION: '2.0.0'
@@ -94,6 +61,47 @@ jobs:
             "https://github.com/bitwarden/sdk-sm/releases/download/bws-v${BWS_VERSION}/bws-x86_64-unknown-linux-gnu-${BWS_VERSION}.zip"
           unzip -q /tmp/bws.zip -d /tmp/bws
           sudo install -m 0755 /tmp/bws/bws /usr/local/bin/bws
+
+      - name: Wait for ghcr.io/eduvhc/web:latest
+        # Both Stage-3 configurators (`core-db-migrations`,
+        # `menu-db-migrations`) `docker run --rm <web-image>` on the
+        # box. On a fresh Day 1, the web image is being built in
+        # parallel by `web.yml`; if `[infra] Deploy` finishes first this
+        # workflow would crash on `docker pull`. Block here until GHCR
+        # exposes a `latest` tag for `ghcr.io/eduvhc/web`.
+        #
+        # The GHCR `web` package is PRIVATE. The repo's GITHUB_TOKEN
+        # (scoped to iedora repo, not the user's packages) can't see
+        # it, so we can't poll via the user-packages API with that
+        # token. Use IAC_BOOTSTRAP_GHCR_TOKEN (the same PAT used to
+        # push the image) which has read access to the owner's
+        # private packages — alias it to GH_TOKEN so the gh CLI picks
+        # it up.
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          bin/iedora-env bash -c '
+            set -euo pipefail
+            [ -n "${IAC_BOOTSTRAP_GHCR_TOKEN:-}" ] || { echo "IAC_BOOTSTRAP_GHCR_TOKEN missing in BWS" >&2; exit 1; }
+            export GH_TOKEN="$IAC_BOOTSTRAP_GHCR_TOKEN"
+            deadline=$(( $(date +%s) + 1800 ))   # 30 min budget
+            while true; do
+              if gh api -H "Accept: application/vnd.github+json" \
+                   /user/packages/container/web/versions \
+                   --jq ".[].metadata.container.tags[]" 2>/dev/null \
+                   | grep -qx "latest"; then
+                echo "✓ ghcr.io/eduvhc/web:latest is available"
+                break
+              fi
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                echo "✗ ghcr.io/eduvhc/web:latest still missing after 30 min — abort"
+                exit 1
+              fi
+              echo "ghcr.io/eduvhc/web:latest not yet pushed — waiting 30s"
+              sleep 30
+            done
+          '
 
       - name: Install Go
         uses: actions/setup-go@v6
