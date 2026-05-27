@@ -60,9 +60,13 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
+// Root layout serves every surface (menu / core / house / imopush) —
+// the title/description here are the brand-level fallbacks. Each
+// surface's pages override via their own `export const metadata` so
+// the template suffix lands on the brand, not on a specific product.
 export const metadata: Metadata = {
-  title: { default: "Menu — an iedora product", template: "%s · Menu" },
-  description: "Digital restaurant menus, drag-and-drop. An iedora product.",
+  title: { default: "Iedora — House of Software", template: "%s · Iedora" },
+  description: "We do software with quality.",
 };
 
 export default async function RootLayout({
