@@ -60,50 +60,9 @@ jobs:
       - uses: ./.github/actions/infra/install-bws
 
       - name: Wait for ghcr.io/eduvhc/migrate:latest
-        # Stage-3 configurators `docker run --rm` the migrate image to
-        # apply DB migrations. The migrate image is independent of
-        # the web image — built by `.github/workflows/migrate.yml`
-        # whenever migration SQL or migrate scripts change. It may
-        # NOT be at the same SHA as the web image (most pushes don't
-        # touch migrations).
-        #
-        # We poll for `:latest` — the most recently pushed migrator.
-        # If migrate.yml was triggered by this same push, by the
-        # time we get here it has finished. If migrations didn't
-        # change in this push, `:latest` is the previous good
-        # migrate image (correct — no new migrations to apply, run
-        # is a no-op).
-        #
-        # GHCR `migrate` package is PRIVATE (same as web); use
-        # IAC_BOOTSTRAP_GHCR_TOKEN (PAT) instead of GITHUB_TOKEN
-        # which can't see user-owned private packages.
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-        run: |
-          set -euo pipefail
-          # The inner bash via bin/iedora-env expands these, not the outer shell.
-          # shellcheck disable=SC2016
-          bin/iedora-env bash -c '
-            set -euo pipefail
-            [ -n "${IAC_BOOTSTRAP_GHCR_TOKEN:-}" ] || { echo "IAC_BOOTSTRAP_GHCR_TOKEN missing in BWS" >&2; exit 1; }
-            export GH_TOKEN="$IAC_BOOTSTRAP_GHCR_TOKEN"
-            deadline=$(( $(date +%s) + 1800 ))   # 30 min budget
-            while true; do
-              if gh api -H "Accept: application/vnd.github+json" \
-                   /user/packages/container/migrate/versions \
-                   --jq ".[].metadata.container.tags[]" 2>/dev/null \
-                   | grep -qx "latest"; then
-                echo "✓ ghcr.io/eduvhc/migrate:latest is available"
-                break
-              fi
-              if [ "$(date +%s)" -ge "$deadline" ]; then
-                echo "✗ ghcr.io/eduvhc/migrate:latest still missing after 30 min — abort"
-                exit 1
-              fi
-              echo "ghcr.io/eduvhc/migrate:latest not yet pushed — waiting 30s"
-              sleep 30
-            done
-          '
+        run: bin/iedora-env bash .github/scripts/wait-migrate-image.sh
 
       - name: Install Go
         uses: actions/setup-go@v6

@@ -93,21 +93,5 @@ jobs:
         run: bin/iedora-env bin/iedora deploy ${{ inputs.product }}
 
       - name: Smoke check
-        # `web` serves three hosts off one Next.js process; menu.iedora.com
-        # is the primary surface and the only one with a `/up` route.
         if: inputs.product == 'web'
-        env:
-          URL: https://menu.iedora.com/up
-        run: |
-          set -euo pipefail
-          for i in 1 2 3 4 5 6; do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$URL" || echo 000)
-            if [ "$CODE" = "200" ]; then
-              echo "[deploy] OK /up returned 200"
-              exit 0
-            fi
-            echo "[deploy] /up returned $CODE; retry $i/6 in 5s"
-            sleep 5
-          done
-          echo "[deploy] FAIL /up never returned 200 after 30s" >&2
-          exit 1
+        run: bash .github/scripts/smoke-check.sh https://menu.iedora.com/up

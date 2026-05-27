@@ -31,13 +31,18 @@ Resolved with:
   `infra-deploy.yml` passes `register-agent: 'false'` (Tofu needs the
   key on disk, not in agent); `app-state.yml` + `deploy.yml` use defaults.
 
-### CI-3: web.yml has 76 lines of inline shell in `run:` blocks
-**size:** M · **risk:** low
+### CI-3: ~~web.yml has 76 lines of inline shell in `run:` blocks~~ → resolved
+**size:** ~~M~~ · **risk:** ~~low~~
 
-Polling loops + bws-fetch + multi-step build orchestration grew
-inline. Extract to `.github/scripts/wait-app-state.sh` or composite
-actions. `app-state.yml`, `deploy.yml`, `infra-deploy.yml` have
-similar but smaller blocks (30-40 each).
+Resolved by extracting all non-trivial inline shell into `.github/scripts/`:
+- `wait-app-state.sh` — dispatch + follow-run-id logic from web.yml (was ~45 lines)
+- `wait-migrate-image.sh` — GHCR API polling from app-state.yml (was ~15 lines)
+- `smoke-check.sh` — curl retry smoke check from deploy.yml (was ~10 lines)
+- `wait-s3mock.sh` — S3Mock readiness from product-menu.yml (was ~8 lines)
+
+Scripts are standalone `.sh` files that can be shellchecked independently
+and shared across workflows. Workflow `run:` blocks now one-liners:
+`bash .github/scripts/<name>.sh`.
 
 ### CI-5: ~~workflows over-trigger on irrelevant changes~~ → resolved
 **size:** ~~S~~ · **risk:** ~~low~~

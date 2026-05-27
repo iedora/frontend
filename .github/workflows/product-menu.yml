@@ -16,6 +16,7 @@ on:
       - 'packages/eslint-config/**'
       - '.github/workflows/product-menu.yml'
       - '.github/actions/**'
+      - '.github/scripts/**'
   pull_request:
     branches: [main]
     paths:
@@ -23,6 +24,7 @@ on:
       - 'packages/eslint-config/**'
       - '.github/workflows/product-menu.yml'
       - '.github/actions/**'
+      - '.github/scripts/**'
   workflow_dispatch:
 
 concurrency:
@@ -108,15 +110,7 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Wait for S3Mock + create bucket
-        run: |
-          for _ in $(seq 1 30); do
-            if curl -fsS http://localhost:9090/ >/dev/null 2>&1; then
-              echo "S3Mock ready"; break
-            fi
-            sleep 1
-          done
-          curl -fsS -X PUT http://localhost:9090/menu-test
-          echo "menu-test bucket ready"
+        run: bash .github/scripts/wait-s3mock.sh
 
       - name: Apply DB migrations
         run: bun run db:migrate:test
