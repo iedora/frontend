@@ -1,0 +1,47 @@
+# OpenTelemetry Collector — bridge kamal-proxy Prometheus metrics → OpenObserve OTLP.
+#
+# Recebe: scrape de http://kamal-proxy:9090/metrics (Prometheus format)
+# Envia:  OTLP HTTP para http://host.docker.internal:5080/api/default/v1/metrics
+# Auth:   ${env:OTEL_AUTH_HEADER} (Basic base64(email:password) — composed
+#         em .kamal/secrets.production a partir das mesmas creds OO que
+#         a app usa para spans).
+#
+# Reside no Kamal accessory `otel-collector` na rede `kamal` (mesma que
+# kamal-proxy → resolve por hostname). add-host:host.docker.internal:host-gateway
+# permite chegar a OO que vive em homelab-core network (diferente).
+
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: kamal-proxy
+          scrape_interval: 30s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ['kamal-proxy:9090']
+              labels:
+                source: kamal-proxy
+                service: iedora-web
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 100
+
+exporters:
+  otlphttp:
+    endpoint: http://host.docker.internal:5080/api/default
+    headers:
+      Authorization: ${env:OTEL_AUTH_HEADER}
+    compression: gzip
+    timeout: 10s
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [otlphttp]
+  telemetry:
+    logs:
+      level: info

@@ -15,7 +15,9 @@ ssh:
     - ~/.ssh/ci_ed25519
 
 registry:
-  server: ghcr.io
+  # Gitea OCI registry no mesmo Beelink (LAN, HTTP via insecure-registries
+  # config no daemon Docker). Push/pull em microsegundos vs GHCR's WAN.
+  server: 192.168.50.53:3030
   username: eduvhc
   password:
     - KAMAL_REGISTRY_PASSWORD
@@ -25,6 +27,13 @@ builder:
   remote: ssh://root@192.168.50.53
   context: .
   dockerfile: apps/web/Dockerfile
+  # Buildx registry cache — exporta todas as stages (deps + build +
+  # runtime) para uma imagem separada. Next build pull dessa tag,
+  # só rebuild do que mudou. Tipicamente 10min → 3-4min em warm builds.
+  cache:
+    type: registry
+    image: eduvhc/web-buildcache
+    options: mode=max,compression=zstd
 
 accessories:
   postgres:
@@ -42,16 +51,37 @@ accessories:
     directories:
       - data:/var/lib/postgresql/data
 
-  cloudflared:
+  cloudflared: &cloudflared
+    # host.docker.internal needed para chegar a serviços em outras
+    # Docker networks (Gitea em homelab-core publica :3030 no host).
     image: cloudflare/cloudflared:latest
-    roles:
-      - web
+    roles: [web]
     cmd: tunnel --no-autoupdate run
     env:
       secret:
         - TUNNEL_TOKEN
-    # host.docker.internal needed para chegar ao Gitea em host:3030
-    # (rede Docker separada `homelab-core`).
+    options:
+      add-host: host.docker.internal:host-gateway
+
+  # Replica do MESMO tunnel — registra como segundo connector, CF
+  # load-balances + failover automático. Sobrevive a crash/update do
+  # connector primário sem 502 visível. YAML anchor reusa toda a
+  # config do cloudflared primário (sem duplicação).
+  cloudflared-replica:
+    <<: *cloudflared
+
+  # OTel collector — scrape kamal-proxy Prometheus em :9090 + push OTLP
+  # para OpenObserve. Spans da app (via instrumentation.ts) +
+  # proxy metrics convergem no mesmo backend.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.153.0
+    roles: [web]
+    cmd: --config=/etc/otelcol-contrib/config.yaml
+    env:
+      secret:
+        - OTEL_AUTH_HEADER
+    files:
+      - config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
     options:
       add-host: host.docker.internal:host-gateway
 
