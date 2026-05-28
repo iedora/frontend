@@ -68,7 +68,11 @@ jobs:
       # whitelistado em homelab-core-infra/gitea-runner-config.yaml
       # valid_volumes. Sem fetch do BWS no runner = sem bws install,
       # sem jq, sem python3.
-      image: debian:bookworm-slim
+      #
+      # node:24-bookworm-slim em vez de debian:bookworm-slim porque
+      # `actions/checkout@v4` é Node action (requer node 20+ no
+      # PATH; act-runner não injecta).
+      image: node:24-bookworm-slim
       volumes:
         - /root/.ssh/ci_ed25519:/root/.ssh/ci_ed25519:ro
     steps:
