@@ -73,6 +73,11 @@ export {
   SidebarProvider,
   useSidebar,
 } from "./components/sidebar";
+export {
+  ActiveSidebarLinks,
+  type ActiveSidebarItem,
+  type ActiveSidebarLinksProps,
+} from "./components/active-sidebar-links";
 
 export { Button, type ButtonProps } from "./components/button";
 export { Badge } from "./components/badge";
