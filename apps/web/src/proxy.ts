@@ -6,11 +6,20 @@ import { surfaces, surfaceByHost } from './generated/surfaces'
 const protectedPrefixes = ['/menu/dashboard', '/menu/onboarding']
 
 /**
- * better-auth's session cookie name. Used here only as an OPTIMISTIC
+ * better-auth's session cookie names. Used here only as an OPTIMISTIC
  * hint (cookie present ⇒ likely signed in) — the real session lookup
  * happens in the DAL via `auth.api.getSession()`. AGENTS.md hard rule #5.
+ *
+ * Two variants because better-auth auto-prepends `__Secure-` when the
+ * origin is HTTPS (prod). Checking only the bare name produced a real
+ * loop: optimistic check said "no session" on a signed-in request →
+ * redirect to sign-in → sign-in's server-side `auth.api.getSession()`
+ * sees the cookie → redirects back → loop.
  */
-const SESSION_COOKIE = 'better-auth.session_token'
+const SESSION_COOKIES = [
+  '__Secure-better-auth.session_token',
+  'better-auth.session_token',
+] as const
 
 /**
  * Three jobs in order of precedence:
@@ -81,7 +90,7 @@ export default function proxy(req: NextRequest) {
   const isProtected = protectedPrefixes.some((p) => path.startsWith(p))
   if (!isProtected) return NextResponse.next()
 
-  const hasSession = req.cookies.has(SESSION_COOKIE)
+  const hasSession = SESSION_COOKIES.some((name) => req.cookies.has(name))
   if (!hasSession) {
     // Cross-origin redirect to the core product's sign-in. `next` is an
     // absolute URL on THIS host (built via publicUrl) so after auth the
