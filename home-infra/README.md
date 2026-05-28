@@ -39,6 +39,9 @@ export HOMELAB_HOST='ssh://root@<ip>'
    keypair no `HOMELAB_HOST`
 2. `openobserve/bin.sh` — boot OpenObserve
 3. `gitea/bin.sh` — boot Gitea + Caddy + runner
+4. `cloudflared/bin.sh` — provisiona tunnel `homelab-admin` (expõe
+   gitea + OO publicamente; sign-in nativo da app; Authentik SSO
+   planeado) + boot connector
 
 Setup de uma app consumer (clone source, CF tunnel, R2 bucket, PAT
 do Gitea, `/etc/hosts` overrides, etc.) vive na própria app — ex:
@@ -83,6 +86,18 @@ run`-injected) + `.env` (next to compose). Nome do `${KEY}` no compose
 |---|---|---|---|
 | `openobserve/` | OpenObserve | 5080 (UI/OTLP HTTP), 5081 (OTLP gRPC) | `OPENOBSERVE_ADMIN_PASSWORD` |
 | `gitea/` | Gitea (git/UI/Actions/registry) + Caddy (TLS via CF DNS-01) + Actions runner | 3030 (UI), 3022 (SSH), 4443 (HTTPS Caddy) | `CLOUDFLARE_API_TOKEN` |
+| `cloudflared/` | Connector do tunnel `homelab-admin` — expõe `git.iedora.com` + `observe.iedora.com` publicamente | — | `CLOUDFLARE_API_TOKEN`, `HOMELAB_ADMIN_TUNNEL_TOKEN` |
+
+### Topologia de tunnels
+
+| Tunnel | Owner | Hostnames | Auth | Lifecycle |
+|---|---|---|---|---|
+| `iedora-public` | `my-services/iedora/cloudflared/` | iedora.com, www, menu, core, imopush | anónimo | compose standalone |
+| `homelab-admin` | `home-infra/cloudflared/` | git.iedora.com, observe.iedora.com | sign-in nativo da app (Authentik SSO planeado) | compose standalone |
+
+Ambos os connectors vivem na rede `homelab-core` (resolução por Docker DNS para os service targets). Em multi-host: `iedora-public` deploya em cada app host (CF load-balances connectors), `homelab-admin` fica no infra host.
+
+**East-west cross-host** (Kamal pull, OO logs push) **não** passa pelos tunnels — usa LAN ou Tailscale via `/etc/hosts` (`git.iedora.com:4443` → IP do infra host).
 
 ### Gitea utils (`home-infra/gitea/scripts/`)
 
@@ -92,6 +107,7 @@ Genéricos — qualquer consumer pode usar:
 |---|---|
 | `create-token.sh` | Cria PAT via Gitea API. Idempotent (revoga PAT com mesmo nome antes). Stdout = valor do PAT |
 | `set-actions-secret.sh` | Publica Actions secret numa repo (PUT idempotent) |
+| `create-org.sh` | Cria/actualiza org + adiciona users aos teams Owners/Members. Idempotent. Inputs: `ORG_NAME`, `ORG_OWNERS`, `ORG_MEMBERS` (CSV), `ORG_DESCRIPTION`, `ORG_VISIBILITY` |
 
 Exemplo (em `home-infra/iedora/scripts/bootstrap.sh` futuro):
 
@@ -116,9 +132,10 @@ SECRET_VALUE="$PAT" \
 
 1. `home-infra/openobserve`
 2. `home-infra/gitea`
-3. *Depois*: `home-infra/<app>/` (consumers — iedora, etc.)
+3. `home-infra/cloudflared` (admin tunnel — depois dos services que expõe)
+4. *Depois*: `home-infra/my-services/<app>/` (consumers — iedora, etc.)
 
-Ordem entre os dois primeiros é livre (sem `depends_on` cross-compose).
+Ordem entre `openobserve` e `gitea` é livre.
 
 ## Volumes & migração
 

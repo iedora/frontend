@@ -64,24 +64,10 @@ accessories:
     directories:
       - data:/var/lib/postgresql/data
 
-  cloudflared: &cloudflared
-    # host.docker.internal needed para chegar a serviços em outras
-    # Docker networks (Gitea em homelab-core publica :3030 no host).
-    image: cloudflare/cloudflared:latest
-    roles: [web]
-    cmd: tunnel --no-autoupdate run
-    env:
-      secret:
-        - TUNNEL_TOKEN
-    options:
-      add-host: host.docker.internal:host-gateway
-
-  # Replica do MESMO tunnel — registra como segundo connector, CF
-  # load-balances + failover automático. Sobrevive a crash/update do
-  # connector primário sem 502 visível. YAML anchor reusa toda a
-  # config do cloudflared primário (sem duplicação).
-  cloudflared-replica:
-    <<: *cloudflared
+  # cloudflared NÃO é Kamal accessory — corre como compose standalone em
+  # home-infra/my-services/iedora/cloudflared/ (tunnel iedora-public) e
+  # home-infra/cloudflared/ (tunnel homelab-admin, expõe gitea + OO).
+  # Lifecycle separado do app; multi-host via bin.sh em cada host.
 
   # OTel collector — scrape kamal-proxy Prometheus em :9090 + push
   # OTLP HTTP para OpenObserve. Spans da app (via instrumentation.ts)

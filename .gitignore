@@ -41,6 +41,9 @@ service-references/
 *.sql.gz
 *.bak
 
+# Operator env (home-infra/.env) é coberto pela rule `.env` global mais
+# abaixo. Shape em home-infra/.env.example.
+
 # Go build artefacts from `go build ./...` invoked at the repo root.
 # The binaries land in the cwd named after their `cmd/<name>/`
 # directory. We always run via `go run` (through bin/ shims for the
@@ -77,8 +80,12 @@ yarn-debug.log*
 # em runtime) e estão tracked para o CI poder fazer `kamal deploy`.
 /.kamal/secrets
 
-# home-infra/*/.env é COMMITTED — só config non-secret (ex: email,
-# domain). Secrets ficam em BWS, injectados em runtime via `bws run`.
+# home-infra/<service>/.env é COMMITTED — só config non-secret (ex:
+# email, domain). Secrets ficam em BWS, injectados em runtime via
+# `bws run`. Negate a rule `.env` global acima para estes paths:
+!home-infra/*/.env
+!home-infra/my-services/*/.env
+!home-infra/my-services/*/*/.env
 
 # vercel
 .vercel

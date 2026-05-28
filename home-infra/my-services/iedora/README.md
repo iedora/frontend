@@ -18,11 +18,14 @@ export HOMELAB_HOST='ssh://root@<ip>'
 
 Faz:
 1. **CF tunnel + DNS** (`cf-tunnel.sh`) — cria/reusa tunnel
-   `iedora-beelink`, ingress para `iedora.com`, `www`, `menu`, `core`,
-   `imopush`. Grava `IEDORA_TUNNEL_TOKEN` em BWS.
-2. **R2 bucket** (`r2-bucket.sh`) — bucket `iedora-assets`, S3 creds em
+   `iedora-public` (apaga legacy `iedora-beelink`), ingress para
+   `iedora.com`, `www`, `menu`, `core`, `imopush`. Grava
+   `IEDORA_TUNNEL_TOKEN` em BWS.
+2. **Cloudflared connector** (`../cloudflared/bin.sh`) — boota o
+   container `iedora-public-cloudflared` na rede `homelab-core`.
+3. **R2 bucket** (`r2-bucket.sh`) — bucket `iedora-assets`, S3 creds em
    BWS (`IEDORA_S3_ACCESS_KEY_ID`, `IEDORA_S3_SECRET_ACCESS_KEY`).
-3. **Setup repo** (`setup-repo.sh`):
+4. **Setup repo** (`setup-repo.sh`):
    - Cria PAT `iedora-deploy` no Gitea (via
      `home-infra/gitea/scripts/create-token.sh`, scope
      `read:repository,write:package`)
@@ -37,7 +40,7 @@ Faz:
 | Key | Operação | Lida por |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | leitura | `cf-tunnel.sh`, `r2-bucket.sh` |
-| `IEDORA_TUNNEL_TOKEN` | escrita | (kamal accessory cloudflared) |
+| `IEDORA_TUNNEL_TOKEN` | escrita | `cloudflared/docker-compose.yml` |
 | `IEDORA_S3_ACCESS_KEY_ID` | escrita | `.kamal/secrets.production` |
 | `IEDORA_S3_SECRET_ACCESS_KEY` | escrita | `.kamal/secrets.production` |
 | `IEDORA_AUTH_SECRET` | leitura (já existe) | `.kamal/secrets.production` |

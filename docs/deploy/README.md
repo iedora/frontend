@@ -129,12 +129,11 @@ e o push é localhost-to-localhost.
 Em CI: push a `main` (ou `workflow_dispatch`) → workflow `Pipeline`
 job `deploy` faz rsync + ssh trigger Kamal.
 
-Localmente do Mac (mesmo path):
+Localmente do Mac (ssh-trigger directo):
 
 ```bash
-export KAMAL_REGISTRY_PASSWORD='<PAT scope write:package>'
-export BWS_ACCESS_TOKEN='…'
-./bin/deploy
+ssh root@<host> "cd /opt/iedora && git fetch && git checkout <SHA> && \
+  BWS_ACCESS_TOKEN=… kamal deploy -d production"
 ```
 
 Hot-swap zero-downtime: Kamal sobe o novo container ao lado do atual,

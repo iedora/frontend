@@ -3,6 +3,13 @@
 # `.env` (committed) tem config hardcoded; `bws run` injecta secrets.
 set -euo pipefail
 : "${BWS_ACCESS_TOKEN:?must be set}"
-docker network inspect homelab-core >/dev/null 2>&1 || docker network create homelab-core
 cd "$(dirname "${BASH_SOURCE[0]}")"
-exec bws run -- docker compose up -d
+
+if docker network inspect homelab-core >/dev/null 2>&1; then
+  echo "  → network homelab-core (já)"
+else
+  docker network create homelab-core >/dev/null
+  echo "  → network homelab-core ✓"
+fi
+
+bws run -- docker compose up -d

@@ -14,11 +14,7 @@ networks:
     name: homelab-core
 
 volumes:
-  # Externo para preservar dados da config anterior (homelab-core-infra).
-  # Em hosts novos, comentar `external: true` para criar de raiz.
   openobserve_data:
-    external: true
-    name: homelab-core-infra_openobserve_data
 
 services:
   openobserve:
