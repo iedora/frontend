@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import {
+  ActiveSidebarLinks,
+  type ActiveSidebarItem,
   Sidebar,
   SidebarBrand,
   SidebarClose,
@@ -10,10 +12,7 @@ import {
   Wordmark,
 } from '@iedora/design-system'
 import { ToastsProvider } from '@iedora/product-imopush/shared/ui/toasts'
-import {
-  ActiveSidebarLinks,
-  type ActiveSidebarItem,
-} from './_components/active-sidebar-links'
+import { IMOPUSH_PATHS } from '@iedora/product-imopush/url'
 
 export default async function ImopushDashboardLayout({
   children,
@@ -24,14 +23,14 @@ export default async function ImopushDashboardLayout({
 
   const navItems: ReadonlyArray<ActiveSidebarItem> = [
     {
-      href: '/imopush/dashboard',
+      href: IMOPUSH_PATHS.dashboard,
       label: nav('properties'),
       testId: 'imopush-nav-properties',
       matchPrefix: false,
     },
     { kind: 'section', label: nav('integrators'), testId: 'imopush-nav-integrators-section' },
     {
-      href: '/imopush/dashboard/integrators/idealista',
+      href: IMOPUSH_PATHS.integrator('idealista'),
       label: nav('idealista'),
       testId: 'imopush-nav-idealista',
     },
@@ -52,7 +51,7 @@ export default async function ImopushDashboardLayout({
             />
             <SidebarBrand>
               <Link
-                href="/imopush/dashboard"
+                href={IMOPUSH_PATHS.dashboard}
                 className="brand"
                 aria-label={nav('ariaLabel')}
                 data-test-id="imopush-home-link"

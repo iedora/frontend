@@ -6,6 +6,7 @@
   "description": "imopush product \u2014 TBD. Scaffold only; slices + drizzle schema land in follow-up commits. Uses RELATIVE imports internally (no @/ path mapping) so apps/web's tsconfig stays clean as products land.",
   "exports": {
     ".": "./src/index.ts",
+    "./url": "./src/url.ts",
     "./i18n/messages/*.json": "./src/i18n/messages/*.json",
     "./features/properties": "./src/features/properties/index.ts",
     "./features/properties/format": "./src/features/properties/format.ts",
@@ -34,6 +35,7 @@
   },
   "dependencies": {
     "@iedora/auth": "workspace:*",
+    "@iedora/brand": "workspace:*",
     "@iedora/db": "workspace:*",
     "@iedora/design-system": "workspace:*",
     "@iedora/observability": "workspace:*",

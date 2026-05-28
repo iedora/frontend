@@ -1,7 +1,9 @@
+import { IMOPUSH_PATHS } from '../../../url'
+
 /**
  * Idealista-publish slice routes.
  */
 export const idealistaPublishRoutes = {
-  detail: (reference: string) => `/imopush/dashboard/p/${reference}`,
-  integrator: '/imopush/dashboard/integrators/idealista',
+  detail: (reference: string) => IMOPUSH_PATHS.property(reference),
+  integrator: IMOPUSH_PATHS.integrator('idealista'),
 } as const

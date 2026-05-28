@@ -1,6 +1,7 @@
 import { Card, CardTitle, CardDesc } from '@iedora/design-system'
 import { DashboardPage } from '@iedora/product-menu/shared/ui/dashboard-page'
 import { StatusChip } from '@iedora/product-imopush/shared/ui/status-chip'
+import { IMOPUSH_PATHS } from '@iedora/product-imopush/url'
 import { getTranslations } from 'next-intl/server'
 
 export default async function IdealistaIntegratorPage() {
@@ -10,7 +11,7 @@ export default async function IdealistaIntegratorPage() {
   return (
     <DashboardPage
       title={t('title')}
-      crumbs={[{ label: tList('title'), href: '/imopush/dashboard' }]}
+      crumbs={[{ label: tList('title'), href: IMOPUSH_PATHS.dashboard }]}
       data-test-id="integrator-idealista"
       description={t('description')}
     >

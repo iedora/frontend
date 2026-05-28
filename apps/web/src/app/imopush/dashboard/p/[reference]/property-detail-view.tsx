@@ -12,6 +12,7 @@ import {
 import { DashboardPage } from '@iedora/product-menu/shared/ui/dashboard-page'
 import { StatusChip } from '@iedora/product-imopush/shared/ui/status-chip'
 import { ConfirmDialog } from '@iedora/product-imopush/shared/ui/confirm-dialog'
+import { IMOPUSH_PATHS } from '@iedora/product-imopush/url'
 import {
   Bath,
   Building2,
@@ -225,7 +226,7 @@ export function PropertyDetailView({
   return (
     <DashboardPage
       title={prop.reference}
-      crumbs={[{ label: tList('title'), href: '/imopush/dashboard' }]}
+      crumbs={[{ label: tList('title'), href: IMOPUSH_PATHS.dashboard }]}
       data-test-id="property-detail"
     >
       <section className="flex flex-col gap-5 sm:flex-row sm:items-start">

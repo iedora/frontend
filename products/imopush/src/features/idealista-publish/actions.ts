@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { IMOPUSH_PATHS } from '../../url'
 import { createCdpIdealistaPublisher } from './adapters/cdp-publisher'
 import { drizzlePublishStore } from './adapters/drizzle-store'
 import { publishProperty } from './use-cases/publish-property'
@@ -11,7 +12,7 @@ export async function publishToIdealista(reference: string): Promise<PublishResu
     { publisher: createCdpIdealistaPublisher(), store: drizzlePublishStore },
     { reference },
   )
-  revalidatePath(`/imopush/dashboard/p/${reference}`)
-  revalidatePath('/imopush/dashboard')
+  revalidatePath(IMOPUSH_PATHS.property(reference))
+  revalidatePath(IMOPUSH_PATHS.dashboard)
   return result
 }

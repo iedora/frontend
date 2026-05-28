@@ -13,6 +13,7 @@ import {
   formatTypePT,
   formatOperationPT,
 } from '@iedora/product-imopush/features/properties'
+import { IMOPUSH_PATHS } from '@iedora/product-imopush/url'
 
 const INTEGRATOR_CONFIG = {
   idealista: { label: 'Idealista', Icon: Building2 },
@@ -30,7 +31,7 @@ export default async function ImopushDashboardHome() {
   const actions = (
     <Button
       variant="accent"
-      href="/imopush/dashboard/p/new"
+      href={IMOPUSH_PATHS.newProperty}
       data-test-id="properties-new"
     >
       {t('newProperty')}
@@ -73,7 +74,7 @@ export default async function ImopushDashboardHome() {
 
     return {
       id: p.reference,
-      href: `/imopush/dashboard/p/${p.reference}`,
+      href: IMOPUSH_PATHS.property(p.reference),
       title: p.reference,
       image: p.photoUrls?.[0],
       subtitle: (
