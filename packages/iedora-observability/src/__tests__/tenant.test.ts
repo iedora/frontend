@@ -45,6 +45,6 @@ describe("withTenantSpan", () => {
   it("attribute key constants are stable", () => {
     // Pinned literals — dashboards filter on these exact strings.
     expect(IEDORA_RESTAURANT_ID).toBe("tenant.restaurant_id");
-    expect(IEDORA_TENANT_ID).toBe("tenant.organization_id");
+    expect(IEDORA_TENANT_ID).toBe("tenant.id");
   });
 });

@@ -21,6 +21,7 @@ import {
   tenantSubscription,
   invoice,
 } from '@iedora/billing/schema'
+export { tenantSubscription, invoice }
 
 /**
  * Drizzle schema for the iedora auth surface.

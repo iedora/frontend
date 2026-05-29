@@ -65,7 +65,7 @@ describe("metrics surface", () => {
       // metric labels need the SAME key as span attributes so cross-signal
       // joins work. Don't change these without coordinating with OO dashboards.
       expect(IEDORA_RESTAURANT_ID).toBe("tenant.restaurant_id");
-      expect(IEDORA_TENANT_ID).toBe("tenant.organization_id");
+      expect(IEDORA_TENANT_ID).toBe("tenant.id");
     });
   });
 
