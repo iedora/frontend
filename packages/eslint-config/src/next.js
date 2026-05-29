@@ -12,6 +12,24 @@ export function next() {
     ...nextVitals,
     ...nextTs,
     {
+      // `eslint-config-next/typescript` enables `no-unused-vars` with
+      // its own defaults; re-set it here so `_`-prefix opt-outs and
+      // rest-sibling ignores stay consistent with `typescript()`.
+      files: ['**/*.{ts,tsx,mts,cts}'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': [
+          'error',
+          {
+            argsIgnorePattern: '^_',
+            varsIgnorePattern: '^_',
+            caughtErrorsIgnorePattern: '^_',
+            destructuredArrayIgnorePattern: '^_',
+            ignoreRestSiblings: true,
+          },
+        ],
+      },
+    },
+    {
       ignores: ['.next/**', 'out/**', 'next-env.d.ts'],
     },
   ]

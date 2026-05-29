@@ -19,7 +19,6 @@ export function formatEditedAt(
 ): string {
   const diffMs = now.getTime() - at.getTime()
   const diffMin = Math.round(diffMs / 60_000)
-  const diffHour = Math.round(diffMs / (60 * 60_000))
   const diffDay = Math.round(diffMs / (24 * 60 * 60_000))
 
   const time = new Intl.DateTimeFormat(locale, {

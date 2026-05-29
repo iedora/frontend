@@ -105,7 +105,6 @@ export async function recordAudit(input: AuditInput): Promise<void> {
   } catch (err) {
     // Telemetry must never break a real action. Surface in stderr so
     // operators see it in docker logs, then swallow.
-    // eslint-disable-next-line no-console
     console.error('[iedora/audit] write failed:', err)
   }
 }

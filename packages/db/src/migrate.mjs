@@ -38,7 +38,7 @@ import postgres from 'postgres'
 export async function runMigrations({ url, folder, tag }) {
   const label = tag ?? folder.split('/').slice(-2, -1)[0] ?? 'db'
   if (!existsSync(join(folder, 'meta', '_journal.json'))) {
-    console.log(`[migrate:${label}] sem migrations geradas (skip)`)
+    console.warn(`[migrate:${label}] sem migrations geradas (skip)`)
     return
   }
   if (!url) {
@@ -47,9 +47,9 @@ export async function runMigrations({ url, folder, tag }) {
   }
   const sql = postgres(url, { max: 1 })
   try {
-    console.log(`[migrate:${label}] ${url.replace(/:[^@]+@/, ':***@')} ← ${folder}`)
+    console.error(`[migrate:${label}] ${url.replace(/:[^@]+@/, ':***@')} ← ${folder}`)
     await migrate(drizzle(sql), { migrationsFolder: folder })
-    console.log(`[migrate:${label}] ok`)
+    console.error(`[migrate:${label}] ok`)
   } finally {
     await sql.end({ timeout: 5 })
   }

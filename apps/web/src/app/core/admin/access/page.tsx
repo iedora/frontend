@@ -237,7 +237,7 @@ export default async function AccessPage() {
                               </span>
                             </div>
                             <div className="grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
-                              {verbs.map(({ scope, verb }) => (
+                              {verbs.map(({ scope }) => (
                                 <div
                                   key={scope}
                                   className="contents"

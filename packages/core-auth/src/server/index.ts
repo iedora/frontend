@@ -103,7 +103,6 @@ export async function requireScope(scope: Scope): Promise<void> {
     meta: { scope, reason: s ? 'no-scope' : 'no-session' },
     important: false,
   })
-  // eslint-disable-next-line @typescript-eslint/only-throw-error
   throw new ScopeDeniedError(scope)
 }
 

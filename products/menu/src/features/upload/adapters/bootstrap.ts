@@ -36,7 +36,7 @@ function publicReadPolicy(bucket: string): string {
 // not a bucket policy), so trying to apply this would error.
 export async function ensureBucket(storage: S3Storage, bucket: string): Promise<void> {
   if (bootstrapped) return
-  if (isR2Endpoint(storage)) {
+  if (isR2Endpoint()) {
     bootstrapped = true
     return
   }
@@ -99,7 +99,7 @@ function isNotFound(err: unknown): boolean {
   return name === 'NotFound' || name === 'NoSuchBucket' || status === 404
 }
 
-function isR2Endpoint(storage: S3Storage): boolean {
+function isR2Endpoint(): boolean {
   // We can't read the config back from the SDK client cleanly across versions,
   // so peek at the env var the factory passed through. Cheap + matches the
   // detection in factory.ts.

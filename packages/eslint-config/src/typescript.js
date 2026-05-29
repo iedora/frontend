@@ -26,6 +26,7 @@ export function typescript() {
             varsIgnorePattern: '^_',
             caughtErrorsIgnorePattern: '^_',
             destructuredArrayIgnorePattern: '^_',
+            ignoreRestSiblings: true,
           },
         ],
       },

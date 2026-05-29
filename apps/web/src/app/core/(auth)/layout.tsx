@@ -4,9 +4,9 @@ import { BRAND_URL } from '@iedora/brand'
 
 /**
  * Centered, single-column chrome for the auth flow (sign-in /
- * sign-up / sign-out). Hosts the brand wordmark at the top and a
- * paper-coloured body — every auth page slots a single Card-shaped
- * island into the `<main>`.
+ * sign-up / sign-out). No navbar — the brand wordmark sits above
+ * the card so the page stays focused on the form, uniform with the
+ * onboarding shell.
  */
 export default function CoreAuthLayout({
   children,
@@ -14,17 +14,19 @@ export default function CoreAuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--paper)]">
-      <header className="border-b border-[var(--ink)]/10 px-6 py-5">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link href={BRAND_URL} aria-label="iedora">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--paper)] px-6 py-12">
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex justify-center">
+          <Link
+            href={BRAND_URL}
+            aria-label="iedora"
+            className="inline-flex items-baseline no-underline"
+          >
             <Wordmark variant="inline" />
           </Link>
         </div>
-      </header>
-      <main className="flex flex-1 items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">{children}</div>
-      </main>
-    </div>
+        {children}
+      </div>
+    </main>
   )
 }

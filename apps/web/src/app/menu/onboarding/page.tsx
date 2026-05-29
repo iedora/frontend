@@ -50,46 +50,30 @@ export default async function OnboardingPage({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--paper)]">
-      <div
-        className="ds-shell flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-6 font-[family-name:var(--mono)] text-[10.5px] uppercase tracking-[0.18em] text-[var(--ink-55)] sm:pt-9"
-        style={{ maxWidth: 1100 }}
-      >
-        <div className="flex items-center gap-3">
-          <span>MMXXVI</span>
-          <span aria-hidden="true">·</span>
-          <span>Menu · Onboarding</span>
+    <main className="flex min-h-screen items-center justify-center bg-[var(--paper)] px-6 py-12 sm:py-16">
+      <div className="w-full max-w-[560px] space-y-10">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-baseline no-underline"
+            aria-label="Menu home"
+          >
+            <Wordmark
+              word="menu"
+              variant="display"
+              className="ds-wordmark--reveal"
+            />
+          </Link>
+          <span
+            className="text-[17px] italic text-[var(--ink-70)]"
+            style={{ fontFamily: 'var(--serif)' }}
+          >
+            name the room
+          </span>
+          <OnboardingStepper current="name" />
         </div>
-        <Link href="/menu/dashboard" className="no-underline">
-          Dashboard
-        </Link>
+        <OnboardingForm />
       </div>
-
-      <main className="ds-shell flex flex-1 items-center justify-center py-12 sm:py-16">
-        <div className="w-full max-w-[560px]">
-          <div className="mb-10 flex flex-col items-center gap-4 text-center sm:mb-12">
-            <Link
-              href="/"
-              className="inline-flex items-baseline no-underline"
-              aria-label="Menu home"
-            >
-              <Wordmark
-                word="menu"
-                variant="display"
-                className="ds-wordmark--reveal"
-              />
-            </Link>
-            <span
-              className="text-[17px] italic text-[var(--ink-70)]"
-              style={{ fontFamily: 'var(--serif)' }}
-            >
-              name the room
-            </span>
-            <OnboardingStepper current="name" />
-          </div>
-          <OnboardingForm />
-        </div>
-      </main>
-    </div>
+    </main>
   )
 }

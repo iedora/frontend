@@ -14,14 +14,6 @@ function formatMoney(amountCents: number, currency: string, locale: string) {
   }).format(amountCents / 100)
 }
 
-function formatPeriod(start: Date, end: Date, locale: string) {
-  const fmt = new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'short',
-  })
-  return `${fmt.format(start)} – ${fmt.format(end)}`
-}
-
 function formatIssuedAt(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     day: 'numeric',

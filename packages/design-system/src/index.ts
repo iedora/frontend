@@ -126,6 +126,11 @@ export {
 } from "./components/breadcrumb";
 export { SectionHeader } from "./components/section-header";
 export { Pagination, type PaginationProps } from "./components/pagination";
+export {
+  Stepper,
+  type StepperProps,
+  type StepperStep,
+} from "./components/stepper";
 
 // Admin stats — snapshot panels (Stat, Histogram, StatsPanel) shared
 // across cross-tenant admin surfaces (QR codes, sessions, …).

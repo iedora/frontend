@@ -53,7 +53,6 @@ export function MenuOnboardingPage({
         // Best-effort: a flag-write failure must not block the
         // redirect. The user gets a stale resume bounce next time
         // at worst; surface in the console so operators see it.
-        // eslint-disable-next-line no-console
         console.error('[menu-onboarding] markComplete failed', err)
       }
     }
