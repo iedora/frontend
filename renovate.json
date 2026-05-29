@@ -44,14 +44,14 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
       "matchStrings": ["GITLEAKS_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
       "depNameTemplate": "gitleaks/gitleaks",
       "datasourceTemplate": "github-releases"
     },
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
       "matchStrings": ["OSV_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
       "depNameTemplate": "google/osv-scanner",
       "datasourceTemplate": "github-releases"
