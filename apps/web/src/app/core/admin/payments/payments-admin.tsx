@@ -270,6 +270,11 @@ function PaymentCard({
   return (
     <li
       className="rounded border border-[var(--ink-14)] bg-[var(--paper)] p-4 space-y-3"
+      // Skip render + layout for off-screen cards (ledger can grow to
+      // 200 rows). Browser still indexes them for ctrl-F / a11y. The
+      // intrinsic-size hint stops the scrollbar from jittering as
+      // unseen cards resolve their actual height.
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 200px' }}
       data-test-id={`payment-card-${payment.id}`}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
