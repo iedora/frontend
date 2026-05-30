@@ -3,6 +3,7 @@ import type {
   InputHTMLAttributes,
   LabelHTMLAttributes,
   ReactNode,
+  SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
 import { cn } from "../lib/cn";
@@ -28,6 +29,11 @@ type FieldInputProps = InputHTMLAttributes<HTMLInputElement> & {
 type FieldTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   /** Render as a framed compact chip — sized to match `<Combobox>`. */
   compact?: boolean;
+};
+type FieldSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  /** Render as a framed compact chip — sized to match `<Combobox>`. */
+  compact?: boolean;
+  children: ReactNode;
 };
 
 /**
@@ -102,3 +108,34 @@ export function FieldTextarea({
     />
   );
 }
+
+/**
+ * Same underline / framed-chip vocabulary as `FieldInput` for a native
+ * `<select>`. Explicit `background-color` / `color` on the host so
+ * Windows dark mode doesn't fall back to white-on-white. The
+ * `dropdown-arrow` glyph is painted via CSS background — no extra DOM.
+ */
+export function FieldSelect({
+  className,
+  compact,
+  children,
+  ...rest
+}: FieldSelectProps) {
+  return (
+    <select
+      {...rest}
+      className={cn("ds-select", compact && "ds-select--compact", className)}
+    >
+      {children}
+    </select>
+  );
+}
+
+/**
+ * Aliases — the editorial-Field vocabulary is the canon, but `Input`,
+ * `Textarea`, `Select` are more discoverable when a caller just wants
+ * "a styled control" without composing the Field shell.
+ */
+export const Input = FieldInput;
+export const Textarea = FieldTextarea;
+export const Select = FieldSelect;

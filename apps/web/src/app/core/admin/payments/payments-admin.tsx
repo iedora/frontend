@@ -3,6 +3,17 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import {
+  Button,
+  Field,
+  FieldHint,
+  FieldLabel,
+  Input,
+  SegmentedControl,
+  Select,
+  StickyCTA,
+  Textarea,
+} from '@iedora/design-system'
+import {
   MANUAL_PAYMENT_METHODS,
   type ManualPaymentMethod,
 } from '@iedora/billing/literals'
@@ -148,21 +159,16 @@ export function PaymentsAdmin({
         />
       ) : null}
 
-      {/* Sticky bottom CTA — always reachable on a phone. Padding picks
-          up the iPhone home-indicator inset so the button isn't under it. */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-[var(--ink-14)] bg-[var(--paper)]/95 px-4 py-3 backdrop-blur lg:left-72"
-        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-      >
-        <button
-          type="button"
+      <StickyCTA>
+        <Button
+          variant="solid"
           onClick={() => setShowForm((s) => !s)}
-          className="w-full rounded bg-[var(--ink)] px-4 py-3 text-sm font-semibold text-[var(--paper)]"
+          className="w-full"
           data-test-id="payments-toggle-form"
         >
           {showForm ? t('cancelForm') : t('openForm')}
-        </button>
-      </div>
+        </Button>
+      </StickyCTA>
     </div>
   )
 }
@@ -187,10 +193,9 @@ function FilterBar({
   const t = useTranslations('Core.admin.payments')
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <select
+      <Select
         value={method}
         onChange={(e) => onMethod(e.target.value as ManualPaymentMethod | '')}
-        className="rounded border border-[var(--ink-14)] bg-[var(--paper)] text-[var(--ink)] px-3 py-3 text-sm"
         data-test-id="payments-filter-method"
         aria-label={t('filterMethod')}
       >
@@ -200,26 +205,23 @@ function FilterBar({
             {t(`method.${m}`)}
           </option>
         ))}
-      </select>
+      </Select>
       <form
         onSubmit={(e) => {
           e.preventDefault()
           onCampaignSubmit()
         }}
       >
-        <input
+        <Input
           type="search"
           placeholder={t('filterCampaignPlaceholder')}
           aria-label={t('filterCampaign')}
           spellCheck={false}
           value={campaign}
           onChange={(e) => onCampaign(e.target.value)}
-          className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm"
           data-test-id="payments-filter-campaign"
         />
-        {searching && (
-          <span className="sr-only">{t('searching')}</span>
-        )}
+        {searching ? <span className="sr-only">{t('searching')}</span> : null}
       </form>
     </div>
   )
@@ -434,8 +436,9 @@ function RecordForm({
         {t('formHeading')}
       </h2>
 
-      <FieldLabel label={t('tenantLabel')} htmlFor="pf-tenant">
-        <input
+      <Field>
+        <FieldLabel htmlFor="pf-tenant">{t('tenantLabel')}</FieldLabel>
+        <Input
           id="pf-tenant"
           type="search"
           autoComplete="off"
@@ -447,10 +450,9 @@ function RecordForm({
             setTenant(null)
             runTenantSearch(e.target.value)
           }}
-          className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm"
           data-test-id="payments-form-tenant-search"
         />
-        {!tenant && tenantOptions.length > 0 && (
+        {!tenant && tenantOptions.length > 0 ? (
           <ul className="mt-2 max-h-48 overflow-auto rounded border border-[var(--ink-14)]">
             {tenantOptions.map((o) => (
               <li key={o.id}>
@@ -465,15 +467,15 @@ function RecordForm({
               </li>
             ))}
           </ul>
-        )}
-      </FieldLabel>
+        ) : null}
+      </Field>
 
-      <FieldLabel label={t('planLabel')} htmlFor="pf-plan">
-        <select
+      <Field>
+        <FieldLabel htmlFor="pf-plan">{t('planLabel')}</FieldLabel>
+        <Select
           id="pf-plan"
           value={planCode}
           onChange={(e) => setPlanCode(e.target.value)}
-          className="w-full rounded border border-[var(--ink-14)] bg-[var(--paper)] text-[var(--ink)] px-3 py-3 text-sm"
           data-test-id="payments-form-plan"
         >
           {planCodes.map((c) => (
@@ -481,22 +483,23 @@ function RecordForm({
               {planLabels[c]} · {(planPrices[c]! / 100).toFixed(2)}€/m
             </option>
           ))}
-        </select>
-      </FieldLabel>
+        </Select>
+      </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <FieldLabel label={t('paidAtLabel')} htmlFor="pf-paidat">
-          <input
+        <Field>
+          <FieldLabel htmlFor="pf-paidat">{t('paidAtLabel')}</FieldLabel>
+          <Input
             id="pf-paidat"
             type="date"
             value={paidAt}
             onChange={(e) => setPaidAt(e.target.value)}
-            className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm"
             data-test-id="payments-form-paidat"
           />
-        </FieldLabel>
-        <FieldLabel label={t('validMonthsLabel')} htmlFor="pf-months">
-          <input
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="pf-months">{t('validMonthsLabel')}</FieldLabel>
+          <Input
             id="pf-months"
             type="number"
             min={1}
@@ -504,14 +507,17 @@ function RecordForm({
             inputMode="numeric"
             value={validMonths}
             onChange={(e) => setValidMonths(Number(e.target.value) || 1)}
-            className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm tabular-nums"
+            className="tabular-nums"
             data-test-id="payments-form-months"
           />
-        </FieldLabel>
+        </Field>
       </div>
 
-      <FieldLabel label={t('amountLabel', { eur: expectedEur.toFixed(2) })} htmlFor="pf-amount">
-        <input
+      <Field>
+        <FieldLabel htmlFor="pf-amount">
+          {t('amountLabel', { eur: expectedEur.toFixed(2) })}
+        </FieldLabel>
+        <Input
           id="pf-amount"
           type="number"
           step="0.01"
@@ -520,66 +526,60 @@ function RecordForm({
           placeholder="0.00"
           value={amountEur}
           onChange={(e) => setAmountEur(e.target.value)}
-          className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm tabular-nums"
+          className="tabular-nums"
           data-test-id="payments-form-amount"
         />
-        {monthly > 0 && amountEur !== '' && (
-          <p className="mt-1 text-xs text-[var(--ink-55)]">
+        {monthly > 0 && amountEur !== '' ? (
+          <FieldHint>
             {discountPct > 0
               ? t('discountPreview', { pct: discountPct })
               : discountPct < 0
                 ? t('overpaidPreview', { pct: Math.abs(discountPct) })
                 : t('listPriceMatch')}
-          </p>
-        )}
-      </FieldLabel>
+          </FieldHint>
+        ) : null}
+      </Field>
 
-      <FieldLabel label={t('methodLabel')} htmlFor="pf-method">
-        <div className="grid grid-cols-2 gap-2" id="pf-method">
-          {MANUAL_PAYMENT_METHODS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMethod(m)}
-              aria-pressed={method === m}
-              className={`rounded border px-3 py-3 text-sm ${
-                method === m
-                  ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]'
-                  : 'border-[var(--ink-14)] bg-transparent'
-              }`}
-              data-test-id={`payments-form-method-${m}`}
-            >
-              {t(`method.${m}`)}
-            </button>
-          ))}
-        </div>
-      </FieldLabel>
+      <Field>
+        <FieldLabel id="pf-method-label">{t('methodLabel')}</FieldLabel>
+        <SegmentedControl<ManualPaymentMethod>
+          value={method}
+          onChange={setMethod}
+          ariaLabel={t('methodLabel')}
+          testId="payments-form-method"
+          options={MANUAL_PAYMENT_METHODS.map((m) => ({
+            value: m,
+            label: t(`method.${m}`),
+            testId: `payments-form-method-${m}`,
+          }))}
+        />
+      </Field>
 
-      <FieldLabel label={t('campaignLabel')} htmlFor="pf-campaign">
-        <input
+      <Field>
+        <FieldLabel htmlFor="pf-campaign">{t('campaignLabel')}</FieldLabel>
+        <Input
           id="pf-campaign"
           type="text"
           autoComplete="off"
           placeholder={t('campaignPlaceholder')}
           value={campaignTag}
           onChange={(e) => setCampaignTag(e.target.value)}
-          className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm"
           data-test-id="payments-form-campaign"
         />
-      </FieldLabel>
+      </Field>
 
-      <FieldLabel label={t('notesLabel')} htmlFor="pf-notes">
-        <textarea
+      <Field>
+        <FieldLabel htmlFor="pf-notes">{t('notesLabel')}</FieldLabel>
+        <Textarea
           id="pf-notes"
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-2 text-sm"
           data-test-id="payments-form-notes"
         />
-      </FieldLabel>
+      </Field>
 
-      {error && (
+      {error ? (
         <p
           className="rounded border border-[var(--cinnabar)] bg-[var(--cinnabar-15)] px-3 py-2 text-sm text-[var(--cinnabar)]"
           role="alert"
@@ -587,49 +587,29 @@ function RecordForm({
         >
           {error}
         </p>
-      )}
+      ) : null}
 
       <div className="flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={onCancel}
-          className="flex-1 rounded border border-[var(--ink-14)] px-3 py-3 text-sm"
+          className="flex-1"
           data-test-id="payments-form-cancel"
         >
           {t('cancelForm')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="solid"
+          loading={submitting}
           disabled={submitting}
-          className="flex-1 rounded bg-[var(--ink)] px-3 py-3 text-sm font-semibold text-[var(--paper)] disabled:opacity-50"
+          className="flex-1"
           data-test-id="payments-form-submit"
         >
           {submitting ? t('submitting') : t('submit')}
-        </button>
+        </Button>
       </div>
     </form>
-  )
-}
-
-function FieldLabel({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string
-  htmlFor: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="block text-xs uppercase tracking-[0.18em] text-[var(--ink-55)] mb-2"
-      >
-        {label}
-      </label>
-      {children}
-    </div>
   )
 }
 

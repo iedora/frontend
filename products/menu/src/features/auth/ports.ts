@@ -50,7 +50,17 @@ export interface AuthGateway {
     tenantId: string
   }): Promise<{ id: string } | null>
 
-  /** Same, but resolved by URL slug. */
+  /**
+   * Cross-tenant id lookup — finds the restaurant in ANY tenant.
+   * Caller must already be authorised cross-tenant (the staff branch
+   * of `requireRestaurantAccess` is the only legit caller today;
+   * upload actions hit this when admin operates on a restaurant
+   * outside their active tenant).
+   */
+  findRestaurantByIdAnyOrg(
+    restaurantId: string,
+  ): Promise<{ id: string; tenantId: string } | null>
+
   /**
    * Cross-tenant slug lookup — finds the restaurant in ANY tenant.
    * Caller must already be authorised cross-tenant (the staff branch

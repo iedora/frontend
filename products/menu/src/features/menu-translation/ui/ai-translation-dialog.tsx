@@ -159,7 +159,7 @@ export function AiTranslationDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent eyebrow="Menu · AI translation">
+      <DialogContent eyebrow="Menu · AI translation" mobile="sheet">
         <DialogHeader>
           <DialogTitle>{t('aiTranslationTitle')}</DialogTitle>
           <DialogDescription>

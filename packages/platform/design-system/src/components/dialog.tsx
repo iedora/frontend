@@ -45,12 +45,24 @@ type ContentProps = ComponentPropsWithoutRef<typeof RadixDialog.Content> & {
   showClose?: boolean;
   /** Override the close button label. Default "Close ×". */
   closeLabel?: ReactNode;
+  /**
+   * Mobile presentation. `"sheet"` (default) makes the dialog fill the
+   * viewport from the bottom on phones (full-screen bottom-sheet) and
+   * collapses back to the centered modal on `sm+`. `"modal"` keeps the
+   * centered modal at every size — only for tiny confirms; anything
+   * with a form field belongs in a sheet.
+   */
+  mobile?: "sheet" | "modal";
+  /** Wide content (preview trees, tables): widen the desktop max-w. */
+  size?: "md" | "lg" | "xl";
 };
 
 export function DialogContent({
   eyebrow,
   showClose = true,
   closeLabel = "close ×",
+  mobile = "sheet",
+  size = "md",
   className,
   children,
   ...rest
@@ -60,7 +72,13 @@ export function DialogContent({
       <RadixDialog.Overlay className="ds-dialog__scrim" />
       <RadixDialog.Content
         {...rest}
-        className={cn("ds-dialog", className)}
+        className={cn(
+          "ds-dialog",
+          mobile === "sheet" && "ds-dialog--sheet",
+          size === "lg" && "ds-dialog--lg",
+          size === "xl" && "ds-dialog--xl",
+          className,
+        )}
       >
         {eyebrow || showClose ? (
           <div className="ds-dialog__top">

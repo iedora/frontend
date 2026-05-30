@@ -3,6 +3,15 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import {
+  Button,
+  Field,
+  FieldLabel,
+  FieldHint,
+  Input,
+  SegmentedControl,
+  StickyCTA,
+} from '@iedora/design-system'
+import {
   searchTenantsAction,
   searchUsersAction,
   transferRestaurantAction,
@@ -98,23 +107,18 @@ export function TransferWizard({
         </p>
       )}
 
-      {/* Sticky CTA — sits above the mobile sidebar trigger via z-10.
-          Padding picks up the iPhone home-indicator inset so the button
-          isn't under it. */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-[var(--ink-14)] bg-[var(--paper)]/95 px-4 py-3 backdrop-blur lg:left-72"
-        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-      >
-        <button
-          type="button"
+      <StickyCTA>
+        <Button
+          variant="solid"
           onClick={onConfirm}
           disabled={!ready || submitting}
-          className="w-full rounded bg-[var(--ink)] px-4 py-3 text-sm font-semibold text-[var(--paper)] disabled:opacity-40"
+          loading={submitting}
+          className="w-full"
           data-test-id="transfer-submit"
         >
           {submitting ? t('submitting') : t('submit')}
-        </button>
-      </div>
+        </Button>
+      </StickyCTA>
     </div>
   )
 }
@@ -166,15 +170,26 @@ function TenantSection({
         </p>
       </header>
 
-      <ModeToggle
-        mode={mode}
+      <SegmentedControl<'existing' | 'new'>
+        value={mode}
         onChange={(next) => {
           setMode(next)
           onChange(null)
         }}
-        existingLabel={t('pickExistingTenant')}
-        newLabel={t('createTenant')}
+        ariaLabel={t('tenantHeading')}
         testId="transfer-tenant-mode"
+        options={[
+          {
+            value: 'existing',
+            label: t('pickExistingTenant'),
+            testId: 'transfer-tenant-mode-existing',
+          },
+          {
+            value: 'new',
+            label: t('createTenant'),
+            testId: 'transfer-tenant-mode-new',
+          },
+        ]}
       />
 
       {mode === 'existing' ? (
@@ -217,7 +232,7 @@ function TenantPicker({
 
   return (
     <div className="space-y-3">
-      <input
+      <Input
         type="search"
         inputMode="search"
         autoComplete="off"
@@ -227,7 +242,6 @@ function TenantPicker({
         value={query}
         onChange={(e) => runSearch(e.target.value)}
         onFocus={ensureLoaded}
-        className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
         data-test-id="transfer-tenant-search"
       />
       <ul
@@ -281,26 +295,20 @@ function NewTenantInput({
   const t = useTranslations('RestaurantTransfer')
   const name = value?.kind === 'new' ? value.name : ''
   return (
-    <div className="space-y-2">
-      <label
-        htmlFor="transfer-new-tenant-name"
-        className="block text-xs uppercase tracking-[0.18em] text-[var(--ink-55)]"
-      >
+    <Field>
+      <FieldLabel htmlFor="transfer-new-tenant-name">
         {t('tenantNameLabel')}
-      </label>
-      <input
+      </FieldLabel>
+      <Input
         id="transfer-new-tenant-name"
         type="text"
         autoComplete="organization"
         placeholder={t('tenantNamePlaceholder')}
         value={name}
-        onChange={(e) =>
-          onChange({ kind: 'new', name: e.target.value })
-        }
-        className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
+        onChange={(e) => onChange({ kind: 'new', name: e.target.value })}
         data-test-id="transfer-tenant-new-name"
       />
-    </div>
+    </Field>
   )
 }
 
@@ -335,15 +343,26 @@ function OwnerSection({
         </p>
       </header>
 
-      <ModeToggle
-        mode={mode}
+      <SegmentedControl<'existing' | 'new'>
+        value={mode}
         onChange={(next) => {
           setMode(next)
           onChange(null)
         }}
-        existingLabel={t('pickExistingUser')}
-        newLabel={t('createUser')}
+        ariaLabel={t('ownerHeading')}
         testId="transfer-owner-mode"
+        options={[
+          {
+            value: 'existing',
+            label: t('pickExistingUser'),
+            testId: 'transfer-owner-mode-existing',
+          },
+          {
+            value: 'new',
+            label: t('createUser'),
+            testId: 'transfer-owner-mode-new',
+          },
+        ]}
       />
 
       {mode === 'existing' ? (
@@ -384,7 +403,7 @@ function UserPicker({
 
   return (
     <div className="space-y-3">
-      <input
+      <Input
         type="search"
         inputMode="email"
         autoComplete="off"
@@ -394,7 +413,6 @@ function UserPicker({
         value={query}
         onChange={(e) => runSearch(e.target.value)}
         onFocus={ensureLoaded}
-        className="w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
         data-test-id="transfer-owner-search"
       />
       <ul
@@ -464,15 +482,12 @@ function NewUserForm({
     onChange({ kind: 'new', email: v.email, name: v.name, password: v.password, ...p })
   }
   return (
-    <div className="space-y-3">
-      <div>
-        <label
-          htmlFor="transfer-new-user-email"
-          className="block text-xs uppercase tracking-[0.18em] text-[var(--ink-55)]"
-        >
+    <div className="space-y-4">
+      <Field>
+        <FieldLabel htmlFor="transfer-new-user-email">
           {t('userEmailLabel')}
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="transfer-new-user-email"
           type="email"
           inputMode="email"
@@ -480,47 +495,36 @@ function NewUserForm({
           spellCheck={false}
           value={v.email}
           onChange={(e) => patch({ email: e.target.value })}
-          className="mt-2 w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
           data-test-id="transfer-owner-new-email"
         />
-      </div>
-      <div>
-        <label
-          htmlFor="transfer-new-user-name"
-          className="block text-xs uppercase tracking-[0.18em] text-[var(--ink-55)]"
-        >
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="transfer-new-user-name">
           {t('userNameLabel')}
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="transfer-new-user-name"
           type="text"
           autoComplete="name"
           value={v.name}
           onChange={(e) => patch({ name: e.target.value })}
-          className="mt-2 w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
           data-test-id="transfer-owner-new-name"
         />
-      </div>
-      <div>
-        <label
-          htmlFor="transfer-new-user-password"
-          className="block text-xs uppercase tracking-[0.18em] text-[var(--ink-55)]"
-        >
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="transfer-new-user-password">
           {t('userPasswordLabel')}
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="transfer-new-user-password"
           type="text"
           autoComplete="off"
           value={v.password}
           onChange={(e) => patch({ password: e.target.value })}
-          className="mt-2 w-full rounded border border-[var(--ink-14)] bg-transparent px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
           data-test-id="transfer-owner-new-password"
         />
-        <p className="mt-1 text-xs text-[var(--ink-55)]">
-          {t('userPasswordHint')}
-        </p>
-      </div>
+        <FieldHint>{t('userPasswordHint')}</FieldHint>
+      </Field>
     </div>
   )
 }
@@ -584,68 +588,3 @@ function ConfirmSummary({
   )
 }
 
-// ── Mode toggle (existing | new) ──────────────────────────────────
-
-function ModeToggle({
-  mode,
-  onChange,
-  existingLabel,
-  newLabel,
-  testId,
-}: {
-  mode: 'existing' | 'new'
-  onChange: (m: 'existing' | 'new') => void
-  existingLabel: string
-  newLabel: string
-  testId: string
-}) {
-  return (
-    <div
-      role="tablist"
-      className="grid grid-cols-2 gap-2"
-      data-test-id={testId}
-    >
-      <ToggleButton
-        active={mode === 'existing'}
-        label={existingLabel}
-        onClick={() => onChange('existing')}
-        testId={`${testId}-existing`}
-      />
-      <ToggleButton
-        active={mode === 'new'}
-        label={newLabel}
-        onClick={() => onChange('new')}
-        testId={`${testId}-new`}
-      />
-    </div>
-  )
-}
-
-function ToggleButton({
-  active,
-  label,
-  onClick,
-  testId,
-}: {
-  active: boolean
-  label: string
-  onClick: () => void
-  testId: string
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`rounded border px-3 py-3 text-sm ${
-        active
-          ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]'
-          : 'border-[var(--ink-14)] bg-transparent text-[var(--ink)]'
-      }`}
-      data-test-id={testId}
-    >
-      {label}
-    </button>
-  )
-}

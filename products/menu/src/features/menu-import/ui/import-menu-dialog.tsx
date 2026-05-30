@@ -65,7 +65,11 @@ export function ImportMenuDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent eyebrow="Menu · AI import">
+      <DialogContent
+        eyebrow="Menu · AI import"
+        mobile="sheet"
+        size="lg"
+      >
         {importedMenuId === null ? (
           <>
             <DialogHeader>

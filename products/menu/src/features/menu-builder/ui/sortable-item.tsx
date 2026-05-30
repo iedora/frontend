@@ -19,6 +19,7 @@ import {
   SectionHeader,
 } from '@iedora/design-system'
 import { useTranslations } from 'next-intl'
+import { formatPrice } from '../../../shared/format'
 import { ImageUpload } from '../../upload/ui/image-upload'
 import type { LanguageCode, LocalizedText } from '../../i18n'
 import { deleteItem, updateItem } from '../actions'
@@ -64,13 +65,6 @@ function variantsToEditable(
     labelI18n: v.labelI18n,
     priceText: v.priceCents > 0 ? (v.priceCents / 100).toFixed(2) : '',
   }))
-}
-
-function formatPrice(cents: number, currency: string) {
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency,
-  }).format(cents / 100)
 }
 
 export function SortableItem({

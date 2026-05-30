@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
@@ -16,9 +16,16 @@ import {
   DialogTrigger,
   OrnamentRule,
 } from '@iedora/design-system'
+import { formatPrice } from '../../../shared/format'
 import { requestUploadUrl, commitAsset } from '../../upload/actions'
 import type { PatchCurrentMenu, PatchOperation } from '../ports'
 import { analyzeMenuPatch, applyMenuPatchAction } from '../actions'
+import {
+  buildProposedTree,
+  type DiffState,
+  type ProposedCategory,
+} from '../use-cases/build-proposed-tree'
+import { BuildingAnimation } from './building-animation'
 import { CameraCapture } from './camera-capture'
 
 /**
@@ -57,216 +64,6 @@ const BUILDING_KEYS = [
   'updateMenuBuilding3',
   'updateMenuBuilding4',
 ] as const
-const BUILDING_STEP_MS = 2400
-
-function BuildingAnimation() {
-  const t = useTranslations('Restaurant')
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % BUILDING_KEYS.length)
-    }, BUILDING_STEP_MS)
-    return () => window.clearInterval(id)
-  }, [])
-  return (
-    <div
-      className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--ink-24)] px-6 py-10 text-center"
-      role="status"
-      aria-live="polite"
-      data-test-id="update-menu-progress"
-    >
-      <span
-        aria-hidden="true"
-        className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--cinnabar)] ds-pulse"
-      />
-      <p
-        key={index}
-        className="text-base italic text-[var(--ink)] menu-import-building-line"
-        style={{ fontFamily: 'var(--serif)' }}
-      >
-        {t(BUILDING_KEYS[index]!)}
-      </p>
-    </div>
-  )
-}
-
-// ─── Proposed-tree helper ─────────────────────────────────────────
-//
-// Walks `current` + the selected subset of `operations` and builds a
-// unified category tree where every row knows its diff state. The
-// preview renders THIS tree (not the raw operations) so the operator
-// sees the menu the way their guests will after Apply — with markers
-// for what changed.
-
-type DiffState = 'unchanged' | 'added' | 'updated' | 'removed'
-
-type ProposedVariant = { label: string; priceCents: number }
-
-type ProposedItem = {
-  rowKey: string
-  name: string
-  priceCents: number
-  description?: string
-  variants?: ProposedVariant[]
-  state: DiffState
-  /** Original values when state==='updated'. */
-  original?: {
-    name: string
-    priceCents: number
-    variants?: ProposedVariant[]
-  }
-  /** Index in operations[] for the controlling op (null when unchanged). */
-  opIndex: number | null
-}
-
-type ProposedCategory = {
-  rowKey: string
-  name: string
-  state: DiffState
-  original?: { name: string }
-  opIndex: number | null
-  items: ProposedItem[]
-}
-
-function buildProposedTree(
-  current: PatchCurrentMenu,
-  operations: PatchOperation[],
-  selected: ReadonlySet<number>,
-): ProposedCategory[] {
-  // Seed with the current menu — every row starts unchanged.
-  const tree: ProposedCategory[] = current.categories.map((c) => ({
-    rowKey: `cat:${c.id}`,
-    name: c.name,
-    state: 'unchanged',
-    opIndex: null,
-    items: c.items.map((it) => ({
-      rowKey: `item:${it.id}`,
-      name: it.name,
-      priceCents: it.priceCents,
-      ...(it.variants && it.variants.length > 0
-        ? {
-            variants: it.variants.map((v) => ({
-              label: v.label,
-              priceCents: v.priceCents,
-            })),
-          }
-        : {}),
-      state: 'unchanged',
-      opIndex: null,
-    })),
-  }))
-
-  // Track newly-added categories by name so subsequent add-item ops
-  // with `categoryName` find them.
-  const addedCatByName = new Map<string, ProposedCategory>()
-
-  operations.forEach((op, idx) => {
-    if (!selected.has(idx)) return
-
-    switch (op.kind) {
-      case 'add-category': {
-        const newCat: ProposedCategory = {
-          rowKey: `cat:new:${idx}`,
-          name: op.name,
-          state: 'added',
-          opIndex: idx,
-          items: op.items.map((it, j) => ({
-            rowKey: `item:new:${idx}:${j}`,
-            name: it.name,
-            priceCents: it.priceCents,
-            description: it.description,
-            ...(it.variants && it.variants.length > 0 ? { variants: it.variants } : {}),
-            state: 'added',
-            opIndex: idx,
-          })),
-        }
-        tree.push(newCat)
-        addedCatByName.set(op.name, newCat)
-        break
-      }
-      case 'rename-category': {
-        const cat = tree.find((c) => c.opIndex === null && c.rowKey === `cat:${op.categoryId}`)
-        if (cat) {
-          cat.original = { name: cat.name }
-          cat.name = op.name
-          cat.state = 'updated'
-          cat.opIndex = idx
-        }
-        break
-      }
-      case 'remove-category': {
-        const cat = tree.find((c) => c.opIndex === null && c.rowKey === `cat:${op.categoryId}`)
-        if (cat) {
-          cat.state = 'removed'
-          cat.opIndex = idx
-        }
-        break
-      }
-      case 'add-item': {
-        const target =
-          (op.categoryId &&
-            tree.find((c) => c.rowKey === `cat:${op.categoryId}`)) ||
-          (op.categoryName && addedCatByName.get(op.categoryName)) ||
-          tree[0]
-        if (target) {
-          target.items.push({
-            rowKey: `item:new:${idx}`,
-            name: op.name,
-            priceCents: op.priceCents,
-            description: op.description,
-            ...(op.variants && op.variants.length > 0 ? { variants: op.variants } : {}),
-            state: 'added',
-            opIndex: idx,
-          })
-        }
-        break
-      }
-      case 'update-item': {
-        for (const cat of tree) {
-          const it = cat.items.find((i) => i.rowKey === `item:${op.itemId}`)
-          if (it) {
-            it.original = {
-              name: it.name,
-              priceCents: it.priceCents,
-              ...(it.variants ? { variants: it.variants } : {}),
-            }
-            if (op.name !== undefined) it.name = op.name
-            if (op.priceCents !== undefined) it.priceCents = op.priceCents
-            if (op.description !== undefined) it.description = op.description
-            // Variants is a FULL replacement when present (matches the
-            // adapter's apply semantics); pass `[]` to clear.
-            if (op.variants !== undefined) {
-              it.variants =
-                op.variants.length > 0
-                  ? op.variants.map((v) => ({
-                      label: v.label,
-                      priceCents: v.priceCents,
-                    }))
-                  : undefined
-            }
-            it.state = 'updated'
-            it.opIndex = idx
-            break
-          }
-        }
-        break
-      }
-      case 'remove-item': {
-        for (const cat of tree) {
-          const it = cat.items.find((i) => i.rowKey === `item:${op.itemId}`)
-          if (it) {
-            it.state = 'removed'
-            it.opIndex = idx
-            break
-          }
-        }
-        break
-      }
-    }
-  })
-
-  return tree
-}
 
 // Tiny mono-styled chip for diff state. `+` / `~` / `−` glyphs in the
 // matching ink-on-paper palette: cinnabar for added, ink for updated,
@@ -289,18 +86,6 @@ function DiffMarker({ state }: { state: DiffState }) {
       {glyph}
     </span>
   )
-}
-
-function formatPrice(priceCents: number, currency: string): string {
-  const amount = priceCents / 100
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currency || 'EUR',
-    }).format(amount)
-  } catch {
-    return `€${amount.toFixed(2)}`
-  }
 }
 
 export function UpdateMenuDialog({
@@ -429,25 +214,33 @@ export function UpdateMenuDialog({
   // shape as the Import preview (categories → items) so both flows
   // read as one vocabulary; the difference is just the marker glyphs.
   //
-  // Recomputed every render: toggling a checkbox flips opIndex
-  // inclusion and the tree rebuilds. Unchanged rows render as muted
-  // so the operator confirms what STAYS, not just what changes.
-  const proposed = buildProposedTree(
-    current,
-    step.kind === 'preview' ? step.operations : [],
-    step.kind === 'preview' ? step.selectedIndexes : new Set<number>(),
+  // Rebuilds when the operator toggles a checkbox (selectedIndexes
+  // identity flips on every toggle). Stable across unrelated re-renders.
+  const proposed = useMemo(
+    () =>
+      buildProposedTree(
+        current,
+        step.kind === 'preview' ? step.operations : [],
+        step.kind === 'preview' ? step.selectedIndexes : new Set<number>(),
+      ),
+    [current, step],
   )
 
-  const summary = step.kind === 'preview'
-    ? {
-        added: step.operations.filter((op, i) =>
-          step.selectedIndexes.has(i) && (op.kind === 'add-item' || op.kind === 'add-category')).length,
-        updated: step.operations.filter((op, i) =>
-          step.selectedIndexes.has(i) && (op.kind === 'update-item' || op.kind === 'rename-category')).length,
-        removed: step.operations.filter((op, i) =>
-          step.selectedIndexes.has(i) && (op.kind === 'remove-item' || op.kind === 'remove-category')).length,
-      }
-    : { added: 0, updated: 0, removed: 0 }
+  // Single pass instead of 3× filter. Stable identity so the diff-summary
+  // strip doesn't re-render when an unrelated bit of state changes.
+  const summary = useMemo(() => {
+    if (step.kind !== 'preview') return { added: 0, updated: 0, removed: 0 }
+    let added = 0
+    let updated = 0
+    let removed = 0
+    step.operations.forEach((op, i) => {
+      if (!step.selectedIndexes.has(i)) return
+      if (op.kind === 'add-item' || op.kind === 'add-category') added++
+      else if (op.kind === 'update-item' || op.kind === 'rename-category') updated++
+      else if (op.kind === 'remove-item' || op.kind === 'remove-category') removed++
+    })
+    return { added, updated, removed }
+  }, [step])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -461,7 +254,11 @@ export function UpdateMenuDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent eyebrow="Menu · AI update">
+      <DialogContent
+        eyebrow="Menu · AI update"
+        mobile="sheet"
+        size="lg"
+      >
         {step.kind === 'capture' && (
           <>
             <DialogHeader>
@@ -481,7 +278,10 @@ export function UpdateMenuDialog({
             />
 
             {pending ? (
-              <BuildingAnimation />
+              <BuildingAnimation
+                messageKeys={BUILDING_KEYS}
+                testId="update-menu-progress"
+              />
             ) : (
               <>
                 <OrnamentRule fleuron="❧" />
@@ -559,11 +359,12 @@ export function UpdateMenuDialog({
               </span>
             </div>
 
-            {/* Mobile-first menu tree. Each row stacks name + price on a
-                full-width line (no horizontal price column to wrap) — the
-                whole list is single-column with generous tap targets. */}
+            {/* Tree of proposed changes. On mobile the dialog itself is a
+                full-screen bottom sheet that owns scroll, so we don't
+                impose a max-height here. On desktop the dialog stays a
+                centered modal — cap to 60vh and the tree scrolls internally. */}
             <div
-              className="max-h-[60vh] overflow-y-auto -mx-2 sm:mx-0"
+              className="-mx-2 sm:mx-0 sm:max-h-[60vh] sm:overflow-y-auto"
               data-test-id="update-menu-preview-tree"
             >
               {proposed.map((cat) => {

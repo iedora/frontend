@@ -26,7 +26,7 @@ import {
 } from '../actions'
 import type { QrCodeListRow } from '../ports'
 import type { QrStats } from '../stats'
-import { QrPrintSheetDialog } from './qr-print-sheet-dialog'
+import { QrPrintSheetDialog } from '../qr-generation/qr-print-sheet-dialog'
 
 type RestaurantOption = { id: string; name: string; slug: string }
 

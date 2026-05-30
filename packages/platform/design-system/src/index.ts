@@ -116,7 +116,16 @@ export {
   FieldHint,
   FieldInput,
   FieldTextarea,
+  FieldSelect,
+  Input,
+  Textarea,
+  Select,
 } from "./components/field";
+export {
+  SegmentedControl,
+  type SegmentedOption,
+} from "./components/segmented-control";
+export { StickyCTA } from "./components/sticky-cta";
 export {
   Combobox,
   type ComboboxOption,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   ActionCard,
@@ -9,6 +9,7 @@ import {
   Field,
   FieldInput,
   FieldLabel,
+  Input,
 } from '@iedora/design-system'
 import type { LanguageCode } from '../../i18n'
 import { requestUploadUrl, commitAsset } from '../../upload/actions'
@@ -19,6 +20,7 @@ import type {
   ParseMenuErrorCode,
 } from '../ports'
 import { analyzeMenuImage, importMenuFromParsed } from '../actions'
+import { BuildingAnimation } from './building-animation'
 import { CameraCapture } from './camera-capture'
 
 /**
@@ -32,8 +34,6 @@ const BUILDING_KEYS = [
   'importMenuBuilding3',
   'importMenuBuilding4',
 ] as const
-
-const BUILDING_STEP_MS = 2400
 
 /**
  * Items the AI flagged below this confidence get a visible cue in the
@@ -157,39 +157,6 @@ function errorKeyForCode(code: ParseMenuErrorCode): string {
  * the <p> remounts the node so the fade-in CSS triggers each time. The
  * cinnabar dot pulses to signal liveness.
  */
-function BuildingAnimation() {
-  const t = useTranslations('Restaurant')
-  const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % BUILDING_KEYS.length)
-    }, BUILDING_STEP_MS)
-    return () => window.clearInterval(id)
-  }, [])
-
-  return (
-    <div
-      className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--ink-24)] px-6 py-10 text-center"
-      data-test-id="menu-import-pending"
-      role="status"
-      aria-live="polite"
-    >
-      <span
-        aria-hidden="true"
-        className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--cinnabar)] ds-pulse"
-      />
-      <p
-        key={index}
-        className="text-base italic text-[var(--ink)] menu-import-building-line"
-        data-test-id={`menu-import-building-${index}`}
-        style={{ fontFamily: 'var(--serif)' }}
-      >
-        {t(BUILDING_KEYS[index]!)}
-      </p>
-    </div>
-  )
-}
 
 export type MenuImportWizardProps = {
   slug: string
@@ -520,7 +487,10 @@ export function MenuImportWizard({
         />
 
         {pending ? (
-          <BuildingAnimation />
+          <BuildingAnimation
+              messageKeys={BUILDING_KEYS}
+              testId="menu-import-pending"
+            />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ActionCard
@@ -672,13 +642,15 @@ export function MenuImportWizard({
                     </p>
                   )}
                 </div>
-                <input
+                <Input
+                  compact
                   type="text"
+                  inputMode="decimal"
                   defaultValue={
                     it.priceCents > 0 ? (it.priceCents / 100).toFixed(2) : ''
                   }
                   placeholder="0.00"
-                  className="w-20 rounded border border-[var(--ink-14)] bg-transparent px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
+                  className="w-20 text-right tabular-nums"
                   onBlur={(e) => updatePrice(catIdx, itemIdx, e.target.value)}
                   aria-label={`Price for ${it.name}`}
                   data-test-id={`menu-import-item-price-${catIdx}-${itemIdx}`}
@@ -704,7 +676,8 @@ export function MenuImportWizard({
                       <span aria-hidden="true" className="text-[var(--ink-40)] text-xs">
                         ↳
                       </span>
-                      <input
+                      <Input
+                        compact
                         type="text"
                         value={v.label}
                         onChange={(e) =>
@@ -714,11 +687,13 @@ export function MenuImportWizard({
                         }
                         placeholder={t('importMenuVariantLabel')}
                         aria-label={t('importMenuVariantLabel')}
-                        className="flex-1 min-w-0 rounded border border-[var(--ink-14)] bg-transparent px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
+                        className="flex-1 min-w-0"
                         data-test-id={`menu-import-variant-label-${catIdx}-${itemIdx}-${varIdx}`}
                       />
-                      <input
+                      <Input
+                        compact
                         type="text"
+                        inputMode="decimal"
                         defaultValue={
                           v.priceCents > 0 ? (v.priceCents / 100).toFixed(2) : ''
                         }
@@ -729,7 +704,7 @@ export function MenuImportWizard({
                           })
                         }
                         aria-label={`Price for ${v.label || 'variant'}`}
-                        className="w-20 rounded border border-[var(--ink-14)] bg-transparent px-2 py-1 text-right text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ink-40)]"
+                        className="w-20 text-right tabular-nums"
                         data-test-id={`menu-import-variant-price-${catIdx}-${itemIdx}-${varIdx}`}
                       />
                       <span className="w-16 text-right text-[10px] text-[var(--ink-55)] tabular-nums">

@@ -55,6 +55,15 @@ export const drizzleAuthGateway: AuthGateway = {
     return rows[0] ?? null
   },
 
+  async findRestaurantByIdAnyOrg(restaurantId) {
+    const rows = await db
+      .select({ id: restaurant.id, tenantId: restaurant.tenantId })
+      .from(restaurant)
+      .where(eq(restaurant.id, restaurantId))
+      .limit(1)
+    return rows[0] ?? null
+  },
+
   async findRestaurantBySlugAnyOrg(slug) {
     const rows = await db
       .select({
