@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ClassicMenu } from './classic/classic-menu'
 import { MinimalMenu } from './minimal/minimal-menu'
+import { EditorialMenu } from './editorial/editorial-menu'
+import { CardsMenu } from './cards/cards-menu'
 import type { RenderProps } from '../types'
 
 vi.mock('server-only', () => ({}))
@@ -70,8 +72,15 @@ describe('ClassicMenu · variants', () => {
     expect(html).toContain('Meia dose')
     // Half-dose price formatted; we tolerate either € symbol position.
     expect(html).toMatch(/€\s*8\.00|8\.00\s*€/)
-    // Primary price still present.
-    expect(html).toMatch(/€\s*14\.50|14\.50\s*€/)
+  })
+
+  it('hides the primary price when the item has variants (variants list IS the price source)', () => {
+    const html = renderToStaticMarkup(<ClassicMenu {...makeProps()} />)
+    // Primary 14,50€ (Bacalhau) must NOT appear — only the variant
+    // prices do. The dual display was confusing operators.
+    expect(html).not.toMatch(/€\s*14\.50|14\.50\s*€/)
+    // Café has no variants → its primary price stays.
+    expect(html).toMatch(/€\s*1\.00|1\.00\s*€/)
   })
 
   it('omits the variant block entirely for items with no variants', () => {
@@ -90,7 +99,12 @@ describe('MinimalMenu · variants', () => {
     const html = renderToStaticMarkup(<MinimalMenu {...makeProps()} />)
     expect(html).toContain('Meia dose')
     expect(html).toMatch(/€\s*8\.00|8\.00\s*€/)
-    expect(html).toMatch(/€\s*14\.50|14\.50\s*€/)
+  })
+
+  it('hides the primary price when the item has variants', () => {
+    const html = renderToStaticMarkup(<MinimalMenu {...makeProps()} />)
+    expect(html).not.toMatch(/€\s*14\.50|14\.50\s*€/)
+    expect(html).toMatch(/€\s*1\.00|1\.00\s*€/)
   })
 
   it('omits the variant block entirely for items with no variants', () => {
@@ -100,6 +114,47 @@ describe('MinimalMenu · variants', () => {
     ]
     const html = renderToStaticMarkup(<MinimalMenu {...props} />)
     expect(html).not.toContain('Meia dose')
+  })
+})
+
+describe('EditorialMenu · variants', () => {
+  it('renders the variant label and price for items that have variants', () => {
+    const html = renderToStaticMarkup(<EditorialMenu {...makeProps()} />)
+    expect(html).toContain('Meia dose')
+    expect(html).toMatch(/€\s*8\.00|8\.00\s*€/)
+  })
+
+  it('hides the primary price when the item has variants', () => {
+    const html = renderToStaticMarkup(<EditorialMenu {...makeProps()} />)
+    expect(html).not.toMatch(/€\s*14\.50|14\.50\s*€/)
+    expect(html).toMatch(/€\s*1\.00|1\.00\s*€/)
+  })
+
+  it('renders roman numerals for categories', () => {
+    const html = renderToStaticMarkup(<EditorialMenu {...makeProps()} />)
+    // Single category → numeral "I"
+    expect(html).toContain('>I<')
+  })
+})
+
+describe('CardsMenu · variants', () => {
+  it('renders the variant label and price for items that have variants', () => {
+    const html = renderToStaticMarkup(<CardsMenu {...makeProps()} />)
+    expect(html).toContain('Meia dose')
+    expect(html).toMatch(/€\s*8\.00|8\.00\s*€/)
+  })
+
+  it('hides the primary price when the item has variants', () => {
+    const html = renderToStaticMarkup(<CardsMenu {...makeProps()} />)
+    expect(html).not.toMatch(/€\s*14\.50|14\.50\s*€/)
+    expect(html).toMatch(/€\s*1\.00|1\.00\s*€/)
+  })
+
+  it('renders a placeholder gradient when an item has no imageUrl', () => {
+    const html = renderToStaticMarkup(<CardsMenu {...makeProps()} />)
+    // The placeholder uses color-mix(in oklab, ...) as the gradient stop —
+    // a string that only appears in the placeholder branch.
+    expect(html).toContain('color-mix(in oklab')
   })
 })
 
@@ -130,6 +185,18 @@ describe('Stale snapshots (no `variants` field at all)', () => {
   it('MinimalMenu renders without crashing when an item is missing `variants`', () => {
     expect(() =>
       renderToStaticMarkup(<MinimalMenu {...makeStaleProps()} />),
+    ).not.toThrow()
+  })
+
+  it('EditorialMenu renders without crashing when an item is missing `variants`', () => {
+    expect(() =>
+      renderToStaticMarkup(<EditorialMenu {...makeStaleProps()} />),
+    ).not.toThrow()
+  })
+
+  it('CardsMenu renders without crashing when an item is missing `variants`', () => {
+    expect(() =>
+      renderToStaticMarkup(<CardsMenu {...makeStaleProps()} />),
     ).not.toThrow()
   })
 })

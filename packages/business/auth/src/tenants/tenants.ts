@@ -88,6 +88,30 @@ export async function createTenant(input: {
 }
 
 /**
+ * Hard-delete a tenant. Cascades to `tenant_member` via FK. Intended for
+ * rollback paths only — when a multi-step provisioning flow (create
+ * tenant → create subscription → seed restaurant) fails mid-sequence and
+ * leaves an orphaned tenant behind. Caller is responsible for cleaning
+ * up downstream state (subscriptions, restaurants in other product DBs)
+ * before calling; this only removes the core tenant row + memberships.
+ */
+export async function deleteTenant(input: {
+  tenantId: string
+  actor: AuditActor
+  reason?: string
+}): Promise<void> {
+  const db = getCoreDb()
+  await db.delete(tenant).where(eq(tenant.id, input.tenantId))
+  await recordAudit({
+    event: CORE_AUDIT_EVENTS.TENANT_DELETED,
+    outcome: 'success',
+    actor: input.actor,
+    target: { tenantId: input.tenantId },
+    meta: input.reason ? { reason: input.reason } : undefined,
+  })
+}
+
+/**
  * Free-text search across `tenant.name` for admin pickers (e.g. the
  * restaurant-transfer flow). Ordered by recency, capped at 50.
  * Anyone can call — gating belongs at the caller (`requireScope`).

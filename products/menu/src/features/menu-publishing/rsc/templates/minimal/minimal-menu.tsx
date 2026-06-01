@@ -8,7 +8,7 @@ export function MinimalMenu({ restaurant: r, menus }: RenderProps) {
   )
 
   return (
-    <main className="mx-auto max-w-xl px-6 pb-20 pt-12">
+    <main className="mx-auto max-w-2xl px-6 pb-20 pt-12 sm:px-8 lg:px-10">
       <header className="mb-10">
         <h1 className="text-2xl font-medium uppercase tracking-[0.18em]">{r.name}</h1>
         {r.description && (
@@ -69,14 +69,18 @@ export function MinimalMenu({ restaurant: r, menus }: RenderProps) {
                             >
                               {it.name}
                             </span>
-                            <span
-                              aria-hidden
-                              className="flex-1 translate-y-[-3px] border-b border-dotted"
-                              style={{ borderColor: 'var(--menu-secondary)' }}
-                            />
-                            <span className="font-mono text-sm tabular-nums">
-                              {formatPrice(it.priceCents, it.currency)}
-                            </span>
+                            {variants.length === 0 && (
+                              <>
+                                <span
+                                  aria-hidden
+                                  className="flex-1 translate-y-[-3px] border-b border-dotted"
+                                  style={{ borderColor: 'var(--menu-secondary)' }}
+                                />
+                                <span className="font-mono text-sm tabular-nums">
+                                  {formatPrice(it.priceCents, it.currency)}
+                                </span>
+                              </>
+                            )}
                           </div>
                           {variants.length > 0 && (
                             <dl className="mt-1 space-y-0.5 pl-3">

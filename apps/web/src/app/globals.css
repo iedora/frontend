@@ -2,6 +2,25 @@
 @import "tw-animate-css";
 
 /*
+ * Tailwind v4 auto-scans the current source directory but ignores
+ * workspace packages resolved through node_modules symlinks. Without
+ * the explicit @source below, utility classes used ONLY inside
+ * `products/menu` templates (e.g. `mx-auto max-w-3xl px-6` on the
+ * public-menu renderers) are silently dropped from the CSS bundle —
+ * JSX renders fine but the layout collapses to zero padding.
+ *
+ * Globs are NARROW on purpose: a `packages/**` catch-all once made
+ * Turbopack hang on compile (Tailwind walked every workspace dep,
+ * possibly chasing node_modules symlinks). Add one targeted `@source`
+ * per workspace surface that actually renders JSX into apps/web —
+ * never a top-level wildcard.
+ */
+@source "../../../../products/menu/src/features/menu-publishing/**/*.{ts,tsx}";
+@source "../../../../products/menu/src/features/restaurant-import-json/**/*.{ts,tsx}";
+@source "../../../../products/menu/src/features/restaurant-identity/ui/**/*.{ts,tsx}";
+@source "../../../../products/menu/src/shared/ui/**/*.{ts,tsx}";
+
+/*
  * Menu inherits its full palette from @iedora/design-system tokens.css
  * (imported above this file in src/app/layout.tsx). Every Tailwind utility
  * (bg-background, text-foreground, border-border, …) is remapped below so

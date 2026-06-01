@@ -70,7 +70,7 @@ export type RestaurantTheme = {
   primaryColor?: string
   secondaryColor?: string
   font?: 'inter' | 'playfair' | 'lora' | 'space-grotesk'
-  layout?: 'classic' | 'minimal'
+  layout?: 'classic' | 'minimal' | 'editorial' | 'cards'
   // forward-compatible — extend without migrations
   [key: string]: unknown
 }

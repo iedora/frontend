@@ -1,5 +1,7 @@
 import { template as classic } from './classic'
 import { template as minimal } from './minimal'
+import { template as editorial } from './editorial'
+import { template as cards } from './cards'
 import type { MenuTemplate, TemplateId, TemplateMeta } from './types'
 
 // Adding a template = create features/menu-publishing/rsc/templates/<id>/, export `template`
@@ -8,6 +10,8 @@ import type { MenuTemplate, TemplateId, TemplateMeta } from './types'
 const REGISTRY: Record<TemplateId, MenuTemplate> = {
   classic,
   minimal,
+  editorial,
+  cards,
 }
 
 export function getTemplate(id: string): MenuTemplate {

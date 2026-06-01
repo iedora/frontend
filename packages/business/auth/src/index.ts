@@ -50,6 +50,7 @@ export {
 // `organization` plugin surface.
 export {
   createTenant,
+  deleteTenant,
   getTenantById,
   getTenantsByIds,
   listUserTenants,

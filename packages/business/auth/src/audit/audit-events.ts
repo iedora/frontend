@@ -15,6 +15,7 @@
 export const CORE_AUDIT_EVENTS = {
   // ── Tenancy ──────────────────────────────────────────────────────
   TENANT_CREATED: 'tenant.created',
+  TENANT_DELETED: 'tenant.deleted',
 
   // ── Membership ───────────────────────────────────────────────────
   TENANT_MEMBER_ADDED: 'tenant.member.added',

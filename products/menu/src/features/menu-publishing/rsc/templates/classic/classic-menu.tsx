@@ -10,7 +10,7 @@ export function ClassicMenu({ restaurant: r, menus }: RenderProps) {
   )
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-24 pt-10 sm:pt-16">
+    <main className="mx-auto max-w-3xl px-6 pb-24 pt-10 sm:px-8 sm:pt-16 lg:px-10">
       <header className="mb-12 text-center">
         {r.logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -160,14 +160,16 @@ export function ClassicMenu({ restaurant: r, menus }: RenderProps) {
                                   </dl>
                                 )}
                               </div>
-                              <span
-                                className={
-                                  'shrink-0 text-sm font-medium tabular-nums ' +
-                                  (hasPhoto ? 'pt-0.5' : '')
-                                }
-                              >
-                                {formatPrice(it.priceCents, it.currency)}
-                              </span>
+                              {(it.variants ?? []).length === 0 && (
+                                <span
+                                  className={
+                                    'shrink-0 text-sm font-medium tabular-nums ' +
+                                    (hasPhoto ? 'pt-0.5' : '')
+                                  }
+                                >
+                                  {formatPrice(it.priceCents, it.currency)}
+                                </span>
+                              )}
                             </li>
                           )
                         })}

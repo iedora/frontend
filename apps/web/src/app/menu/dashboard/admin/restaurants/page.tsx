@@ -3,6 +3,7 @@ import { SCOPES } from '@iedora/auth/scopes'
 import { getTenantsByIds } from '@iedora/auth'
 import { DashboardPage } from '@iedora/product-menu/shared/ui/dashboard-page'
 import { listRestaurantsAdmin } from '@iedora/product-menu/features/restaurant-identity'
+import Link from 'next/link'
 import { CreateRestaurantForm } from './create-restaurant-form'
 import { RestaurantsTable, type AdminRestaurantRow } from './restaurants-table'
 
@@ -44,8 +45,18 @@ export default async function AdminRestaurantsPage() {
       description="Cross-tenant. Cria um restaurante novo (com tenant próprio) ou abre/transfere os existentes."
       data-test-id="admin-restaurants"
     >
-      <section data-test-id="admin-restaurants-create">
+      <section
+        data-test-id="admin-restaurants-create"
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start"
+      >
         <CreateRestaurantForm />
+        <Link
+          href="/menu/dashboard/admin/restaurants/import"
+          className="w-full rounded border border-dashed border-[var(--ink-40)] px-4 py-4 text-center text-sm text-[var(--ink-55)] hover:border-[var(--ink)] hover:text-[var(--ink)] sm:w-auto"
+          data-test-id="admin-restaurants-import-link"
+        >
+          + Importar de JSON
+        </Link>
       </section>
 
       <section
