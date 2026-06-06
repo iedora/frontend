@@ -52,7 +52,9 @@ UI Coolify → Project `iedora` → "+ New Resource" → "Public Repository":
 
 ### 3. Environment variables (Coolify UI → Application → Environment)
 
-Plaintext (não-secret):
+Three sources, by lifecycle:
+
+**Plain config (paste literally into Coolify UI):**
 
 ```
 NODE_ENV=production
@@ -65,25 +67,32 @@ NEXT_PUBLIC_IMOPUSH_URL=https://imopush.iedora.com
 NEXT_PUBLIC_BRAND_URL=https://iedora.com
 IEDORA_BOOTSTRAP_ADMIN_EMAILS=eduardoferdcarvalho@gmail.com
 LOG_LEVEL=info
-S3_REGION=auto
-S3_BUCKET=iedora-assets
-S3_ENDPOINT=https://2716bf6ee8be2880904e70f19050d2ef.r2.cloudflarestorage.com
 ```
 
-Secrets (marca "Is Secret" ✓):
+**Secrets — encrypted source of truth in `apps/web/.env.prod` (sops+age):**
+
+```bash
+bun prod:env:show    # decrypt + print to stdout (pipe to clipboard, paste in UI)
+bun prod:env:edit    # open in $EDITOR (re-encrypts on save)
+```
+
+This file holds: `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`,
+`S3_SECRET_KEY`, `CORE_SECRET`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`.
+When you rotate the R2 token (in `iedora-iac/apps/iedora-web/` via tofu),
+update `S3_ACCESS_KEY` + `S3_SECRET_KEY` here and re-paste into Coolify.
+Mark every key from `.env.prod` as "Is Secret" ✓ in the Coolify UI.
+
+**Database URLs — Coolify UI only, tied to Coolify-managed Postgres:**
 
 ```
-CORE_SECRET=                # 48 chars, openssl rand -base64 48 | tr -d '+/='
 CORE_DATABASE_URL=postgresql://postgres:<pg-pw>@iedora-pg:5432/core
 MENU_DATABASE_URL=postgresql://postgres:<pg-pw>@iedora-pg:5432/menu
 IMOPUSH_DATABASE_URL=postgresql://postgres:<pg-pw>@iedora-pg:5432/imopush
-S3_ACCESS_KEY=              # R2 token id
-S3_SECRET_KEY=              # sha256(R2 token value)
-DEEPSEEK_API_KEY=
-MOONSHOT_API_KEY=
 ```
 
-(`<pg-pw>` é a password gerada pelo Coolify Resource Postgres no passo 1.)
+(`<pg-pw>` é a password gerada pelo Coolify Resource Postgres no passo 1.
+Não vive em `.env.prod` — se o Coolify rotar a Postgres é ele que injecta
+o novo valor; ter aqui criaria drift.)
 
 ### 4. Migrations (pre-deploy command)
 

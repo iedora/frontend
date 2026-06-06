@@ -73,9 +73,12 @@ yarn-debug.log*
 .env.production
 .env.*.local
 
-# Apps/web tracked envs — defaults de dev + E2E test build.
+# Apps/web tracked envs — defaults de dev + E2E test build + sops-encrypted
+# prod source-of-truth. `.env.prod` is COMMITTED ENCRYPTED with age via sops
+# (see .sops.yaml). Decrypt + paste into Coolify UI: `bun prod:env:show`.
 !apps/web/.env
 !apps/web/.env.test
+!apps/web/.env.prod
 
 # home-infra/<service>/.env é COMMITTED — só config non-secret (ex:
 # email, domain). Secrets ficam em BWS, injectados em runtime via
