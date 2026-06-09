@@ -11,6 +11,7 @@
  * Add a new env var by extending `serverSchema` below and (if appropriate)
  * `.env.example`. Optional vars use `.optional()`; defaults use `.default(…)`.
  */
+import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 
 const serverSchema = z.object({
@@ -79,6 +80,28 @@ const SKIP =
   process.env.SKIP_ENV_VALIDATION === '1' ||
   process.env.SKIP_ENV_VALIDATION === 'true'
 
+/**
+ * Resolve the Docker/Swarm secrets `*_FILE` convention: for any `FOO_FILE`
+ * env var, read the file and expose its trimmed contents as `FOO`. Lets the
+ * orchestrator mount secrets as files (tmpfs, out of `docker inspect` / the
+ * service spec / the Raft log) instead of plain env. `FOO` and `FOO_FILE` are
+ * mutually exclusive so a half-configured deploy fails loud, not silently.
+ *
+ * Mutates `process.env` in place (like an entrypoint `export FOO=$(cat …)`
+ * would) so code that reads `process.env.FOO` directly — not just this schema —
+ * sees the resolved value too. Idempotent: a populated `FOO` skips its `_FILE`.
+ */
+function resolveSecretFiles(): void {
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.endsWith('_FILE') || !value) continue
+    const base = key.slice(0, -'_FILE'.length)
+    if (process.env[base]) {
+      throw new Error(`Set either ${base} or ${key}, not both`)
+    }
+    process.env[base] = readFileSync(value, 'utf8').trim()
+  }
+}
+
 function parseEnv(): ServerEnv {
   if (SKIP) {
     // Build-time stub. Any read returns an empty string except NODE_ENV,
@@ -92,6 +115,7 @@ function parseEnv(): ServerEnv {
     })
   }
 
+  resolveSecretFiles()
   const parsed = serverSchema.safeParse(process.env)
   if (!parsed.success) {
     console.error('Invalid environment variables:')
