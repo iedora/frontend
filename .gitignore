@@ -73,12 +73,10 @@ yarn-debug.log*
 .env.production
 .env.*.local
 
-# Apps/web tracked envs — defaults de dev + E2E test build + sops-encrypted
-# prod source-of-truth. `.env.prod` is COMMITTED ENCRYPTED with age via sops
-# (see .sops.yaml). Decrypt + paste into Coolify UI: `bun prod:env:show`.
+# Apps/web tracked envs — dev defaults + E2E test build. Prod secrets live in
+# the infra repo (iedora/infra/stacks/web/secrets.env), not here.
 !apps/web/.env
 !apps/web/.env.test
-!apps/web/.env.prod
 
 # sops edit/set leftover (decrypted plaintext) — never commit
 .decrypted~*
