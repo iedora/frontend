@@ -922,6 +922,64 @@
   text-align: center;
 }
 
+/* ── social proof ─────────────────────────────────────────────────── */
+
+.landing-root .social-proof {
+  padding: 80px 0;
+}
+
+.landing-root .testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+
+@media (max-width: 640px) {
+  .landing-root .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-root .testimonial-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 24px;
+  border: 1px solid var(--ink-14);
+  border-radius: 0;
+}
+
+.landing-root .testimonial-quote {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: var(--t-lg);
+  line-height: var(--lh-prose);
+  color: var(--ink-70);
+  text-wrap: pretty;
+}
+
+.landing-root .testimonial-author {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  line-height: 1.4;
+  color: var(--ink-55);
+}
+
+.landing-root .testimonial-author strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.landing-root .testimonial-role {
+  font-style: normal;
+}
+
 /* ── closing ──────────────────────────────────────────────────── */
 
 .landing-root .closing {

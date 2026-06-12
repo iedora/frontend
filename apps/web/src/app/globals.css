@@ -1049,3 +1049,63 @@
 @media (min-width: 640px) {
   .settings-card { padding: 20px 22px 18px; }
 }
+
+/* ── iedora.com landing page (house) ───────────────────────────── */
+
+.ds-hero__house {
+  max-width: 180px;
+  margin: 0 auto 36px;
+  display: block;
+}
+
+.ds-house-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .ds-house-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ds-card--linked {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--ink-14);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ds-card--linked:hover {
+  background: var(--paper-2);
+  border-color: var(--ink-40);
+}
+
+.ds-card--linked .ds-card__title {
+  margin: 0;
+}
+
+.ds-card--linked .ds-card__desc {
+  margin: 0;
+}
+
+.ds-card--linked .ds-card__foot {
+  margin-top: auto;
+}
+
+/* ── House contact section ─────────────────────────────────────── */
+
+.ds-shell section[data-test-id="house-contact"] {
+  margin-top: 40px;
+}
+
+.ds-shell section[data-test-id="house-products"] {
+  margin-top: 48px;
+}

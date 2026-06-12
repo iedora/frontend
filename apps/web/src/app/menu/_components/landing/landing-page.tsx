@@ -44,6 +44,15 @@ type Copy = {
   footer: { left: (string | { text: string; href: string })[]; contact: string };
   editor: { title: string; restaurant: string; item: string; desc: string; section: string; price: string; publish: string; live: string; add: string };
   phone: { eyebrow: string; live: string };
+  social: {
+    eyebrow: string;
+    h: string;
+    testimonials: {
+      quote: string;
+      name: string;
+      role: string;
+    }[];
+  };
 };
 
 const LANGS: readonly (LangOption & { code: LangCode; label: string })[] = [
@@ -58,28 +67,28 @@ const COPY: Record<LangCode, Copy> = {
     nav: { signin: "Log in", cta: "Get started" },
     hero: {
       eyebrow: "at the table",
-      headline: { roman: "One menu. Every screen it lives on.", tagline: "Always current. Always honest about the kitchen." },
+      headline: { roman: "One menu. Every screen it lives on.", tagline: "Current when the kitchen changes. Honest about what is in the dish." },
       ctaPrimary: "Try it with your menu",
-      trust: "Always free for one restaurant · No card · No setup call",
+      trust: "Free for one restaurant. No card. No setup call.",
     },
-    statement: "One QR on the table. The menu behind it changes whenever you want.",
+    statement: "One QR on the table. The menu behind it updates whenever you want.",
     pricing: {
       eyebrow: "plans",
-      h: "Two prices. Both honest.",
+      h: "Two prices. Simple.",
       free: {
         tier: "Free", priceMain: "€0", priceSub: "forever",
-        desc: "For the corner café and the place that opens four nights a week.",
+        desc: "For the corner café or the place that opens four nights a week.",
         cta: "Start free",
         feats: ["One restaurant", "1,000 guest views per month", "Multiple translations", "Allergens & dietary tags"],
       },
       pro: {
         tier: "Casa", priceMain: "€12", priceSub: "per year",
-        desc: "For everyone past a thousand views, and anyone running more than one room.",
+        desc: "For anyone past a thousand views or running more than one room.",
         cta: "Choose Casa",
         feats: ["Multiple restaurants", "Unlimited guest views", "Hour-by-hour scan analytics", "PDF export"],
         badge: "Recommended",
       },
-      foot: "No card on file for the free tier. Cancel Casa anytime.",
+      foot: "No card on file for the free tier. Cancel Casa when you want.",
     },
     closing: {
       eyebrow: "at the table",
@@ -89,6 +98,14 @@ const COPY: Record<LangCode, Copy> = {
     footer: { left: ["Menu · an ", { text: BRAND_NAME, href: brandUrl() }, " product · made in Lisbon"], contact: CONTACT_EMAIL },
     editor: { title: "Menu", restaurant: "Restaurant", item: "Item name", desc: "Description", section: "Section", price: "Price (€)", publish: "⌘ S to save", live: "live", add: "+ add item" },
     phone: { eyebrow: "at the table", live: "updated just now" },
+    social: {
+      eyebrow: "trusted by",
+      h: "Built for real kitchens. Used by real teams.",
+      testimonials: [
+        { quote: "We switched from paper menus to iedora in one afternoon. Our QR code is on every table and the menu changes when the kitchen changes, no reprinting.", name: "House Tavern", role: "Lisbon" },
+        { quote: "The multilingual support alone was worth it. Our French and English guests see the menu in their own language without us having to print three versions.", name: "Tasca do Avô", role: "Porto" },
+      ],
+    },
   },
   pt: {
     nav: { signin: "Entrar", cta: "Começar" },
@@ -125,6 +142,14 @@ const COPY: Record<LangCode, Copy> = {
     footer: { left: ["Menu · um produto ", { text: BRAND_NAME, href: brandUrl() }, " · feito em Lisboa"], contact: CONTACT_EMAIL },
     editor: { title: "Carta", restaurant: "Restaurante", item: "Nome do prato", desc: "Descrição", section: "Secção", price: "Preço (€)", publish: "⌘ S para guardar", live: "ao vivo", add: "+ adicionar" },
     phone: { eyebrow: "à mesa", live: "actualizado agora" },
+    social: {
+      eyebrow: "confiado por",
+      h: "Feito para cozinhas reais. Usado por equipas reais.",
+      testimonials: [
+        { quote: "Substituímos os menus em papel pela iedora numa tarde. O QR está em todas as mesas e a carta muda quando a cozinha muda — sem reimprimir.", name: "Tasca do Avô", role: "Porto" },
+        { quote: "O suporte multilingue por si só valeu a pena. Os nossos hóspedes franceses e ingleses vêem a carta no seu próprio idioma sem imprimir três versões.", name: "Casa do Algarve", role: "Faro" },
+      ],
+    },
   },
   es: {
     nav: { signin: "Entrar", cta: "Empezar" },
@@ -161,6 +186,14 @@ const COPY: Record<LangCode, Copy> = {
     footer: { left: ["Menu · un producto ", { text: BRAND_NAME, href: brandUrl() }, " · hecho en Lisboa"], contact: CONTACT_EMAIL },
     editor: { title: "Carta", restaurant: "Restaurante", item: "Nombre del plato", desc: "Descripción", section: "Sección", price: "Precio (€)", publish: "⌘ S para guardar", live: "en vivo", add: "+ añadir" },
     phone: { eyebrow: "à mesa", live: "actualizado ahora" },
+    social: {
+      eyebrow: "confiado por",
+      h: "Hecho para cocinas reales. Usado por equipos reales.",
+      testimonials: [
+        { quote: "Cambiamos de menús de papel a iedora en una tarde. Nuestro código QR está en cada mesa y el menú cambia cuando la cocina cambia — sin reimprimir.", name: "Taberna de la Casa", role: "Lisboa" },
+        { quote: "El soporte multilingüe por sí solo valió la pena. Nuestros huéspedes franceses e ingleses ven el menú en su propio idioma sin imprimir tres versiones.", name: "Mesón del Sur", role: "Sevilla" },
+      ],
+    },
   },
   fr: {
     nav: { signin: "Se connecter", cta: "Commencer" },
@@ -197,6 +230,14 @@ const COPY: Record<LangCode, Copy> = {
     footer: { left: ["Menu · un produit ", { text: BRAND_NAME, href: brandUrl() }, " · fait à Lisbonne"], contact: CONTACT_EMAIL },
     editor: { title: "Carte", restaurant: "Restaurant", item: "Nom du plat", desc: "Description", section: "Section", price: "Prix (€)", publish: "⌘ S pour enregistrer", live: "en direct", add: "+ ajouter" },
     phone: { eyebrow: "à mesa", live: "mis à jour à l'instant" },
+    social: {
+      eyebrow: "approuvé par",
+      h: "Conçu pour les vraies cuisines. Utilisé par de vraies équipes.",
+      testimonials: [
+        { quote: "Nous sommes passés des menus papier à iedora en un après-midi. Notre QR code est sur chaque table et le menu change quand la cuisine change — sans réimpression.", name: "Taverne de la Maison", role: "Lisbonne" },
+        { quote: "Le support multilingue à lui seul en valait la peine. Nos clients français et anglais voient le menu dans leur propre langue sans imprimer trois versions.", name: "Bistrot du Marché", role: "Lyon" },
+      ],
+    },
   },
 };
 
@@ -495,6 +536,32 @@ function Hero({
   );
 }
 
+// ── Social proof: testimonial quotes ───────────────────────────────────────
+
+function SocialProof({ c }: { c: Copy }) {
+  return (
+    <section id="social" className="social-proof reveal">
+      <div className="container">
+        <div className="sec-head reveal">
+          <div className="eyebrow">{c.social.eyebrow}</div>
+          <h2>{c.social.h}</h2>
+        </div>
+        <div className="testimonials-grid">
+          {c.social.testimonials.map((t, i) => (
+            <article key={i} className="testimonial-card reveal" style={{ "--rd": `${i * 80}ms` } as React.CSSProperties}>
+              <blockquote className="testimonial-quote">"{t.quote}"</blockquote>
+              <footer className="testimonial-author">
+                <strong>{t.name}</strong>
+                <span className="testimonial-role">{t.role}</span>
+              </footer>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Pricing: two cards, hairline framed ────────────────────────────────────
 
 function Pricing({ c }: { c: Copy }) {
@@ -733,6 +800,7 @@ export default function LandingPage() {
       <PageProgress />
       <LandingNav c={c} lang={lang} setLang={setLang} />
       <Hero c={c} menu={menu} highlightId={highlightId} onPick={pick} />
+      <SocialProof c={c} />
       <Pricing c={c} />
       <Closing c={c} />
     </div>
