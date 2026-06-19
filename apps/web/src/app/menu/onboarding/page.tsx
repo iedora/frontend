@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
-import { DottedStepper, Masthead, OrnamentRule, PaperCard, Stage } from '@iedora/design-system'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { getSession, isStaff } from '@iedora/product-menu/features/auth'
+import { LANGUAGE_META } from '@iedora/product-menu/features/i18n'
 import {
   ADD_ANOTHER_QUERY_KEY,
   ADD_ANOTHER_QUERY_VALUE,
@@ -12,7 +12,6 @@ import {
 import { signInUrl } from '@iedora/product-menu/shared/auth-urls'
 import { publicUrl } from '@iedora/product-menu/shared/url'
 import { OnboardingForm } from './onboarding-form'
-import './onboarding.css'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -50,25 +49,23 @@ export default async function OnboardingPage({
   }
 
   const t = await getTranslations('Onboarding')
+  const locale = await getLocale()
+  const languages = LANGUAGE_META.map((l) => ({ code: l.code, label: l.nativeName }))
 
   return (
-    <Stage data-test-id="onboarding-name-page">
-      <PaperCard data-test-id="onboarding-name-card">
-        <Masthead course={t('eyebrow')} />
-        <DottedStepper
-          steps={[
-            { key: 'name', index: 1, label: t('steps.name') },
-            { key: 'menu', index: 2, label: t('steps.menu') },
-          ]}
-          currentKey="name"
-          ariaLabel={t('steps.label')}
-          counterLabel={t('steps.counter', { index: 1, total: 2 })}
-          testId="onboarding-stepper"
-          stepTestId={(key) => `onboarding-stepper-step-${key}`}
-        />
-        <OrnamentRule />
-        <OnboardingForm />
-      </PaperCard>
-    </Stage>
+    <div className="min-h-screen bg-background text-foreground" data-test-id="onboarding-name-page">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pb-8 pt-7">
+        {/* Progress — step 1 of 2 */}
+        <div className="mb-9 flex items-center gap-3" aria-label={t('steps.label')}>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-1/2 rounded-full bg-primary" />
+          </div>
+          <span className="text-[13px] font-semibold text-muted-foreground" data-test-id="onboarding-stepper">
+            {t('steps.counter', { index: 1, total: 2 })}
+          </span>
+        </div>
+        <OnboardingForm languages={languages} locale={locale} />
+      </div>
+    </div>
   )
 }

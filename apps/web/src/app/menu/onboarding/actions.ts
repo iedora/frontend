@@ -40,12 +40,13 @@ import { publicUrl } from '@iedora/product-menu/shared/url'
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(2).max(80),
-  // Optional address-or-tagline. Persists into the restaurant's public
-  // description — the small italic line printed under the name.
-  tagline: z
+  // Menu's primary language (the first chip the owner picks). Falls back
+  // to the UI locale. Persisting the full offered set needs a Go update.
+  defaultLanguage: z
     .string()
     .trim()
-    .max(120)
+    .min(2)
+    .max(10)
     .optional()
     .transform((v) => (v && v.length > 0 ? v : undefined)),
 })
@@ -60,7 +61,7 @@ export async function completeOnboarding(
 ): Promise<OnboardingFormState> {
   const parsed = onboardingSchema.safeParse({
     restaurantName: formData.get('restaurantName'),
-    tagline: formData.get('tagline'),
+    defaultLanguage: formData.get('defaultLanguage'),
   })
 
   if (!parsed.success) {
@@ -72,7 +73,7 @@ export async function completeOnboarding(
     return { fieldErrors }
   }
 
-  const { restaurantName, tagline } = parsed.data
+  const { restaurantName, defaultLanguage } = parsed.data
   const signInTarget = signInUrl(
     publicUrl(ONBOARDING_STEPS.name.path).toString(),
   )
@@ -104,14 +105,14 @@ export async function completeOnboarding(
     }
   }
 
-  // 3. Create the restaurant (+ optional tagline). Go owns the slug
-  //    and the plan gate — a 422 over-limit surfaces as the form error.
+  // 3. Create the restaurant in the owner's chosen primary language.
+  //    Go owns the slug and the plan gate — a 422 over-limit surfaces
+  //    as the form error.
   let slug: string
   try {
     const restaurant = await createOnboardingRestaurant({
       name: restaurantName,
-      defaultLanguage: await getLocale(),
-      tagline,
+      defaultLanguage: defaultLanguage ?? (await getLocale()),
     })
     slug = restaurant.slug
   } catch (err) {
