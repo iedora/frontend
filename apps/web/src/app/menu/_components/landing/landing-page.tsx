@@ -134,7 +134,9 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3.5">
             <Button as="a" href={SIGN_UP_HREF} variant="primary" size="lg">{t("hero.ctaPrimary")}</Button>
             <Button as="a" href="#how" variant="secondary" size="lg">
-              <Play size={16} fill="currentColor" strokeWidth={0} /> {t("hero.ctaSecondary")}
+              <span className="inline-flex items-center gap-2">
+                <Play size={16} fill="currentColor" strokeWidth={0} /> {t("hero.ctaSecondary")}
+              </span>
             </Button>
           </div>
           <div className="relative mt-6 h-[320px] w-full overflow-hidden rounded-[28px] sm:h-[440px] md:h-[560px]">
