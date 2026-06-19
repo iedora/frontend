@@ -76,13 +76,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
-  --radius-3xl: 0;
-  --radius-4xl: 0;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+  --radius-4xl: 48px;
 }
 
 :root {
@@ -96,10 +96,9 @@
   --popover: var(--paper-2);
   --popover-foreground: var(--ink);
 
-  /* Primary action = ink-on-paper (deep, quiet). Reserve cinnabar for
-     destinations and emphasis, not for every "Save" button. */
-  --primary: var(--ink);
-  --primary-foreground: var(--paper);
+  /* Primary action = coral (Pencil). The main call-to-action colour. */
+  --primary: var(--cinnabar);
+  --primary-foreground: #ffffff;
 
   --secondary: var(--paper-2);
   --secondary-foreground: var(--ink);
@@ -113,8 +112,8 @@
   --brand: var(--cinnabar);
   --brand-foreground: var(--paper);
 
-  --destructive: #9c2418;
-  --border: var(--ink-14);
+  --destructive: var(--danger);
+  --border: var(--rule);
   --input: var(--ink-14);
   --ring: var(--cinnabar);
 
@@ -125,8 +124,8 @@
   --chart-4: #2a3a52;
   --chart-5: var(--ink-55);
 
-  /* Square corners — editorial vocabulary, no rounded chrome */
-  --radius: 0;
+  /* Rounded chrome — Pencil warm-light vocabulary */
+  --radius: 12px;
 
   --sidebar: var(--paper-2);
   --sidebar-foreground: var(--ink);
@@ -157,8 +156,8 @@
      inherits the iedora printed-menu typographic system. */
   h1, h2, h3, h4 {
     font-family: var(--display);
-    font-weight: 500;
-    letter-spacing: -0.015em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     text-wrap: balance;
     color: var(--ink);
   }

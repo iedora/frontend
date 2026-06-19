@@ -32,7 +32,7 @@ every Go API call. The browser NEVER calls the Go services directly.
 - **Go** (`backend/`) — chi, pgx, NATS JetStream (audit outbox), Ed25519 JWTs, OTel. Postgres 18, one database per service, migrations owned by each service.
 - **Next.js 16** (App Router, Turbopack default) — UI only: RSC reads via `serverFetch`, mutations via server actions.
 - **TypeScript** strict, every workspace.
-- **shadcn/ui** + Tailwind v4 — menu only. Editorial primitives from **`@iedora/design-system`**.
+- **`@iedora/design-system`** + Tailwind v4 — CSS-variable tokens + BEM `.ds-*` React primitives (no shadcn). Warm-light "appetizing" look (off-white paper, **coral `#EF5430` primary**, rounded corners, Plus Jakarta Sans / Inter). Mid-migration from the old editorial look on branch `redesign/pencil-look`. **Design every UI change in the Pencil files (`iedora.pen` / `iedora.lib.pen`) FIRST — see [`CLAUDE.md`](./CLAUDE.md).**
 - **@dnd-kit** — menu's drag-and-drop builder.
 - **Bun** — package manager, test runner, dev orchestrator. **Production runtime is Node** — `bun + next build` is unstable as of 2026 (oven-sh/bun#23944).
 - **Deploy** — owned by the `iedora-infra` repo (Docker Swarm + Ansible + OpenTofu). This repo ships images: `apps/web/Dockerfile` (UI) and `backend/Dockerfile` (Go binaries).

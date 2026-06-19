@@ -3296,3 +3296,115 @@ body.ds-loaded .ds-hero--in .ds-hero__trust   { opacity: 1; transform: translate
   .ds-action-card__hint { transition: none; }
   .ds-action-card:hover { transform: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * PENCIL REDESIGN — warm-light, rounded, sans
+ * Overrides the editorial (mono/uppercase/underline/square) vocabulary
+ * with the Pencil look: filled rounded buttons, boxed rounded inputs,
+ * sans labels. Appended last so it wins on equal specificity. Remove
+ * this whole block to revert to the editorial system.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* Buttons — sans, normal case, rounded; primary is filled coral */
+.ds-btn {
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 600;
+  border-radius: var(--radius-s);
+  padding: 11px 18px;
+}
+.ds-btn:hover { background: var(--paper-2); color: var(--ink); }
+.ds-btn--primary,
+.ds-btn--solid {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.ds-btn--primary:hover,
+.ds-btn--solid:hover {
+  background: var(--cinnabar-deep);
+  border-color: var(--cinnabar-deep);
+  color: var(--primary-foreground);
+}
+.ds-btn--secondary {
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--rule);
+}
+.ds-btn--secondary:hover { background: var(--paper-2); color: var(--ink); }
+.ds-btn--ghost { border-color: transparent; background: transparent; }
+.ds-btn--ghost:hover { background: var(--paper-2); color: var(--ink); }
+.ds-btn--danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.ds-btn--danger:hover { background: var(--danger); color: #fff; }
+.ds-btn__arrow { color: currentColor; }
+
+/* Inputs — boxed, rounded, sans (Pencil) instead of underline/serif */
+.ds-field input,
+.ds-field textarea,
+.ds-field select,
+.ds-input,
+.ds-textarea {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+  padding: 12px 14px;
+  font-family: var(--sans);
+  font-size: var(--t-md);
+}
+.ds-field input:focus,
+.ds-field textarea:focus,
+.ds-input:focus,
+.ds-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--cinnabar-08);
+}
+.ds-field input::placeholder,
+.ds-field textarea::placeholder,
+.ds-input::placeholder,
+.ds-textarea::placeholder {
+  color: var(--muted);
+  font-style: normal;
+}
+.ds-field--error input,
+.ds-field--error textarea,
+.ds-input--error,
+.ds-textarea--error {
+  border-color: var(--danger);
+  border-bottom-color: var(--danger);
+}
+
+/* Labels & hints — sans, sentence case */
+.ds-field__label {
+  font-family: var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ds-field__hint {
+  font-family: var(--sans);
+  letter-spacing: 0;
+  font-size: var(--t-sm);
+}
+
+/* Surfaces — rounded chrome */
+.ds-card { border-radius: var(--radius-m); }
+.ds-badge { border-radius: var(--radius-pill); }
+.ds-dialog { border-radius: var(--radius-l); }
+.ds-table { border-radius: var(--radius-m); overflow: hidden; }
+.ds-empty { border-radius: var(--radius-m); }
+.ds-stat { border-radius: var(--radius-m); }
+.ds-toast { border-radius: var(--radius-m); }
+.ds-input--compact,
+.ds-textarea--compact,
+.ds-select--compact { border-radius: var(--radius-s); }
+.ds-combobox { border-radius: var(--radius-s); }
+

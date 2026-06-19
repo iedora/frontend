@@ -5,6 +5,7 @@ import {
   Inter,
   Lora,
   Playfair_Display,
+  Plus_Jakarta_Sans,
   Space_Grotesk,
 } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
@@ -40,6 +41,15 @@ const lora = Lora({
 // when restaurant.theme picks one). Kept on the root html so a theme
 // swap doesn't trigger a font fetch.
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
+
+// Warm-light redesign (Pencil): Plus Jakarta Sans for display/headings,
+// Inter for UI + body. Replaces the editorial Playfair/Lora/Geist voice.
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
@@ -66,14 +76,14 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${lora.variable} ${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${lora.variable} ${inter.variable} ${plusJakarta.variable} ${spaceGrotesk.variable} h-full antialiased`}
       style={{
         ["--display" as string]:
-          "var(--font-playfair), Georgia, serif",
+          "var(--font-plus-jakarta), 'Helvetica Neue', Helvetica, Arial, sans-serif",
         ["--serif" as string]:
-          "var(--font-lora), Georgia, serif",
+          "var(--font-inter), 'Helvetica Neue', Helvetica, Arial, sans-serif",
         ["--sans" as string]:
-          "var(--font-geist-sans), 'Helvetica Neue', Helvetica, Arial, sans-serif",
+          "var(--font-inter), 'Helvetica Neue', Helvetica, Arial, sans-serif",
         ["--mono" as string]:
           "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
       }}
