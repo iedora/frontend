@@ -563,153 +563,149 @@
   },
   "Landing": {
     "nav": {
-      "features": "Funcionalidades",
-      "how": "Como funciona",
-      "pricing": "Preços",
-      "stories": "Histórias",
-      "signIn": "Entrar",
-      "getStarted": "Começar"
+      "getStarted": "Começar",
+      "signIn": "Entrar"
     },
     "hero": {
-      "eyebrow": "Menus digitais para restaurantes",
-      "headline": "O seu menu online. Pronto em minutos.",
-      "subhead": "A iedora transforma o seu menu num menu digital que os clientes abrem ao digitalizar um código. Atualize quando quiser, sem nada para imprimir.",
+      "accent": "especial de hoje",
+      "headline": "O seu menu, online em minutos.",
+      "subhead": "Os clientes digitalizam um código para o ver. Mude um preço em segundos, sem nada para imprimir.",
       "ctaPrimary": "Começar grátis",
-      "ctaSecondary": "Ver demonstração"
+      "ctaSecondary": "Ver demonstração",
+      "card": {
+        "name": "La Trattoria",
+        "note": "a lenha desde 1998",
+        "scan": "Digitalize para ver"
+      },
+      "dishes": [
+        {
+          "name": "Margherita",
+          "price": "€9.50"
+        },
+        {
+          "name": "Diavola",
+          "price": "€12.00"
+        },
+        {
+          "name": "Tonno",
+          "price": "€11.00"
+        }
+      ],
+      "langsLabel": "No idioma dos seus clientes",
+      "langs": [
+        "EN",
+        "PT",
+        "ES",
+        "FR",
+        "IT",
+        "DE"
+      ],
+      "worksWithLabel": "Funciona bem com"
     },
     "features": {
-      "eyebrow": "Tudo num só lugar",
-      "title": "Tudo o que precisa, de forma simples",
-      "sub": "Os seus clientes têm uma experiência simples e clara, e você mantém o controlo.",
+      "accent": "o que tem",
+      "title": "Tudo no menu",
       "items": [
-        {
-          "title": "Digitalizar e abrir",
-          "body": "Os clientes digitalizam um código ou tocam num link e o menu abre logo. Nunca precisam de instalar uma aplicação."
-        },
-        {
-          "title": "Uma foto em cada prato",
-          "body": "Adicione uma foto, uma breve descrição e o preço a cada prato."
-        },
-        {
-          "title": "Mais idiomas",
-          "body": "Mostre o seu menu noutros idiomas, para que mais clientes o consigam ler."
-        },
-        {
-          "title": "Alterar em segundos",
-          "body": "Mude um preço ou marque um prato como esgotado a partir do telemóvel. A alteração aparece de imediato."
-        },
-        {
-          "title": "Ver o que tem mais sucesso",
-          "body": "Veja quais os pratos que as pessoas mais procuram e ponha os seus favoritos no topo."
-        },
-        {
-          "title": "Pedir e pagar",
-          "body": "Deixe os clientes pedir e pagar à mesa. O pedido segue direto para a cozinha."
-        }
+        "Digitalizar e abrir",
+        "Mudar em segundos",
+        "Foto em cada prato",
+        "Todos os idiomas",
+        "Ver o que faz sucesso",
+        "Pedir e pagar"
       ]
     },
     "how": {
-      "eyebrow": "A funcionar hoje mesmo",
-      "title": "Pronto em três passos",
+      "accent": "como funciona",
+      "title": "Três passos para ficar online",
       "steps": [
         {
-          "title": "Adicione o seu menu",
-          "body": "Adicione os seus pratos, fotos e preços. Ou envie-nos o seu menu atual e tratamos da configuração consigo."
+          "title": "Escreva",
+          "body": "Pratos, fotos, preços."
         },
         {
-          "title": "Coloque o seu código",
-          "body": "Damos-lhe um código QR e um link curto. Coloque-os nas mesas, na porta ou nos talões."
+          "title": "Afixe o código",
+          "body": "Mesas, porta, talões."
         },
         {
-          "title": "Fique online",
-          "body": "Os clientes começam a digitalizar de imediato. Mude um preço ou acrescente um especial quando quiser, e todos veem ao mesmo tempo."
+          "title": "Sirva",
+          "body": "Os clientes digitalizam. Mude quando quiser."
         }
       ]
     },
-    "showcase": {
-      "eyebrow": "Feito para restaurantes com movimento",
+    "board": {
+      "accent": "da cozinha",
       "title": "Altere uma vez. Muda em todo o lado.",
-      "body": "O seu menu fica num só lugar e atualiza no momento em que o altera. Não reimprime nada, os seus PDFs nunca ficam desatualizados e não tem de esperar por uma agência para o editar.",
       "bullets": [
-        "Nunca paga reimpressões",
-        "Atualize preços e especiais ao momento",
-        "Menus em vários idiomas, prontos a usar",
-        "Funciona em qualquer telemóvel, sem aplicação"
-      ],
-      "cta": "Experimentar grátis"
+        "Nunca reimprime",
+        "Mude preços ao momento",
+        "Funciona em qualquer telemóvel",
+        "Todos os idiomas"
+      ]
     },
     "pricing": {
-      "eyebrow": "Preços simples",
-      "title": "Um preço simples",
-      "sub": "Comece grátis e passe a ilimitado por 12 € por ano.",
-      "free": {
-        "tier": "Grátis",
-        "desc": "Para começar",
-        "price": "0 €",
+      "accent": "a conta",
+      "title": "Escolha a sua mesa",
+      "onus": {
+        "tier": "On us",
+        "price": "€0",
         "per": "para sempre",
-        "cta": "Começar",
         "feats": [
-          "1.000 visualizações por mês",
-          "Um restaurante"
-        ]
+          "1.000 visualizações",
+          "1 restaurante"
+        ],
+        "cta": "Começar grátis"
       },
-      "pro": {
-        "tier": "Pro",
-        "desc": "1 € por mês, faturado anualmente",
-        "price": "12 €",
+      "kasa": {
+        "tier": "Kasa",
+        "price": "€12",
         "per": "/ano",
-        "badge": "Melhor valor",
-        "cta": "Obter Pro",
+        "badge": "escolha do chef",
         "feats": [
-          "Visualizações ilimitadas",
-          "Restaurantes ilimitados",
-          "Estatísticas incluídas"
-        ]
+          "Ilimitado",
+          "Tudo incluído"
+        ],
+        "cta": "Obter Kasa"
       }
     },
     "testimonial": {
-      "quote": "Configurámos o menu todo numa tarde. Antes, atualizar os especiais significava reimprimir tudo. Agora demora dez segundos no telemóvel, e os clientes adoram as fotos.",
+      "quote": "Configurámos o menu todo numa tarde. Agora mudo os especiais em dez segundos.",
       "name": "Maria Alvarez",
-      "role": "Proprietária, Café Verde"
+      "role": "Café Verde"
     },
     "cta": {
       "title": "Pronto para pôr o seu menu online?",
-      "subhead": "Junte-se a mais de 1200 restaurantes que já usam a iedora. É grátis para começar e não precisa de cartão.",
+      "subhead": "Grátis para começar. Sem cartão.",
       "primary": "Começar grátis",
       "secondary": "Marcar demonstração"
     },
+    "worksWith": [
+      "The Fork",
+      "Google Maps"
+    ],
     "footer": {
       "tagline": "Menus online simples para restaurantes.",
+      "langLine": "Disponível em EN · PT · ES · FR · IT · DE",
       "columns": [
         {
           "heading": "Produto",
           "links": [
             "Funcionalidades",
-            "Preços",
-            "Pedir e pagar",
-            "Estatísticas"
+            "Preços"
           ]
         },
         {
           "heading": "Empresa",
           "links": [
             "Sobre",
-            "Histórias",
-            "Carreiras",
             "Contacto"
-          ]
-        },
-        {
-          "heading": "Recursos",
-          "links": [
-            "Centro de ajuda",
-            "Guias",
-            "Estado",
-            "API para programadores"
           ]
         }
       ],
-      "copyright": "© 2026 iedora. Todos os direitos reservados."
+      "copyright": "© 2026 iedora"
+    },
+    "social": {
+      "instagram": "https://instagram.com/iedora",
+      "tiktok": "https://www.tiktok.com/@iedora"
     }
   }
 }

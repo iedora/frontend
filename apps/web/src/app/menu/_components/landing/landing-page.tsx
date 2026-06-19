@@ -1,278 +1,248 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import {
-  BarChart3,
-  Check,
-  ConciergeBell,
-  ImageIcon,
-  Languages,
-  Pencil,
-  Play,
-  QrCode,
-  Sparkles,
-  Star,
-  UtensilsCrossed,
-} from "lucide-react";
+import { Check, MapPin, Play, QrCode, Star, Utensils, UtensilsCrossed } from "lucide-react";
 import { Button } from "@iedora/design-system";
 import { signInUrl, signUpUrl } from "@iedora/product-menu/shared/auth-urls";
 import { LangSwitch } from "./lang-switch";
 
 /**
- * iedora menu marketing landing — a faithful build of the Pencil landing
- * (`iedora.pen` → component `dZ0S8`). Source of truth is Pencil; this file
- * mirrors it section for section. Copy comes from the `Landing` i18n
- * namespace (EN + PT); the EN/PT switch sets the NEXT_LOCALE cookie.
+ * iedora marketing landing — "the page is a menu".
+ * Faithful build of the Pencil mobile design (`iedora.pen` → "Landing v2 ·
+ * mobile", frame `f6JVg`): warm restaurant-menu aesthetic, dotted leaders,
+ * a menu-card hero, a chalkboard specials board, pricing as two menu
+ * entries (On us / Kasa) in one row. Relaxed copy, mobile-first, tight
+ * scroll. Copy from the `Landing` i18n namespace (EN + PT).
  */
 
 const SIGN_IN_HREF = signInUrl();
 const SIGN_UP_HREF = signUpUrl();
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1695094411862-0e047fbddcb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODE4MjMzNzF8&ixlib=rb-4.1.0&q=80&w=1080";
-const SHOWCASE_IMAGE =
-  "https://images.unsplash.com/photo-1744969982170-026d6f817281?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODE4MjM1NzR8&ixlib=rb-4.1.0&q=80&w=1080";
 const AVATAR_IMAGE =
   "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODE4MjM2MzZ8&ixlib=rb-4.1.0&q=80&w=1080";
 
-// Icons stay in code; their order matches the Pencil features grid and the
-// `Landing.features.items` array (row 1, then row 2).
-const FEATURE_ICONS = [QrCode, ImageIcon, Languages, Pencil, BarChart3, ConciergeBell];
-
-type CardCopy = { title: string; body: string };
-type PlanCopy = { tier: string; desc: string; price: string; per: string; cta: string; badge?: string; feats: string[] };
+type Dish = { name: string; price: string };
+type Plan = { tier: string; price: string; per: string; badge?: string; cta: string; feats: string[] };
 type FooterCol = { heading: string; links: string[] };
 
-/** Brand glyphs (lucide dropped its brand icons), 20px, currentColor. */
-const SOCIALS: { name: string; path: React.ReactNode }[] = [
-  {
-    name: "Instagram",
-    path: (
-      <>
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="2" />
-        <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" />
-      </>
-    ),
-  },
-  {
-    name: "X",
-    path: <path d="M3 3l7.5 9.2L3.3 21H6l5.7-6.7L17 21h4l-7.9-9.7L20.5 3H18l-5.3 6.2L8 3H3z" fill="currentColor" />,
-  },
-  {
-    name: "LinkedIn",
-    path: (
-      <>
-        <rect x="2" y="2" width="20" height="20" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
-        <path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 17v-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </>
-    ),
-  },
-  {
-    name: "YouTube",
-    path: (
-      <>
-        <rect x="2" y="5" width="20" height="14" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <path d="M10 9l5 3-5 3z" fill="currentColor" />
-      </>
-    ),
-  },
-];
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
+/** Handwritten coral accent (italic stands in for a script face, per Pencil). */
+function Accent({ children, underline = false }: { children: React.ReactNode; underline?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--cinnabar-soft)] px-3 py-1.5 text-[13px] font-semibold text-[var(--cinnabar)]">
-      <Sparkles size={14} strokeWidth={2} className="shrink-0" />
-      {children}
+    <span className="inline-flex flex-col items-start">
+      <span className="font-[family-name:var(--display)] text-[15px] font-semibold italic text-primary">{children}</span>
+      {underline ? (
+        <svg width="64" height="7" viewBox="0 0 64 7" fill="none" className="mt-0.5 text-primary" aria-hidden="true">
+          <path d="M2 4.5C11 1.5 21 6.5 32 4.5S53 1.5 62 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      ) : null}
     </span>
   );
+}
+
+/** The signature dotted menu leader filling the gap between two ends. */
+function Leader() {
+  return <span className="mx-2 flex-1 self-center border-b-2 border-dotted border-[var(--rule)]" aria-hidden="true" />;
 }
 
 export default async function LandingPage() {
   const t = await getTranslations("Landing");
 
-  const navLinks = [
-    { label: t("nav.features"), href: "#features" },
-    { label: t("nav.how"), href: "#how" },
-    { label: t("nav.pricing"), href: "#pricing" },
-    { label: t("nav.stories"), href: "#stories" },
-  ];
-  const features = t.raw("features.items") as CardCopy[];
-  const steps = t.raw("how.steps") as CardCopy[];
-  const bullets = t.raw("showcase.bullets") as string[];
-  const free = t.raw("pricing.free") as PlanCopy;
-  const pro = t.raw("pricing.pro") as PlanCopy;
+  const dishes = t.raw("hero.dishes") as Dish[];
+  const features = t.raw("features.items") as string[];
+  const steps = t.raw("how.steps") as { title: string; body: string }[];
+  const bullets = t.raw("board.bullets") as string[];
+  const onus = t.raw("pricing.onus") as Plan;
+  const kasa = t.raw("pricing.kasa") as Plan;
+  const worksWith = t.raw("worksWith") as string[];
   const footerCols = t.raw("footer.columns") as FooterCol[];
+  const igHref = t("social.instagram");
+  const ttHref = t("social.tiktok");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ── Nav ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-border bg-[color-mix(in_srgb,var(--paper)_88%,transparent)] backdrop-blur">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
+      {/* ── Sticky top bar ──────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-border bg-[color-mix(in_srgb,var(--paper)_90%,transparent)] backdrop-blur">
+        <div className="mx-auto flex h-15 max-w-xl items-center px-5 py-3">
           <Link href="/menu" className="flex items-center gap-2 no-underline">
             <span className="grid size-8 place-items-center rounded-lg bg-primary text-white"><UtensilsCrossed size={17} strokeWidth={2.2} /></span>
-            <span className="font-[family-name:var(--display)] text-[21px] font-extrabold tracking-[-0.02em] text-foreground">iedora</span>
+            <span className="font-[family-name:var(--display)] text-[20px] font-extrabold tracking-[-0.02em] text-foreground">iedora</span>
           </Link>
-          <ul className="ml-auto hidden items-center gap-7 md:flex">
-            {navLinks.map((l) => (
-              <li key={l.href}>
-                <a href={l.href} className="text-[15px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground">{l.label}</a>
+          <div className="ml-auto flex items-center gap-2.5">
+            <LangSwitch />
+            <Button as="a" href={SIGN_IN_HREF} variant="secondary" size="sm">{t("nav.signIn")}</Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-xl px-5">
+        {/* ── Hero ──────────────────────────────────────────── */}
+        <section className="flex flex-col items-center gap-5 py-9 text-center">
+          <Accent underline>{t("hero.accent")}</Accent>
+          <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.01em] sm:text-[44px]">{t("hero.headline")}</h1>
+          <p className="max-w-md text-[16px] leading-[1.5] text-muted-foreground">{t("hero.subhead")}</p>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+            <Button as="a" href={SIGN_UP_HREF} variant="primary" size="lg" className="!w-full sm:!w-auto !justify-center">{t("hero.ctaPrimary")}</Button>
+            <Button as="a" href="#how" variant="secondary" size="lg" className="!w-full sm:!w-auto !justify-center">
+              <span className="inline-flex items-center gap-2"><Play size={16} fill="currentColor" strokeWidth={0} /> {t("hero.ctaSecondary")}</span>
+            </Button>
+          </div>
+          {/* Menu-card mockup */}
+          <div className="mt-2 w-full max-w-sm -rotate-2">
+            <div className="rounded-[24px] border border-border bg-card p-6 text-left shadow-[0_30px_70px_-28px_var(--ink-22)]">
+              <p className="font-[family-name:var(--display)] text-[22px] font-extrabold text-foreground">{t("hero.card.name")}</p>
+              <p className="mb-4 text-[13px] italic text-primary">{t("hero.card.note")}</p>
+              <ul className="flex flex-col gap-3">
+                {dishes.map((d) => (
+                  <li key={d.name} className="flex items-baseline text-[15px]">
+                    <span className="font-medium text-foreground">{d.name}</span>
+                    <Leader />
+                    <span className="font-semibold text-foreground">{d.price}</span>
+                  </li>
+                ))}
+              </ul>
+              <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[var(--cinnabar-soft)] px-3 py-1.5 text-[12.5px] font-semibold text-primary">
+                <QrCode size={14} strokeWidth={2.2} /> {t("hero.card.scan")}
+              </span>
+            </div>
+          </div>
+          {/* Works with — real brand-coloured chips */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[13px]">
+            <span className="italic text-muted-foreground">{t("hero.worksWithLabel")}</span>
+            <a href="https://www.thefork.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-semibold text-foreground no-underline transition-colors hover:border-[color-mix(in_srgb,var(--cinnabar)_45%,transparent)]">
+              <span className="grid size-4 place-items-center rounded bg-[#1fa76a] text-white"><Utensils size={10} strokeWidth={2.6} /></span> The Fork
+            </a>
+            <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 font-semibold text-foreground no-underline transition-colors hover:border-[color-mix(in_srgb,var(--cinnabar)_45%,transparent)]">
+              <MapPin size={15} strokeWidth={1.5} className="text-[#EA4335]" fill="#EA4335" stroke="#ffffff" /> Google Maps
+            </a>
+          </div>
+        </section>
+
+        {/* ── Features as a menu listing ────────────────────── */}
+        <section id="features" className="py-9">
+          <Accent>{t("features.accent")}</Accent>
+          <h2 className="mt-2 text-[26px] font-extrabold leading-[1.12] sm:text-[32px]">{t("features.title")}</h2>
+          <ul className="mt-6 flex flex-col gap-4">
+            {features.map((name, i) => (
+              <li key={name} className="flex items-center gap-3.5">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--cinnabar-soft)] text-[13px] font-bold text-primary">{i + 1}</span>
+                <span className="font-[family-name:var(--display)] text-[17px] font-bold text-foreground">{name}</span>
+                <Leader />
+                <Check size={17} strokeWidth={2.5} className="shrink-0 text-[var(--green)]" />
               </li>
             ))}
           </ul>
-          <div className="ml-auto flex items-center gap-3 md:ml-6">
-            <LangSwitch />
-            <Link href={SIGN_IN_HREF} className="text-[15px] font-semibold text-foreground no-underline hover:text-primary">{t("nav.signIn")}</Link>
-            <Button as="a" href={SIGN_UP_HREF} variant="primary" size="sm">{t("nav.getStarted")}</Button>
-          </div>
-        </nav>
-      </header>
-
-      <main>
-        {/* ── Hero ──────────────────────────────────────────── */}
-        <section className="mx-auto flex max-w-6xl flex-col items-center gap-7 px-6 py-16 text-center md:py-20">
-          <Eyebrow>{t("hero.eyebrow")}</Eyebrow>
-          <h1 className="max-w-4xl text-[40px] leading-[1.05] md:text-[60px]">{t("hero.headline")}</h1>
-          <p className="max-w-2xl text-[18px] leading-[1.55] text-muted-foreground">{t("hero.subhead")}</p>
-          <div className="flex flex-wrap items-center justify-center gap-3.5">
-            <Button as="a" href={SIGN_UP_HREF} variant="primary" size="lg">{t("hero.ctaPrimary")}</Button>
-            <Button as="a" href="#how" variant="secondary" size="lg">
-              <span className="inline-flex items-center gap-2">
-                <Play size={16} fill="currentColor" strokeWidth={0} /> {t("hero.ctaSecondary")}
-              </span>
-            </Button>
-          </div>
-          <div className="relative mt-6 h-[320px] w-full overflow-hidden rounded-[28px] sm:h-[440px] md:h-[560px]">
-            <Image src={HERO_IMAGE} alt={t("hero.headline")} fill priority sizes="(min-width: 1152px) 1104px, 100vw" className="object-cover" />
-          </div>
         </section>
+      </main>
 
-        {/* ── Features ──────────────────────────────────────── */}
-        <section id="features" className="mx-auto max-w-6xl px-6 py-16 md:py-24">
-          <SectionHead eyebrow={t("features.eyebrow")} title={t("features.title")} sub={t("features.sub")} />
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f, i) => {
-              const Icon = FEATURE_ICONS[i] ?? QrCode;
-              return (
-                <div key={f.title} className="flex flex-col gap-3 rounded-[18px] border border-border bg-card p-7">
-                  <span className="grid size-11 place-items-center rounded-xl bg-[var(--cinnabar-soft)] text-primary">
-                    <Icon size={22} strokeWidth={2} />
-                  </span>
-                  <h3 className="text-[17px]">{f.title}</h3>
-                  <p className="text-[14.5px] leading-[1.55] text-muted-foreground">{f.body}</p>
+      {/* ── Three courses (muted band) ──────────────────────── */}
+      <section id="how" className="bg-muted py-10">
+        <div className="mx-auto max-w-xl px-5">
+          <Accent>{t("how.accent")}</Accent>
+          <h2 className="mt-2 text-[26px] font-extrabold leading-[1.12] sm:text-[32px]">{t("how.title")}</h2>
+          <ol className="mt-6 flex flex-col gap-5">
+            {steps.map((s, i) => (
+              <li key={s.title} className="flex items-center gap-4">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-[family-name:var(--display)] text-[18px] font-bold text-white">{i + 1}</span>
+                <div className="flex-1">
+                  <h3 className="font-[family-name:var(--display)] text-[17px] font-bold text-foreground">{s.title}</h3>
+                  <p className="text-[14.5px] text-muted-foreground">{s.body}</p>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
 
-        {/* ── How it works ──────────────────────────────────── */}
-        <section id="how" className="bg-muted py-16 md:py-24">
-          <div className="mx-auto max-w-6xl px-6">
-            <SectionHead eyebrow={t("how.eyebrow")} title={t("how.title")} />
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
-              {steps.map((s, i) => (
-                <div key={s.title} className="flex flex-col gap-3 rounded-[18px] border border-border bg-card p-7">
-                  <span className="grid size-10 place-items-center rounded-full bg-primary font-[family-name:var(--display)] text-[16px] font-bold text-white">{i + 1}</span>
-                  <h3 className="mt-1 text-[18px]">{s.title}</h3>
-                  <p className="text-[14.5px] leading-[1.55] text-muted-foreground">{s.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Showcase (image left, text right) ─────────────── */}
-        <section id="stories" className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 md:grid-cols-2 md:gap-16 md:py-24">
-          <div className="relative h-[320px] w-full overflow-hidden rounded-[28px] sm:h-[440px] md:h-[540px]">
-            <Image src={SHOWCASE_IMAGE} alt={t("showcase.title")} fill sizes="(min-width: 768px) 540px, 100vw" className="object-cover" />
-          </div>
-          <div className="flex flex-col items-start gap-5">
-            <Eyebrow>{t("showcase.eyebrow")}</Eyebrow>
-            <h2 className="text-[34px] leading-[1.1] md:text-[40px]">{t("showcase.title")}</h2>
-            <p className="text-[16px] leading-[1.6] text-muted-foreground">{t("showcase.body")}</p>
-            <ul className="flex flex-col gap-3.5">
+      <main className="mx-auto max-w-xl px-5">
+        {/* ── Specials board (chalkboard) ───────────────────── */}
+        <section className="py-9">
+          <div className="rounded-[24px] bg-[var(--ink)] p-7 text-[var(--paper)]">
+            <span className="font-[family-name:var(--display)] text-[15px] font-semibold italic text-primary">{t("board.accent")}</span>
+            <h2 className="mt-3 text-[25px] font-extrabold leading-[1.15] text-[var(--paper)]">{t("board.title")}</h2>
+            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3">
               {bullets.map((b) => (
-                <li key={b} className="flex items-center gap-3 text-[15.5px]">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--green-soft)] text-[var(--green)]"><Check size={15} strokeWidth={2.5} /></span>
+                <li key={b} className="flex items-center gap-2 text-[14.5px] text-[var(--paper)]">
+                  <Check size={16} strokeWidth={2.5} className="shrink-0 text-primary" />
                   {b}
                 </li>
               ))}
             </ul>
-            <Button as="a" href={SIGN_UP_HREF} variant="primary">{t("showcase.cta")}</Button>
           </div>
         </section>
 
-        {/* ── Pricing ───────────────────────────────────────── */}
-        <section id="pricing" className="bg-muted py-16 md:py-24">
-          <div className="mx-auto max-w-6xl px-6">
-            <SectionHead eyebrow={t("pricing.eyebrow")} title={t("pricing.title")} sub={t("pricing.sub")} />
-            <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
-              <PlanCard plan={free} href={SIGN_UP_HREF} />
-              <PlanCard plan={pro} href={SIGN_UP_HREF} highlighted />
+        {/* ── Pricing as two menu entries in one row ────────── */}
+        <section id="pricing" className="py-9">
+          <Accent>{t("pricing.accent")}</Accent>
+          <h2 className="mt-2 text-[26px] font-extrabold leading-[1.12] sm:text-[32px]">{t("pricing.title")}</h2>
+          <div className="mt-7 grid grid-cols-2 gap-3.5">
+            <PlanCard plan={onus} href={SIGN_UP_HREF} />
+            <PlanCard plan={kasa} href={SIGN_UP_HREF} highlighted />
+          </div>
+        </section>
+
+        {/* ── Testimonial (comment card) ────────────────────── */}
+        <section className="py-9">
+          <div className="rotate-1 rounded-[24px] border border-border bg-card p-6 shadow-[0_24px_60px_-28px_var(--ink-22)]">
+            <div className="mb-3 flex gap-1 text-primary">
+              {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={17} fill="currentColor" strokeWidth={0} />)}
             </div>
-          </div>
-        </section>
-
-        {/* ── Testimonial ───────────────────────────────────── */}
-        <section className="mx-auto max-w-3xl px-6 py-16 text-center md:py-24">
-          <div className="mb-5 flex justify-center gap-1 text-primary">
-            {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={20} fill="currentColor" strokeWidth={0} />)}
-          </div>
-          <blockquote className="font-[family-name:var(--display)] text-[24px] font-semibold leading-[1.35] text-foreground md:text-[30px]">
-            {`"${t("testimonial.quote")}"`}
-          </blockquote>
-          <div className="mt-7 flex items-center justify-center gap-3.5">
-            <Image src={AVATAR_IMAGE} alt={t("testimonial.name")} width={52} height={52} className="size-[52px] rounded-full object-cover" />
-            <div className="text-left">
-              <p className="text-[16px] font-bold text-foreground">{t("testimonial.name")}</p>
-              <p className="text-[14px] text-muted-foreground">{t("testimonial.role")}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── CTA band ──────────────────────────────────────── */}
-        <section className="px-6 pb-20">
-          <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 rounded-[28px] bg-[var(--ink)] px-8 py-16 text-center text-[var(--paper)]">
-            <h2 className="text-[32px] leading-[1.1] text-[var(--paper)] md:text-[44px]">{t("cta.title")}</h2>
-            <p className="max-w-xl text-[16px] leading-[1.6] text-[var(--paper)]/75">{t("cta.subhead")}</p>
-            <div className="flex flex-wrap items-center justify-center gap-3.5">
-              <Button as="a" href={SIGN_UP_HREF} variant="primary" size="lg">{t("cta.primary")}</Button>
-              <Button as="a" href={SIGN_IN_HREF} variant="ghost" size="lg" className="!text-[var(--paper)] !border-[color-mix(in_srgb,var(--paper)_30%,transparent)]">{t("cta.secondary")}</Button>
+            <blockquote className="font-[family-name:var(--display)] text-[19px] font-semibold leading-[1.4] text-foreground">
+              {`"${t("testimonial.quote")}"`}
+            </blockquote>
+            <div className="mt-5 flex items-center gap-3">
+              <Image src={AVATAR_IMAGE} alt={t("testimonial.name")} width={44} height={44} className="size-11 rounded-full object-cover" />
+              <div>
+                <p className="text-[15px] font-bold text-foreground">{t("testimonial.name")}</p>
+                <p className="text-[13px] text-muted-foreground">{t("testimonial.role")}</p>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
+      {/* ── CTA band (coral) ────────────────────────────────── */}
+      <section className="bg-primary px-5 py-12 text-center text-white">
+        <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
+          <h2 className="text-[27px] font-extrabold leading-[1.12] sm:text-[34px]">{t("cta.title")}</h2>
+          <p className="text-[16px] text-white/85">{t("cta.subhead")}</p>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <Button as="a" href={SIGN_UP_HREF} size="lg" className="!w-full sm:!w-auto !justify-center !bg-white !text-primary hover:!bg-white">{t("cta.primary")}</Button>
+            <Button as="a" href={SIGN_IN_HREF} variant="ghost" size="lg" className="!w-full sm:!w-auto !justify-center !text-white !border-[color-mix(in_srgb,white_45%,transparent)]">{t("cta.secondary")}</Button>
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ──────────────────────────────────────────── */}
       <footer className="border-t border-border">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
-          <div className="flex flex-col gap-3">
+        <div className="mx-auto flex max-w-xl flex-col gap-6 px-5 py-10">
+          <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2">
-              <span className="grid size-7 place-items-center rounded-lg bg-primary text-white"><UtensilsCrossed size={15} strokeWidth={2.2} /></span>
-              <span className="font-[family-name:var(--display)] text-[18px] font-extrabold text-foreground">iedora</span>
+              <span className="grid size-8 place-items-center rounded-lg bg-primary text-white"><UtensilsCrossed size={17} strokeWidth={2.2} /></span>
+              <span className="font-[family-name:var(--display)] text-[19px] font-extrabold text-foreground">iedora</span>
             </div>
-            <p className="max-w-xs text-[14px] leading-[1.55] text-muted-foreground">{t("footer.tagline")}</p>
+            <p className="text-[14px] text-muted-foreground">{t("footer.tagline")}</p>
+            <p className="text-[12.5px] text-muted-foreground">{t("footer.langLine")}</p>
           </div>
-          {footerCols.map((col) => (
-            <div key={col.heading} className="flex flex-col gap-3">
-              <p className="font-[family-name:var(--display)] text-[13px] font-bold tracking-[0.04em] text-foreground">{col.heading}</p>
-              {col.links.map((l) => (
-                <a key={l} href="#" className="text-[14px] text-muted-foreground no-underline transition-colors hover:text-foreground">{l}</a>
-              ))}
+          <div className="grid grid-cols-2 gap-6">
+            {footerCols.map((col) => (
+              <div key={col.heading} className="flex flex-col gap-2.5">
+                <p className="font-[family-name:var(--display)] text-[13px] font-bold tracking-[0.04em] text-foreground">{col.heading}</p>
+                {col.links.map((l) => (
+                  <a key={l} href="#" className="text-[14px] text-muted-foreground no-underline transition-colors hover:text-foreground">{l}</a>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-5">
+            <div className="flex items-center gap-3">
+              <a href={igHref} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid size-9 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-[var(--cinnabar-soft)] hover:text-primary">
+                <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5.5" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" /></svg>
+              </a>
+              <a href={ttHref} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="grid size-9 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-[var(--cinnabar-soft)] hover:text-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3c.35 2.4 1.9 4.05 4.5 4.3v3.05c-1.5.02-2.95-.45-4.2-1.32v6.05a5.85 5.85 0 1 1-5.85-5.85c.32 0 .63.03.94.08v3.16a2.75 2.75 0 1 0 1.86 2.6V3h2.75z" fill="currentColor" /></svg>
+              </a>
             </div>
-          ))}
-        </div>
-        <div className="border-t border-border">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-            <p className="text-[13px] text-muted-foreground">{t("footer.copyright")}</p>
-            <div className="flex items-center gap-4 text-muted-foreground">
-              {SOCIALS.map((s) => (
-                <a key={s.name} href="#" aria-label={s.name} className="transition-colors hover:text-foreground">
-                  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">{s.path}</svg>
-                </a>
-              ))}
-            </div>
+            <p className="text-[12.5px] text-muted-foreground">{t("footer.copyright")} · {worksWith.join(" · ")}</p>
           </div>
         </div>
       </footer>
@@ -280,47 +250,26 @@ export default async function LandingPage() {
   );
 }
 
-function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+function PlanCard({ plan, href, highlighted = false }: { plan: Plan; href: string; highlighted?: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-4 text-center">
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="max-w-2xl text-[32px] leading-[1.12] md:text-[42px]">{title}</h2>
-      {sub ? <p className="max-w-xl text-[16px] leading-[1.55] text-muted-foreground">{sub}</p> : null}
-    </div>
-  );
-}
-
-function PlanCard({
-  plan,
-  href,
-  highlighted = false,
-}: {
-  plan: PlanCopy;
-  href: string;
-  highlighted?: boolean;
-}) {
-  return (
-    <div className={`relative flex flex-col gap-5 rounded-[18px] border bg-card p-7 ${highlighted ? "border-2 border-primary shadow-[0_20px_44px_-14px_var(--cinnabar-16)]" : "border-border"}`}>
+    <div className={`relative flex flex-col rounded-[18px] border bg-card p-5 ${highlighted ? "border-2 border-primary shadow-[0_18px_40px_-16px_var(--cinnabar-16)]" : "border-border"}`}>
       {plan.badge ? (
-        <span className="absolute -top-3 left-7 rounded-full bg-primary px-3 py-1 text-[12px] font-semibold text-white">{plan.badge}</span>
+        <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-white">{plan.badge}</span>
       ) : null}
-      <div>
-        <p className="font-[family-name:var(--display)] text-[17px] font-bold text-foreground">{plan.tier}</p>
-        <p className="text-[13px] text-muted-foreground">{plan.desc}</p>
-      </div>
-      <p className="flex items-baseline gap-1">
-        <span className="font-[family-name:var(--display)] text-[44px] font-extrabold tracking-[-0.02em] text-foreground">{plan.price}</span>
-        <span className="text-[15px] text-muted-foreground">{plan.per}</span>
+      <p className="font-[family-name:var(--display)] text-[18px] font-extrabold text-foreground">{plan.tier}</p>
+      <p className="mt-1 flex items-baseline gap-1">
+        <span className="font-[family-name:var(--display)] text-[28px] font-extrabold tracking-[-0.02em] text-foreground">{plan.price}</span>
+        <span className="text-[13px] text-muted-foreground">{plan.per}</span>
       </p>
-      <Button as="a" href={href} variant={highlighted ? "primary" : "secondary"} className="!w-full !justify-center">{plan.cta}</Button>
-      <ul className="flex flex-col gap-2.5">
+      <ul className="mt-3 flex flex-1 flex-col gap-2">
         {plan.feats.map((f) => (
-          <li key={f} className="flex items-center gap-2.5 text-[14.5px]">
-            <Check size={16} strokeWidth={2.5} className="shrink-0 text-[var(--green)]" />
+          <li key={f} className="flex items-center gap-2 text-[13.5px]">
+            <Check size={15} strokeWidth={2.5} className="shrink-0 text-[var(--green)]" />
             {f}
           </li>
         ))}
       </ul>
+      <Button as="a" href={href} variant={highlighted ? "primary" : "secondary"} size="sm" className="mt-4 !w-full !justify-center">{plan.cta}</Button>
     </div>
   );
 }
