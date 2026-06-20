@@ -3025,3 +3025,23 @@ body.ds-loaded .ds-hero--in .ds-hero__trust   { opacity: 1; transform: translate
 .ds-select--compact { border-radius: var(--radius-s); }
 .ds-combobox { border-radius: var(--radius-s); }
 
+/* Page title + breadcrumb — Pencil page headers are bold, upright
+   display headings, not the editorial italic serif. The parent trail
+   drops the mono-caps for a quiet sans label. */
+.ds-breadcrumb__here {
+  font-family: var(--display);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.ds-breadcrumb {
+  font-family: var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+.ds-breadcrumb__sep { color: var(--ink-40); }
+
