@@ -28,6 +28,7 @@
       "passwordLabel": "Password",
       "submit": "Sign in",
       "submitting": "Signing in…",
+      "forgotPassword": "Forgot password?",
       "noAccount": "Don't have an account?",
       "signUpLink": "Create one",
       "errorGeneric": "Could not sign in. Please check your credentials."
@@ -50,6 +51,33 @@
     "signOut": {
       "title": "Signed out",
       "body": "See you soon."
+    },
+    "forgotPassword": {
+      "title": "Forgot password?",
+      "subtitle": "Enter your email and we'll send you a reset link.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@restaurant.com",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If an account exists for that email, a reset link is on its way. Check your inbox.",
+      "remembered": "Remembered it?",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your account.",
+      "invalidLink": "This reset link is invalid or has expired. Request a new one from the sign-in page.",
+      "passwordLabel": "New password",
+      "passwordPlaceholder": "12 characters or more",
+      "confirmLabel": "Confirm password",
+      "submit": "Reset password",
+      "submitting": "Resetting…",
+      "done": "Your password has been updated. You can now sign in.",
+      "signInCta": "Sign in",
+      "errorMismatch": "The passwords don't match.",
+      "errorInvalid": "This reset link is invalid or has expired. Request a new one.",
+      "remembered": "Remembered it?",
+      "backToSignIn": "Back to sign in"
     },
     "support": "Need help? Call us"
   },

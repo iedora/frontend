@@ -28,6 +28,7 @@
       "passwordLabel": "Palavra-passe",
       "submit": "Entrar",
       "submitting": "A entrar…",
+      "forgotPassword": "Esqueceu a palavra-passe?",
       "noAccount": "Ainda não tem conta?",
       "signUpLink": "Crie uma",
       "errorGeneric": "Não foi possível iniciar sessão. Verifique as credenciais."
@@ -50,6 +51,33 @@
     "signOut": {
       "title": "Sessão terminada",
       "body": "Até breve."
+    },
+    "forgotPassword": {
+      "title": "Esqueceu a palavra-passe?",
+      "subtitle": "Introduza o seu email e enviamos-lhe um link de redefinição.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "voce@restaurante.com",
+      "submit": "Enviar link",
+      "submitting": "A enviar…",
+      "sent": "Se existir uma conta com esse email, o link de redefinição está a caminho. Verifique a sua caixa de entrada.",
+      "remembered": "Já se lembra?",
+      "backToSignIn": "Voltar ao início de sessão"
+    },
+    "resetPassword": {
+      "title": "Defina uma nova palavra-passe",
+      "subtitle": "Escolha uma nova palavra-passe para a sua conta.",
+      "invalidLink": "Este link de redefinição é inválido ou expirou. Peça um novo na página de início de sessão.",
+      "passwordLabel": "Nova palavra-passe",
+      "passwordPlaceholder": "12 caracteres ou mais",
+      "confirmLabel": "Confirmar palavra-passe",
+      "submit": "Redefinir palavra-passe",
+      "submitting": "A redefinir…",
+      "done": "A sua palavra-passe foi atualizada. Já pode iniciar sessão.",
+      "signInCta": "Iniciar sessão",
+      "errorMismatch": "As palavras-passe não coincidem.",
+      "errorInvalid": "Este link de redefinição é inválido ou expirou. Peça um novo.",
+      "remembered": "Já se lembra?",
+      "backToSignIn": "Voltar ao início de sessão"
     },
     "support": "Precisa de ajuda? Ligue-nos"
   },

@@ -66,6 +66,35 @@ export async function logout(refreshToken: string): Promise<void> {
 }
 
 /**
+ * Requests a password-reset email. The auth service always answers 200
+ * (no account enumeration), so this resolves regardless of whether the
+ * address exists — surface a neutral "check your inbox" either way.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  await fetch(`${AUTH_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+    cache: 'no-store',
+  })
+}
+
+/**
+ * Sets a new password from the opaque token in the emailed link. No
+ * auto-login (the user signs in afterwards). Throws ApiError on a bad or
+ * expired token (the auth service returns 400).
+ */
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const res = await fetch(`${AUTH_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new ApiError(res.status, await safeError(res))
+}
+
+/**
  * Provisions a tenant owned by the authenticated user. The caller must
  * refresh afterwards so the access token picks up the new tenant id.
  */

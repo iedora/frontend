@@ -6,9 +6,11 @@ import {
   REFRESH_COOKIE,
   authCookies,
   clearedAuthCookies,
+  forgotPassword,
   login,
   logout,
   register,
+  resetPassword,
   type AuthResult,
 } from '@iedora/api-client'
 import { brandUrl, isSameIedoraOrigin } from '@iedora/brand'
@@ -49,6 +51,49 @@ export async function signUpAction(_prev: AuthFormState, formData: FormData): Pr
   }
   await persistAuth(result)
   redirect(safeNext(formData))
+}
+
+export type ForgotFormState = { sent: boolean }
+export type ResetFormState = { error: 'mismatch' | 'invalid' | null; done: boolean }
+
+/**
+ * Forgot-password: kicks off a reset email. The auth service never
+ * reveals whether the address exists, so this ALWAYS reports "sent" and
+ * swallows errors — the form shows a neutral "check your inbox".
+ */
+export async function forgotPasswordAction(
+  _prev: ForgotFormState,
+  formData: FormData,
+): Promise<ForgotFormState> {
+  const email = String(formData.get('email') ?? '')
+  try {
+    await forgotPassword(email)
+  } catch {
+    // no enumeration, no error surface — still report success
+  }
+  return { sent: true }
+}
+
+/**
+ * Reset-password: sets a new password from the emailed token. Validates
+ * the confirmation match locally, then calls the auth service (which
+ * rejects a bad / expired token). No auto-login — the form sends the
+ * user to sign in afterwards.
+ */
+export async function resetPasswordAction(
+  _prev: ResetFormState,
+  formData: FormData,
+): Promise<ResetFormState> {
+  const token = String(formData.get('token') ?? '')
+  const password = String(formData.get('password') ?? '')
+  const confirm = String(formData.get('confirm') ?? '')
+  if (password !== confirm) return { error: 'mismatch', done: false }
+  try {
+    await resetPassword(token, password)
+  } catch {
+    return { error: 'invalid', done: false }
+  }
+  return { error: null, done: true }
 }
 
 /** Revokes the session on the Go side and clears both auth cookies. */

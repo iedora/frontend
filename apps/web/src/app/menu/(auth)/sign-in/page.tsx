@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getSession } from '@iedora/api-client'
 import { isSameIedoraOrigin, PRODUCTS, productUrl } from '@iedora/brand'
-import { signUpUrl } from '@iedora/product-menu/shared/auth-urls'
+import { forgotPasswordUrl, signUpUrl } from '@iedora/product-menu/shared/auth-urls'
 import { SignInForm } from './sign-in-form'
 
 type Props = {
@@ -32,7 +32,7 @@ export default async function SignInPage({ searchParams }: Props) {
       </h1>
       <p className="mt-2 text-[15px] leading-[1.5] text-muted-foreground">{t('subtitle')}</p>
       <div className="mt-7">
-        <SignInForm next={next} signUpHref={signUpUrl(next)} />
+        <SignInForm next={next} signUpHref={signUpUrl(next)} forgotHref={forgotPasswordUrl()} />
       </div>
     </div>
   )

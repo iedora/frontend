@@ -27,6 +27,17 @@ export function signUpUrl(next?: string): string {
   return appendNext(`${productUrl(PRODUCTS.menu)}${SIGN_UP_PATH}`, next)
 }
 
+/** Absolute "forgot password" URL (request a reset link). */
+export function forgotPasswordUrl(): string {
+  return `${productUrl(PRODUCTS.menu)}/forgot-password`
+}
+
+/** Absolute "reset password" URL, carrying the emailed token. */
+export function resetPasswordUrl(token?: string): string {
+  const base = `${productUrl(PRODUCTS.menu)}/reset-password`
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base
+}
+
 export function signOutUrl(next?: string): string {
   return appendNext(`${productUrl(PRODUCTS.menu)}${SIGN_OUT_PATH}`, next)
 }

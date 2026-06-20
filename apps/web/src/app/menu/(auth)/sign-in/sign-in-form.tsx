@@ -10,7 +10,15 @@ const FIELD =
   'w-full rounded-[12px] border border-border bg-card px-4 py-3 text-[16px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-[color-mix(in_srgb,var(--cinnabar)_22%,transparent)]'
 const LABEL = 'mb-1.5 block text-[14px] font-semibold text-foreground'
 
-export function SignInForm({ next, signUpHref }: { next: string; signUpHref: string }) {
+export function SignInForm({
+  next,
+  signUpHref,
+  forgotHref,
+}: {
+  next: string
+  signUpHref: string
+  forgotHref: string
+}) {
   const t = useTranslations('Auth.signIn')
   const [state, action, pending] = useActionState<AuthFormState, FormData>(
     signInAction,
@@ -46,6 +54,15 @@ export function SignInForm({ next, signUpHref }: { next: string; signUpHref: str
           className={FIELD}
           data-test-id="sign-in-password"
         />
+        <div className="mt-1.5 text-right">
+          <Link
+            href={forgotHref}
+            className="text-[13px] font-semibold text-primary no-underline"
+            data-test-id="sign-in-forgot-link"
+          >
+            {t('forgotPassword')}
+          </Link>
+        </div>
       </div>
       {state.error && (
         <p className="text-[13px] text-[var(--danger)]" role="alert">
