@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import {
   loadPublicMenu,
   PublicMenuView,
 } from '@iedora/product-menu/features/menu-publishing/rsc/public-menu-view'
+import { LanguageGate } from '@iedora/product-menu/features/menu-publishing/rsc/language-gate'
 
 /**
  * Branded / marketing URL for the public menu. The QR sticker URL
@@ -42,8 +43,28 @@ export default async function PublicMenuPage({
 }) {
   const { slug } = await params
   const sp = await searchParams
-  const h = await headers()
-  const data = await loadPublicMenu(slug, sp.lang, h.get('accept-language'))
+  const [h, cookieStore] = await Promise.all([headers(), cookies()])
+  // Explicit language: the `?lang=` query wins, then a remembered choice
+  // from a previous gate visit (per-restaurant cookie).
+  const cookieLang = cookieStore.get(`iedora_lang_${slug}`)?.value
+  const data = await loadPublicMenu(slug, sp.lang ?? cookieLang, h.get('accept-language'))
   if (!data) notFound()
+
+  // First multi-language visit with no explicit choice → show the gate
+  // (Pencil "Guest · Language gate"). Auto-selection still covers single
+  // language menus and returning visitors (the gate sets the cookie).
+  if (!sp.lang && !cookieLang && data.supportedLanguages.length > 1) {
+    return (
+      <LanguageGate
+        slug={slug}
+        restaurantName={data.restaurant.name}
+        logoUrl={data.restaurant.logoUrl}
+        primaryColor={data.theme.primaryColor}
+        languages={data.supportedLanguages}
+        current={data.currentLanguage}
+      />
+    )
+  }
+
   return <PublicMenuView data={data} />
 }

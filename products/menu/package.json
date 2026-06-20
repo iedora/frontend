@@ -23,6 +23,7 @@
     "./features/menu-publishing": "./src/features/menu-publishing/index.ts",
     "./features/menu-publishing/rsc/menu-renderer": "./src/features/menu-publishing/rsc/menu-renderer.tsx",
     "./features/menu-publishing/rsc/public-menu-view": "./src/features/menu-publishing/rsc/public-menu-view.tsx",
+    "./features/menu-publishing/rsc/language-gate": "./src/features/menu-publishing/rsc/language-gate.tsx",
     "./features/menu-publishing/rsc/public-menu-view-ui": "./src/features/menu-publishing/rsc/public-menu-view-ui.tsx",
     "./features/menu-publishing/rsc/theme": "./src/features/menu-publishing/rsc/theme.ts",
     "./features/menu-publishing/rsc/types": "./src/features/menu-publishing/rsc/types.ts",
