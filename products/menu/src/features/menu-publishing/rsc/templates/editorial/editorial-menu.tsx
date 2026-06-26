@@ -141,7 +141,7 @@ export function EditorialMenu({ restaurant: r, menus }: RenderProps) {
                                 <span className="text-base font-medium">
                                   {it.name}
                                 </span>
-                                {variants.length === 0 && (
+                                {variants.length === 0 && it.priceCents > 0 && (
                                   <>
                                     <span
                                       aria-hidden

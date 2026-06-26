@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BRAND_NAME, brandUrl } from '@iedora/brand'
 import type { RenderProps } from '../../types'
 import { formatPrice } from '../../format'
+import { CategoryNav } from '../../category-nav'
 
 export function ClassicMenu({ restaurant: r, menus }: RenderProps) {
   const totalItems = menus.reduce(
@@ -39,23 +40,13 @@ export function ClassicMenu({ restaurant: r, menus }: RenderProps) {
         </div>
       </header>
 
-      {/* Category pills — sticky, horizontal scroll, anchor to sections. */}
+      {/* Category pills — sticky, horizontal scroll, scroll-spy active state. */}
       {navCategories.length > 1 && (
-        <nav
-          aria-label="Categories"
-          className="sticky top-0 z-10 -mx-5 mb-2 flex gap-2 overflow-x-auto bg-white/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {navCategories.map((c) => (
-            <a
-              key={c.id}
-              href={`#cat-${c.id}`}
-              className="shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium no-underline transition-colors"
-              style={{ borderColor: 'var(--menu-secondary)', color: 'var(--menu-primary)' }}
-            >
-              {c.name}
-            </a>
-          ))}
-        </nav>
+        <CategoryNav
+          variant="classic"
+          ariaLabel="Categories"
+          items={navCategories.map((c) => ({ id: c.id, label: c.name }))}
+        />
       )}
 
       {totalItems === 0 ? (
@@ -106,7 +97,7 @@ export function ClassicMenu({ restaurant: r, menus }: RenderProps) {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-baseline justify-between gap-3">
                                 <h4 className="font-semibold leading-snug">{it.name}</h4>
-                                {variants.length === 0 && (
+                                {variants.length === 0 && it.priceCents > 0 && (
                                   <span className="shrink-0 text-sm font-semibold tabular-nums">
                                     {formatPrice(it.priceCents, it.currency)}
                                   </span>

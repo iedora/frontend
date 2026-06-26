@@ -1,5 +1,6 @@
 import type { PublicItem, RenderProps } from '../../types'
 import { formatPrice } from '../../format'
+import { CategoryNav } from '../../category-nav'
 
 /**
  * Cards template — "menu visual, photo-led".
@@ -77,21 +78,7 @@ export function CardsMenu({ restaurant: r, menus }: RenderProps) {
       ) : (
         <>
           {navCategories.length > 1 && (
-            <nav
-              aria-label="Categorias"
-              className="sticky top-0 z-10 flex gap-2 overflow-x-auto bg-[#fafaf7]/90 px-4 py-3 backdrop-blur sm:px-6"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {navCategories.map((c) => (
-                <a
-                  key={c.id}
-                  href={`#cat-${c.id}`}
-                  className="shrink-0 whitespace-nowrap rounded-full bg-white px-4 py-2 text-sm font-medium text-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_2px_8px_-2px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,0.08),0_8px_24px_-8px_rgba(0,0,0,0.12)]"
-                >
-                  {c.label}
-                </a>
-              ))}
-            </nav>
+            <CategoryNav variant="cards" ariaLabel="Categorias" items={navCategories} />
           )}
 
           <main className="space-y-12 px-4 pt-6 sm:px-6">
@@ -180,7 +167,7 @@ function ItemCard({ item: it }: { item: PublicItem }) {
           <h3 className="text-base font-semibold leading-snug text-neutral-900">
             {it.name}
           </h3>
-          {variants.length === 0 && (
+          {variants.length === 0 && it.priceCents > 0 && (
             <span
               className="shrink-0 text-base font-bold tabular-nums"
               style={{ color: 'var(--menu-primary)' }}

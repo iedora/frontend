@@ -59,7 +59,7 @@ export function MinimalMenu({ restaurant: r, menus }: RenderProps) {
                         <li key={it.id}>
                           <div className="flex items-baseline gap-2">
                             <span className="font-normal">{it.name}</span>
-                            {variants.length === 0 && (
+                            {variants.length === 0 && it.priceCents > 0 && (
                               <>
                                 <span
                                   aria-hidden
