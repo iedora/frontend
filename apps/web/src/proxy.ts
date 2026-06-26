@@ -32,6 +32,18 @@ export default async function proxy(req: NextRequest) {
   const host = (req.headers.get('host') ?? '').toLowerCase().split(':')[0] ?? ''
   const path = req.nextUrl.pathname
 
+  // 0. Public-menu view beacon → menu service, proxied at RUNTIME. This used to
+  //    live in next.config rewrites(), but Next freezes a rewrite's destination
+  //    at BUILD time — and the Docker build has no MENU_URL, so the
+  //    `localhost:8184` fallback got baked into the image and every beacon 500'd
+  //    in prod (no views were recorded). Doing it here reads MENU_URL at
+  //    runtime. Same-origin (the browser still calls menu.iedora.com/track/...),
+  //    so the menu service's visitor cookie stays first-party.
+  if (path === '/track' || path.startsWith('/track/')) {
+    const base = process.env.MENU_URL ?? 'http://localhost:8184'
+    return NextResponse.rewrite(new URL(`/public${path}${req.nextUrl.search}`, base))
+  }
+
   const here = surfaceByHost(host)
 
   // 1. Host-based rewrite for surfaces with a rewritePath set.
@@ -122,9 +134,9 @@ function respond(
 }
 
 export const config = {
-  // `up` and `track` are excluded alongside `api` — they serve every
-  // host without rewrite (infra plumbing: container healthcheck + the
-  // public-menu view beacon, which next.config.ts rewrites straight to
-  // the menu service).
-  matcher: ['/((?!api|up|track|_next/static|_next/image|.*\\.png$).*)'],
+  // `up` and `api` are excluded — infra plumbing that serves every host
+  // unchanged. `/track` IS matched now: the beacon proxy in rule 0 above
+  // rewrites it to the menu service at runtime (the old next.config rewrite
+  // baked the wrong destination at build time).
+  matcher: ['/((?!api|up|_next/static|_next/image|.*\\.png$).*)'],
 }

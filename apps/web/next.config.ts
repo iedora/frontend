@@ -43,17 +43,10 @@ const nextConfig: NextConfig = {
   // Self-hosted single node: shed Next's in-memory ISR page cache (~50MB) and
   // lean on the persistent on-disk cache instead.
   cacheMaxMemorySize: 0,
-  // Public-menu tracking beacons → menu service. `/track/:slug` is the 1×1
-  // view pixel; `/track/:slug/session` is the session-end beacon (dwell time +
-  // viewed dishes). Catch-all so both (and any future beacon) proxy through.
-  async rewrites() {
-    return [
-      {
-        source: '/track/:path*',
-        destination: `${process.env.MENU_URL ?? 'http://localhost:8184'}/public/track/:path*`,
-      },
-    ]
-  },
+  // NOTE: the public-menu view beacon (/track/:slug[/session]) is proxied to the
+  // menu service in proxy.ts (runtime), NOT here. next.config rewrites freeze
+  // their destination at BUILD time, where MENU_URL is unset — the localhost
+  // fallback got baked into the image and every beacon 500'd in prod.
 }
 
 // next-intl's request config lives with the messages catalogues in
