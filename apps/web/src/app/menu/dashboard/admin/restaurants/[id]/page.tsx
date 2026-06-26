@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { requireStaff } from '@iedora/product-menu/features/auth'
@@ -84,6 +85,10 @@ export default async function AdminRestaurantDetailPage({
   // it cross-tenant); the admin record just links there rather than embedding
   // a second copy of the shelf.
   const qrHref = `/menu/dashboard/r/${r.slug}/qr`
+  // Menu editing: the owner's visual builder (staff reach it cross-tenant), and
+  // the admin "edit as JSON" page that replaces the whole tree.
+  const builderHref = `/menu/dashboard/r/${r.slug}`
+  const menuJsonHref = `${detailHref}/menu`
 
   return (
     <DashboardPage chrome="none" title={r.name} data-test-id="admin-restaurant-detail">
@@ -176,6 +181,23 @@ export default async function AdminRestaurantDetailPage({
                   label={t('detail.nextDue')}
                   value={activeSub?.currentPeriodEnd ? formatDate(activeSub.currentPeriodEnd) : '—'}
                 />
+              </SideCard>
+
+              <SideCard
+                title={t('detail.menu')}
+                action={{ href: builderHref, label: t('detail.openBuilder') }}
+                data-test-id="admin-restaurant-menu"
+              >
+                <p className="text-[13px] text-muted-foreground">{t('detail.menuManaged')}</p>
+                <div className="mt-3">
+                  <Link
+                    href={menuJsonHref}
+                    className="text-[13px] font-medium text-primary hover:underline"
+                    data-test-id="admin-restaurant-menu-json"
+                  >
+                    {t('detail.editJson')}
+                  </Link>
+                </div>
               </SideCard>
 
               <SideCard

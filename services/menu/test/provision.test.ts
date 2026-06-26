@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, expect, test } from "bun:test";
 import { sql } from "kysely";
 
-import { TENANT, bearer, json, mintUserToken, staffToken, useHarness } from "./harness";
+import { TENANT, bearer, json, jsonPut, mintUserToken, staffToken, useHarness } from "./harness";
 
 // Staff provisioning: POST /api/staff/restaurants (manual) and
 // /restaurants/import (JSON), plus GET /tenants. The interesting surface here is
@@ -250,6 +250,50 @@ test("import supports variants, omitted price, and strips trailing dots", async 
 
   // Trailing "." gone, the "1." number prefix preserved.
   expect(rows.rows.some((r) => r.name === "1. Margherita")).toBe(true);
+});
+
+test("admin edit-as-JSON: export the menu, then replace it", async () => {
+  const s = await staffToken(h);
+  // Seed a restaurant + small menu under a fresh tenant.
+  const doc = validImport();
+  delete (doc as { tenantId?: string }).tenantId;
+  (doc.payload as { tenant?: string }).tenant = "JsonEdit Co";
+  doc.payload.restaurant.name = "Json Edit";
+  doc.payload.menus = [
+    { name: "Dinner", categories: [{ name: "Pizzas", items: [{ name: "Margherita", priceCents: 950 }] }] },
+  ];
+  const created = await post("/api/staff/restaurants/import", doc, s);
+  expect(created.status).toBe(200);
+  const { restaurant } = (await created.json()) as { restaurant: { id: string } };
+
+  // Export → the import shape.
+  const exp = await h.app.request(`/api/staff/restaurants/${restaurant.id}/menus`, { headers: bearer(s) });
+  expect(exp.status).toBe(200);
+  const exported = (await exp.json()) as {
+    menus: { name: string; categories: { items: { name: string }[] }[] }[];
+  };
+  expect(exported.menus).toHaveLength(1);
+  expect(exported.menus[0]!.categories[0]!.items[0]!.name).toBe("Margherita");
+
+  // Replace with a different tree (one priceless item).
+  const put = await h.app.request(
+    `/api/staff/restaurants/${restaurant.id}/menus`,
+    await jsonPut(
+      h,
+      { menus: [{ name: "Lunch", categories: [{ name: "Salads", items: [{ name: "Caesar", priceCents: 700 }, { name: "Greek" }] }] }] },
+      s,
+    ),
+  );
+  expect(put.status).toBe(200);
+
+  const rows = (await sql`
+    SELECT name, price_cents FROM items WHERE restaurant_id = ${restaurant.id} ORDER BY position
+  `.execute(h.db.root)) as { rows: { name: string; price_cents: number }[] };
+  expect(rows.rows.map((r) => r.name)).toEqual(["Caesar", "Greek"]); // old tree replaced
+  expect(rows.rows.find((r) => r.name === "Greek")!.price_cents).toBe(0); // priceless
+
+  // Release the new-tenant restaurant budget (the shared DB has a per-plan cap).
+  await sql`DELETE FROM restaurants WHERE id = ${restaurant.id}`.execute(h.db.root);
 });
 
 test("import sets supportedLanguages and per-item translations", async () => {

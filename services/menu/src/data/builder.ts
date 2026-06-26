@@ -65,6 +65,13 @@ export async function updateMenu(
   affectedOrNotFound(r);
 }
 
+// Drops every menu (and, by cascade, categories + items) of a restaurant — the
+// first half of a JSON "replace the whole menu" (admin bulk edit). Scoped by
+// restaurant_id so it can only ever clear the targeted restaurant.
+export async function deleteAllMenus(db: DB, restaurantId: string): Promise<void> {
+  await db.deleteFrom("menus").where("restaurant_id", "=", restaurantId).execute();
+}
+
 export async function deleteMenu(db: DB, menuId: string, restaurantId: string): Promise<void> {
   changedOrNotFound(
     await db

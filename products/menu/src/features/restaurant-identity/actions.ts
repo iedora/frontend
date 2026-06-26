@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import type { AuditRecord, ImportPayload } from '@iedora/contracts'
+import type { AuditRecord, ImportMenu, ImportPayload } from '@iedora/contracts'
 import { Currencies, staffTransferOwnership as transferOwnershipSchema } from '@iedora/contracts'
 import { ApiError } from '@iedora/api-client'
 import * as api from '../../shared/api'
@@ -380,6 +380,33 @@ export async function staffImportRestaurantAction(input: {
     })
     revalidatePath('/menu/dashboard/admin/restaurants')
     return { ok: true, id: restaurant.id }
+  } catch (err) {
+    return { ok: false, error: provisionErrorKey(err) }
+  }
+}
+
+// Admin "edit the menu as JSON" for an existing restaurant: parse the pasted
+// document here (clean message on malformed JSON), then hand its `menus` to the
+// service, which validates + replaces the whole tree. Accepts a bare
+// { menus: [...] } or a full export doc (only its menus are used).
+export async function staffReplaceMenusAction(input: {
+  id: string
+  payloadText: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireStaff()
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(input.payloadText)
+  } catch {
+    return { ok: false, error: 'invalidJson' }
+  }
+  const menus = (parsed as { menus?: unknown } | null)?.menus
+  if (!Array.isArray(menus)) return { ok: false, error: 'invalidJson' }
+  try {
+    await api.staffReplaceMenus(input.id, menus as ImportMenu[])
+    revalidatePath(`/menu/dashboard/admin/restaurants/${input.id}`)
+    revalidatePath('/menu/dashboard/admin/restaurants')
+    return { ok: true }
   } catch (err) {
     return { ok: false, error: provisionErrorKey(err) }
   }

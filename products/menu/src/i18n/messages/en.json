@@ -711,7 +711,26 @@
       "openQr": "Open QR page",
       "qrManaged": "Generate, download and print this restaurant’s QR codes on its QR page.",
       "paymentExpired": "Payment expired",
-      "paymentExpiring": "Payment expiring"
+      "paymentExpiring": "Payment expiring",
+      "menu": "Menu",
+      "menuManaged": "Edit this restaurant’s menu — the full visual builder, or paste JSON to replace it.",
+      "openBuilder": "Open builder",
+      "editJson": "Edit as JSON"
+    },
+    "menuJson": {
+      "eyebrow": "Edit menu",
+      "title": "Edit menu as JSON",
+      "intro": "Edit the full menu as JSON, then save to replace every menu. For granular changes use the visual builder.",
+      "warning": "Saving replaces ALL menus for this restaurant.",
+      "openBuilder": "Open visual builder",
+      "save": "Replace menu",
+      "saving": "Saving…",
+      "saved": "Menu replaced.",
+      "problemsTitle": "Problems",
+      "validLabel": "Valid — ready to save.",
+      "invalidJson": "That isn’t valid JSON.",
+      "saveError": "Couldn’t save the menu. Check the JSON and try again.",
+      "back": "Back to restaurant"
     },
     "edit": {
       "eyebrow": "Edit",

@@ -415,6 +415,13 @@ export const staffImportRestaurant = z.object({
 });
 export type StaffImportRestaurant = z.infer<typeof staffImportRestaurant>;
 
+// Admin "edit the whole menu as JSON" for an EXISTING restaurant: the menu tree
+// only (identity + languages stay as they are). Replaces every menu.
+export const staffReplaceMenus = z.object({
+  menus: z.array(importMenu).min(1).max(IMPORT_LIMITS.menus),
+});
+export type StaffReplaceMenus = z.infer<typeof staffReplaceMenus>;
+
 // Transfer a restaurant's ownership. Two modes:
 //  - "existing": move ONLY this restaurant into an existing tenant, plan-gated
 //    on that target (On Us holds 1 restaurant, so a full On-Us tenant can't

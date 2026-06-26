@@ -78,6 +78,14 @@ export const loadRestaurantDetail = cache(async (id: string) => {
 })
 
 /**
+ * One restaurant's full menu tree serialized into the JSON-import shape, for the
+ * admin "Edit menu as JSON" page. Staff-role enforced by the service.
+ */
+export const loadMenuJson = cache(async (id: string) => {
+  return api.staffExportMenus(id)
+})
+
+/**
  * Active menus of one restaurant projected into the public render
  * shape, in the restaurant's default language — feeds the theme
  * editor's live preview. Ownership is enforced by the service

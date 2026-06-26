@@ -2,6 +2,7 @@ import {
   adminSetPasswordRequest,
   staffCreateRestaurant,
   staffImportRestaurant,
+  staffReplaceMenus as staffReplaceMenusSchema,
   staffTransferOwnership,
 } from "@iedora/contracts";
 import { zValidator } from "@hono/zod-validator";
@@ -26,7 +27,9 @@ import { invalid, notFound } from "../../errors";
 import { previewSlug, staffSetName, transferEligibility, transferRestaurant } from "../../service";
 import {
   staffCreateRestaurant as provisionRestaurant,
+  staffExportMenus,
   staffImportRestaurant as provisionImport,
+  staffReplaceMenus,
 } from "./provision";
 
 const MAX_BULK_QR = 500;
@@ -136,6 +139,14 @@ export function staffRoutes(deps: MenuDeps) {
     .post("/restaurants/import", zValidator("json", staffImportRestaurant, onInvalid), async (c) =>
       c.json({ restaurant: await provisionImport(deps, c.get("user").userId, c.req.valid("json")) }),
     )
+    // Admin "edit the menu as JSON" for an existing restaurant. GET serializes the
+    // live menu tree into the import shape; PUT replaces every menu from a pasted
+    // document (the restaurant's identity + languages are untouched).
+    .get("/restaurants/:id/menus", async (c) => c.json(await staffExportMenus(deps, c.req.param("id"))))
+    .put("/restaurants/:id/menus", zValidator("json", staffReplaceMenusSchema, onInvalid), async (c) => {
+      await staffReplaceMenus(deps, c.req.param("id"), c.req.valid("json").menus);
+      return c.json({ ok: true });
+    })
     // Transfer a restaurant's ownership: to an existing tenant (plan-gated), or
     // to a brand-new user who receives the whole tenant. Audited on the restaurant.
     .post("/restaurants/:id/transfer", zValidator("json", staffTransferOwnership, onInvalid), async (c) => {

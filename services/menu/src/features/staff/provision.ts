@@ -1,9 +1,18 @@
-import { IMPORT_LIMITS, type ImportPayload, type StaffCreateRestaurant } from "@iedora/contracts";
+import {
+  IMPORT_LIMITS,
+  type ImportItem,
+  type ImportMenu,
+  type ImportPayload,
+  type StaffCreateRestaurant,
+} from "@iedora/contracts";
 import { ServiceClientError } from "@iedora/server-kit";
 
+import { deleteAllMenus } from "../../data/builder";
+import { restaurantById } from "../../data/restaurants";
+import { menuTree } from "../../data/tree";
+import type { ItemNode, Node, Restaurant } from "../../domain";
 import type { MenuDeps } from "../../deps";
-import type { Restaurant } from "../../domain";
-import { invalid } from "../../errors";
+import { invalid, notFound } from "../../errors";
 import { Languages } from "../../i18n";
 import { createCategory, createItems, createMenu, createRestaurant } from "../../service";
 import { validLanguages } from "../../validate";
@@ -49,6 +58,64 @@ function assertLanguage(lang: string | undefined): void {
   if (code) validLanguages(code, [code]);
 }
 
+/** Every item translation must target a language the menu offers — otherwise the
+ *  public menu could never show it. Throws a clean 422. */
+function assertTranslationsSupported(menus: ImportMenu[], supported: Set<string>): void {
+  for (const menu of menus) {
+    for (const category of menu.categories ?? []) {
+      for (const item of category.items ?? []) {
+        for (const code of [...Object.keys(item.nameI18n ?? {}), ...Object.keys(item.descriptionI18n ?? {})]) {
+          if (!supported.has(code)) throw invalid(`translation language "${code}" is not in supportedLanguages`);
+        }
+      }
+    }
+  }
+}
+
+/** Total item count across the document — bounded so one runaway payload can't
+ *  stream thousands of rows into a single transaction. */
+function countItems(menus: ImportMenu[]): number {
+  const total = menus.reduce(
+    (sum, menu) => sum + (menu.categories ?? []).reduce((n, cat) => n + (cat.items ?? []).length, 0),
+    0,
+  );
+  if (total > IMPORT_LIMITS.totalItems) {
+    throw invalid(`too many items: ${total} (max ${IMPORT_LIMITS.totalItems})`);
+  }
+  return total;
+}
+
+/** Writes a validated menu tree under a restaurant. One multi-row INSERT per
+ *  category (freshly created, so item order is the array order). Shared by the
+ *  initial import and the admin JSON replace. */
+async function writeMenuTree(deps: MenuDeps, restaurant: Restaurant, menus: ImportMenu[]): Promise<void> {
+  for (const menu of menus) {
+    const menuId = await createMenu(deps, restaurant.id, menu.name);
+    for (const category of menu.categories ?? []) {
+      const categoryId = await createCategory(deps, menuId, restaurant.id, category.name);
+      await createItems(
+        deps,
+        categoryId,
+        restaurant.id,
+        restaurant.defaultLanguage,
+        restaurant.defaultCurrency,
+        (category.items ?? []).map((item) => ({
+          name: item.name,
+          nameI18n: item.nameI18n,
+          description: item.description,
+          descriptionI18n: item.descriptionI18n,
+          // Priceless dishes (market price, headers) store 0 → no price shown.
+          priceCents: item.priceCents ?? 0,
+          currency: item.currency,
+          available: item.available,
+          tags: item.tags,
+          variants: item.variants,
+        })),
+      );
+    }
+  }
+}
+
 export function staffCreateRestaurant(
   deps: MenuDeps,
   actorId: string,
@@ -76,28 +143,9 @@ export async function staffImportRestaurant(
   const supported = Array.from(new Set([defaultLang, ...(payload.restaurant.supportedLanguages ?? [])]));
   validLanguages(defaultLang, supported);
 
-  // Every item translation must target a supported language, or the public menu
-  // could never show it. Caught here so the admin sees a clear 422.
-  const supportedSet = new Set(supported);
-  for (const menu of payload.menus) {
-    for (const category of menu.categories ?? []) {
-      for (const item of category.items ?? []) {
-        for (const code of [...Object.keys(item.nameI18n ?? {}), ...Object.keys(item.descriptionI18n ?? {})]) {
-          if (!supportedSet.has(code)) {
-            throw invalid(`translation language "${code}" is not in supportedLanguages`);
-          }
-        }
-      }
-    }
-  }
-
-  const totalItems = payload.menus.reduce(
-    (sum, menu) => sum + (menu.categories ?? []).reduce((n, cat) => n + (cat.items ?? []).length, 0),
-    0,
-  );
-  if (totalItems > IMPORT_LIMITS.totalItems) {
-    throw invalid(`too many items: ${totalItems} (max ${IMPORT_LIMITS.totalItems})`);
-  }
+  // Caught here so the admin sees a clear 422 before any write.
+  assertTranslationsSupported(payload.menus, new Set(supported));
+  countItems(payload.menus);
 
   const tenantId = await resolveTenant(deps, actorId, {
     tenantId: input.tenantId,
@@ -117,34 +165,79 @@ export async function staffImportRestaurant(
       supported,
       payload.restaurant.slug,
     );
-    for (const menu of payload.menus) {
-      const menuId = await createMenu(deps, restaurant.id, menu.name);
-      for (const category of menu.categories ?? []) {
-        const categoryId = await createCategory(deps, menuId, restaurant.id, category.name);
-        // One multi-row INSERT for the whole category (freshly created, so item
-        // order is the array order) instead of a round-trip per item.
-        await createItems(
-          deps,
-          categoryId,
-          restaurant.id,
-          restaurant.defaultLanguage,
-          restaurant.defaultCurrency,
-          (category.items ?? []).map((item) => ({
-            name: item.name,
-            nameI18n: item.nameI18n,
-            description: item.description,
-            descriptionI18n: item.descriptionI18n,
-            // Priceless dishes (market price, headers) import as 0 → the menu
-            // renders no price. Variants, when present, carry their own prices.
-            priceCents: item.priceCents ?? 0,
-            currency: item.currency,
-            available: item.available,
-            tags: item.tags,
-            variants: item.variants,
-          })),
-        );
-      }
-    }
+    await writeMenuTree(deps, restaurant, payload.menus);
     return restaurant;
   });
+}
+
+/** Serializes a restaurant's full menu tree (all menus, hidden + inactive
+ *  included) into the same shape the JSON importer accepts, so the admin editor
+ *  can load the live menu, edit it, and save it back. Optional/empty fields are
+ *  dropped to keep the document clean (priceless items carry no price). */
+export async function staffExportMenus(
+  deps: MenuDeps,
+  restaurantId: string,
+): Promise<{ menus: ImportMenu[] }> {
+  const restaurant = await restaurantById(deps.db.db, restaurantId);
+  if (!restaurant) throw notFound();
+  const tree = await menuTree(deps.db.db, restaurantId, false);
+  return { menus: tree.map(toImportMenu) };
+}
+
+/** Replaces a restaurant's entire menu tree from a JSON document (admin bulk
+ *  edit). Validates against the restaurant's own languages + item budget, then
+ *  in one transaction drops the existing menus and writes the new tree.
+ *  Destructive by design (item ids are not preserved). */
+export async function staffReplaceMenus(
+  deps: MenuDeps,
+  restaurantId: string,
+  menus: ImportMenu[],
+): Promise<void> {
+  const restaurant = await restaurantById(deps.db.db, restaurantId);
+  if (!restaurant) throw notFound();
+  assertTranslationsSupported(menus, new Set([restaurant.defaultLanguage, ...restaurant.supportedLanguages]));
+  countItems(menus);
+  await deps.db.runInTx(async () => {
+    await deleteAllMenus(deps.db.db, restaurantId);
+    await writeMenuTree(deps, restaurant, menus);
+  });
+}
+
+const nonEmpty = (m: ItemNode["nameI18n"] | undefined) =>
+  m && Object.keys(m).length > 0 ? m : undefined;
+
+function toImportItem(it: ItemNode): ImportItem {
+  return {
+    name: it.name,
+    nameI18n: nonEmpty(it.nameI18n),
+    description: it.description || undefined,
+    descriptionI18n: nonEmpty(it.descriptionI18n),
+    currency: it.currency,
+    // Hidden items round-trip as available:false; visible ones omit it (default).
+    available: it.available ? undefined : false,
+    tags: it.tags.length > 0 ? it.tags : undefined,
+    // Variants drive the price when present; otherwise a non-zero price; a
+    // priceless item carries neither.
+    ...(it.variants.length > 0
+      ? {
+          variants: it.variants.map((v) => ({
+            label: v.label,
+            labelI18n: nonEmpty(v.labelI18n),
+            priceCents: v.priceCents,
+          })),
+        }
+      : it.priceCents > 0
+        ? { priceCents: it.priceCents }
+        : {}),
+  };
+}
+
+function toImportMenu(m: Node): ImportMenu {
+  return {
+    name: m.name,
+    categories: m.categories.map((c) => ({
+      name: c.name,
+      items: c.items.map(toImportItem),
+    })),
+  };
 }

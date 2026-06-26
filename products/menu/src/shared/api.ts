@@ -10,6 +10,7 @@ import type {
   CategoryUpdate,
   DailyPoint,
   IdentityPatch,
+  ImportMenu,
   ImportPayload,
   Invoice,
   ItemWrite,
@@ -433,6 +434,20 @@ export function staffImportRestaurant(input: { tenantId?: string; payload: Impor
   return apiJson<{ restaurant: Restaurant }>('/api/staff/restaurants/import', {
     method: 'POST',
     ...json(input),
+  })
+}
+
+/** Admin "edit menu as JSON": load an existing restaurant's menu tree in the
+ * import shape so it can be edited and saved back. */
+export function staffExportMenus(id: string) {
+  return apiJson<{ menus: ImportMenu[] }>(`/api/staff/restaurants/${encodeURIComponent(id)}/menus`)
+}
+
+/** Replace a restaurant's entire menu tree from a pasted JSON document. */
+export function staffReplaceMenus(id: string, menus: ImportMenu[]) {
+  return apiJson<{ ok: true }>(`/api/staff/restaurants/${encodeURIComponent(id)}/menus`, {
+    method: 'PUT',
+    ...json({ menus }),
   })
 }
 
