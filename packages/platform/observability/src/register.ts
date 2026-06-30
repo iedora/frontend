@@ -1,4 +1,12 @@
-import { OTLPHttpProtoTraceExporter, registerOTel } from "@vercel/otel";
+// @vercel/otel is lazy-required inside registerIedoraOtel (below), NOT imported
+// at top level. @vercel/otel transitively pulls in Next's *compiled* copy of
+// @opentelemetry/api — a SECOND api instance with its own global registry. When
+// this barrel was eagerly imported by a BACKEND service (for registerIedoraOtelNode
+// etc.), that second instance loaded too, and the backend's request spans ended up
+// reading its empty global (a no-op ProxyTracerProvider) instead of the real
+// provider — silently dropping every span. Deferring the require to the frontend's
+// actual registerIedoraOtel() call keeps @vercel/otel (and Next's api) out of the
+// backend entirely.
 import { trace, metrics } from "@opentelemetry/api";
 import { logs } from "@opentelemetry/api-logs";
 import {
@@ -141,6 +149,11 @@ export function registerIedoraOtel(opts: RegisterOptions): void {
   const g = globalThis as { [globalKey]?: boolean };
   if (g[globalKey]) return;
   g[globalKey] = true;
+
+  // Lazy require (see top-of-file note): only the frontend reaches this, so
+  // @vercel/otel + Next's compiled @opentelemetry/api load here, never at import.
+  const { OTLPHttpProtoTraceExporter, registerOTel } =
+    require("@vercel/otel") as typeof import("@vercel/otel");
 
   const environment =
     process.env.DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development";

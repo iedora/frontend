@@ -128,15 +128,34 @@ export function registerIedoraOtelNode(opts: RegisterNodeOptions): void {
       ...(traceExporter ? [new BatchSpanProcessor(traceExporter)] : []),
     ],
   });
-  trace.setGlobalTracerProvider(tp);
-
+  const providerRegistered = trace.setGlobalTracerProvider(tp);
   context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
-
   // Propagator — make traceparent/tracestate work both ways. The
   // orchestrator sets TRACEPARENT in the migrate container's env; the
   // first span we open extracts it as the parent so the trace
   // stitches across the docker run boundary.
   propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+
+  // setGlobalTracerProvider returns false (+ warns "duplicate registration") if a
+  // global is already set — then every trace.getTracer() is a no-op proxy and
+  // spans are silently dropped. Assert it loudly at boot rather than debug blind.
+  console.log(
+    JSON.stringify({
+      level: providerRegistered ? "info" : "error",
+      msg: providerRegistered ? "otel-registered" : "otel-register-FAILED",
+      service: opts.serviceName,
+      endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? null,
+    }),
+  );
+
+  // CRITICAL (Bun): BatchSpanProcessor's internal flush timer is unref'd and does
+  // NOT fire inside a long-lived Bun.serve process, so spans buffer forever and
+  // only ship on shutdown — the live service exports nothing. Drive export with a
+  // normal, REFERENCED interval (do NOT unref — that is the bug). forceFlush is
+  // cheap (no-op on an empty queue); shutdownOtel() still does the final flush.
+  if (traceExporter) {
+    setInterval(() => void tp.forceFlush().catch(() => {}), 5_000);
+  }
 
   // Meter provider. DELTA temporality is load-bearing — see register.ts
   // notes. Without it OpenObserve double-counts on every flush.
